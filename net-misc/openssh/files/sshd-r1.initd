@@ -5,11 +5,11 @@
 extra_commands="checkconfig"
 extra_started_commands="reload"
 
-: ${SSHD_CONFDIR:=${RC_PREFIX%/}/usr/lib/openssh-legacy/etc/ssh}
+: ${SSHD_CONFDIR:=${RC_PREFIX%/}/etc/ssh}
 : ${SSHD_CONFIG:=${SSHD_CONFDIR}/sshd_config}
 : ${SSHD_PIDFILE:=${RC_PREFIX%/}/run/${SVCNAME}.pid}
-: ${SSHD_BINARY:=${RC_PREFIX%/}/usr/lib/openssh-legacy/sbin/sshd}
-: ${SSHD_KEYGEN_BINARY:=${RC_PREFIX%/}/usr/lib/openssh-legacy/bin/ssh-keygen}
+: ${SSHD_BINARY:=${RC_PREFIX%/}/usr/sbin/sshd}
+: ${SSHD_KEYGEN_BINARY:=${RC_PREFIX%/}/usr/bin/ssh-keygen}
 
 command="${SSHD_BINARY}"
 pidfile="${SSHD_PIDFILE}"

@@ -3,5 +3,5 @@
 # Distributed under the terms of the GNU General Public License, v2 or later
 
 supervisor=supervise-daemon
-command="/usr/lib/openssh-legacy/bin/ssh-agent"
+command="/usr/bin/ssh-agent"
 command_args="-D -a ${XDG_RUNTIME_DIR}/ssh-agent.sock"

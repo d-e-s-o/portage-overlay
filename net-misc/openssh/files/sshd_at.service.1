@@ -3,6 +3,6 @@ Description=OpenSSH per-connection server daemon
 After=auditd.service
 
 [Service]
-ExecStart=-/usr/lib/openssh-legacy/sbin/sshd -i -e
+ExecStart=-/usr/sbin/sshd -i -e
 StandardInput=socket
 StandardError=journal

@@ -2,7 +2,7 @@
 
 # Where is your sshd_config file stored?
 
-SSHD_CONFDIR="${RC_PREFIX%/}/usr/lib/openssh-legacy/etc/ssh"
+SSHD_CONFDIR="${RC_PREFIX%/}/etc/ssh"
 
 
 # Any random options you want to pass to sshd.
@@ -25,9 +25,9 @@ SSHD_OPTS=""
 
 # Path to the sshd binary (needs to be absolute path).
 
-#SSHD_BINARY="${RC_PREFIX%/}/usr/lib/openssh-legacy/usr/sbin/sshd"
+#SSHD_BINARY="${RC_PREFIX%/}/usr/sbin/sshd"
 
 
 # Path to the ssh-keygen binary (needs to be absolute path).
 
-#SSHD_KEYGEN_BINARY="${RC_PREFIX%/}/usr/lib/openssh-legacy/usr/bin/ssh-keygen"
+#SSHD_KEYGEN_BINARY="${RC_PREFIX%/}/usr/bin/ssh-keygen"
