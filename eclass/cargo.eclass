@@ -489,7 +489,11 @@ _cargo_needs_target() {
 # target/aarch64-unknown-linux-gnu/release.
 cargo_target_dir() {
 	local abi
-	_cargo_needs_target && abi=/$(rust_abi)
+	if [ -n "${CARGO_BUILD_TARGET}" ]; then
+		abi=/${CARGO_BUILD_TARGET}
+	else
+		_cargo_needs_target && abi=/$(rust_abi)
+	fi
 	echo "${CARGO_TARGET_DIR:-target}${abi}/$(usex debug debug release)"
 }
 
