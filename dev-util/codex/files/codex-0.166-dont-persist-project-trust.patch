@@ -1,0 +1,83 @@
+From a97d0c922b6e59721d66cd22051f5d113dad357d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sat, 7 Nov 2026 13:19:26 -0800
+Subject: [PATCH] Don't persist per-project trust setting
+
+Project trust decisions are in-memory only:
+- thread start no longer writes trusted state to config.toml; it always
+  applies the existing in-memory CLI override for the thread instead
+- config write RPCs drop edits targeting the [projects] table rather
+  than persisting them
+
+Manual [projects."<path>"] entries in config.toml are still honored;
+nothing writes them programmatically anymore.
+---
+ app-server/src/config_manager_service.rs   | 13 +++++++++++++
+ .../src/request_processors/thread_processor.rs      | 13 +------------
+ 2 files changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/app-server/src/config_manager_service.rs b/app-server/src/config_manager_service.rs
+index b1cbf69..2f86d9 100644
+--- a/app-server/src/config_manager_service.rs
++++ b/app-server/src/config_manager_service.rs
+@@ -343,6 +343,12 @@ async fn apply_edits(
+ 
+         for (key_path, value, strategy) in edits.into_iter() {
+             let mut segments = writable_key_path(&layers, &key_path)?;
++            if is_project_trust_path(&segments) {
++                // Project trust decisions are in-memory only. Drop such
++                // edits instead of writing `[projects."<path>"]` entries
++                // into config.toml; keep them only if added there by hand.
++                continue;
++            }
+             if (value.is_null() || matches!(strategy, MergeStrategy::Upsert))
+                 && let Some(pattern) = shell_environment_filter_entry(&user_config, &segments)
+                     .map(|(pattern, _)| pattern.clone())
+@@ -627,6 +633,13 @@ fn writable_key_path(
+     Ok(segments)
+ }
+ 
++/// Returns true for config paths inside the `[projects]` table, such as the
++/// `projects."<path>".trust_level` entries written by directory-trust
++/// prompts.
++fn is_project_trust_path(segments: &[String]) -> bool {
++    matches!(segments, [projects, ..] if projects == "projects")
++}
++
+ fn parse_key_path(path: &str) -> Result<Vec<String>, String> {
+     if path.trim().is_empty() {
+         return Err("keyPath must not be empty".to_string());
+diff --git a/app-server/src/request_processors/thread_processor.rs b/app-server/src/request_processors/thread_processor.rs
+index 1ef252..c4a866 100644
+--- a/app-server/src/request_processors/thread_processor.rs
++++ b/app-server/src/request_processors/thread_processor.rs
+@@ -1478,16 +1478,7 @@ async fn thread_start_task(
+                 .unwrap_or_else(|| config.cwd.clone());
+             let current_cli_overrides = config_manager.current_cli_overrides();
+             let cli_overrides_with_trust;
+-            let cli_overrides_for_reload = if let Err(err) =
+-                codex_core::config::set_project_trust_level(
+-                    &listener_task_context.codex_home,
+-                    trust_target.as_path(),
+-                    TrustLevel::Trusted,
+-                ) {
+-                warn!(
+-                    "failed to persist trusted project state for {}; continuing with in-memory trust for this thread: {err}",
+-                    trust_target.display()
+-                );
++            let cli_overrides_for_reload = {
+                 let mut project = toml::map::Map::new();
+                 project.insert(
+                     "trust_level".to_string(),
+@@ -1507,8 +1498,6 @@ async fn thread_start_task(
+                     )))
+                     .collect::<Vec<_>>();
+                 cli_overrides_with_trust.as_slice()
+-            } else {
+-                current_cli_overrides.as_slice()
+             };
+ 
+             config = config_manager
+-- 
+2.56.0
+
