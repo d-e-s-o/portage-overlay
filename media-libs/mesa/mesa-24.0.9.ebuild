@@ -3,7 +3,7 @@
 
 EAPI=8
 
-LLVM_COMPAT=( {15..17} )
+LLVM_COMPAT=( {15..22} )
 LLVM_OPTIONAL=1
 
 inherit flag-o-matic llvm-r1 meson-multilib python-no-clowntown linux-info toolchain-funcs
