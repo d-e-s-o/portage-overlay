@@ -1,0 +1,83 @@
+From 80bd7d5bdcbfb2fd8df8d29ae5c3ace4e5315c14 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sat, 7 Nov 2026 13:19:26 -0800
+Subject: [PATCH] Don't persist per-project trust setting
+
+Project trust decisions are in-memory only:
+- thread start no longer writes trusted state to config.toml; it always
+  applies the existing in-memory CLI override for the thread instead
+- config write RPCs drop edits targeting the [projects] table rather
+  than persisting them
+
+Manual [projects."<path>"] entries in config.toml are still honored;
+nothing writes them programmatically anymore.
+---
+ codex-rs/app-server/src/config_manager_service.rs   | 13 +++++++++++++
+ .../src/request_processors/thread_processor.rs      | 13 +------------
+ 2 files changed, 14 insertions(+), 12 deletions(-)
+
+diff --git a/app-server/src/config_manager_service.rs b/app-server/src/config_manager_service.rs
+index df807b..a42992 100644
+--- a/app-server/src/config_manager_service.rs
++++ b/app-server/src/config_manager_service.rs
+@@ -265,6 +265,12 @@ async fn apply_edits(
+             let mut segments = parse_key_path(&key_path).map_err(|message| {
+                 ConfigManagerError::write(ConfigWriteErrorCode::ConfigValidationError, message)
+             })?;
++            if is_project_trust_path(&segments) {
++                // Project trust decisions are in-memory only. Drop such
++                // edits instead of writing `[projects."<path>"]` entries
++                // into config.toml; keep them only if added there by hand.
++                continue;
++            }
+             if let Some(field) = layers
+                 .requirements_toml()
+                 .exact_requirement_for_config_path(&segments)
+@@ -536,6 +542,13 @@ fn parse_value(value: JsonValue) -> Result<Option<TomlValue>, String> {
+         .map_err(|err| format!("invalid value: {err}"))
+ }
+ 
++/// Returns true for config paths inside the `[projects]` table, such as the
++/// `projects."<path>".trust_level` entries written by directory-trust
++/// prompts.
++fn is_project_trust_path(segments: &[String]) -> bool {
++    matches!(segments, [projects, ..] if projects == "projects")
++}
++
+ fn parse_key_path(path: &str) -> Result<Vec<String>, String> {
+     if path.trim().is_empty() {
+         return Err("keyPath must not be empty".to_string());
+diff --git a/app-server/src/request_processors/thread_processor.rs b/app-server/src/request_processors/thread_processor.rs
+index 941e32..56f8ed 100644
+--- a/app-server/src/request_processors/thread_processor.rs
++++ b/app-server/src/request_processors/thread_processor.rs
+@@ -1427,16 +1427,7 @@ async fn thread_start_task(
+                 .unwrap_or_else(|| config.cwd.clone());
+             let current_cli_overrides = config_manager.current_cli_overrides();
+             let cli_overrides_with_trust;
+-            let cli_overrides_for_reload = if let Err(err) =
+-                codex_core::config::set_project_trust_level(
+-                    &listener_task_context.codex_home,
+-                    trust_target.as_path(),
+-                    TrustLevel::Trusted,
+-                ) {
+-                warn!(
+-                    "failed to persist trusted project state for {}; continuing with in-memory trust for this thread: {err}",
+-                    trust_target.display()
+-                );
++            let cli_overrides_for_reload = {
+                 let mut project = toml::map::Map::new();
+                 project.insert(
+                     "trust_level".to_string(),
+@@ -1456,8 +1447,6 @@ async fn thread_start_task(
+                     )))
+                     .collect::<Vec<_>>();
+                 cli_overrides_with_trust.as_slice()
+-            } else {
+-                current_cli_overrides.as_slice()
+             };
+ 
+             config = config_manager
+-- 
+2.56.0
+
