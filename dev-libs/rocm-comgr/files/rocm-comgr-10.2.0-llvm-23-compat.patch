@@ -1,0 +1,251 @@
+Fix build with llvm-23
+
+LLVM 24 moved the per-ISA SGPR/VGPR geometry, feature bitsets and LDS/wave
+sizes into TargetParser tables.  LLVM 23 does not expose them, so bridge
+what COMGR queries in comgr-metadata.cpp:
+
+ - SGPR helpers rebuilt from the LLVM 23 ISA version rules.
+ - getFeatureBitset() and the numeric getters backed by a static snapshot
+   of the LLVM 24 tables, generated from the therock-10.2 llvm fork by
+   replicating -gen-amdgpu-target-def semantics (see the provenance
+   comment above the table).  A GPU that LLVM 23 can name but the table
+   cannot describe is reported as an invalid ISA instead of yielding
+   zeroed metadata.
+
+Derived from the 10.1.0 compat patch; its comgr-isa-metadata.def and
+include hunks are obsolete (file removed, gfx1250-strict gone upstream).
+--- a/src/comgr-metadata.cpp
++++ b/src/comgr-metadata.cpp
+@@ -24,6 +24,7 @@
+ #include "llvm/ADT/Twine.h"
+ #include "llvm/BinaryFormat/ELF.h"
+ #include "llvm/BinaryFormat/MsgPackDocument.h"
++#include "llvm/Config/llvm-config.h"
+ #include "llvm/Object/ELFObjectFile.h"
+ #include "llvm/Support/AMDGPUMetadata.h"
+ #include "llvm/Support/BinaryStreamReader.h"
+@@ -38,6 +39,210 @@
+ 
+ using namespace llvm;
+ using namespace llvm::object;
++
++#if LLVM_VERSION_MAJOR < 24
++// Added to AMDGPUTargetParser in LLVM 24
++namespace llvm::AMDGPU {
++static unsigned getTotalNumSGPRs(GPUKind AK) {
++  return getIsaVersion(getSubArch(AK)).Major >= 8 ? 800 : 512;
++}
++
++static unsigned getAddressableNumSGPRs(GPUKind AK) {
++  // SGPR init bug
++  if (AK == GK_GFX802 || AK == GK_GFX805)
++    return 96;
++  unsigned Major = getIsaVersion(getSubArch(AK)).Major;
++  return Major >= 10 ? 106 : Major >= 8 ? 102 : 104;
++}
++
++static unsigned getSGPRAllocGranule(GPUKind AK) {
++  unsigned Major = getIsaVersion(getSubArch(AK)).Major;
++  return Major >= 10 ? getAddressableNumSGPRs(AK) : Major >= 8 ? 16 : 8;
++}
++
++// LLVM 24's frontend feature bitset, restricted to the features COMGR
++// tests.  Names mirror the FEAT_* enumerators that TableGen derives from
++// AMDGPU feature names (upper case, '-' converted to '_').
++enum : unsigned {
++  FEAT_IMAGE_INSTS = 1u << 0,
++  FEAT_GFX10_INSTS = 1u << 1,
++  FEAT_GFX10_3_INSTS = 1u << 2,
++  FEAT_GFX90A_INSTS = 1u << 3,
++  FEAT_1536_PHYSICAL_VGPRS = 1u << 4,
++  FEAT_1024_ADDRESSABLE_VGPRS = 1u << 5,
++  FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY = 1u << 6,
++  FEAT_XNACK_ON_OFF_MODES = 1u << 7,
++  FEAT_SRAMECC_SUPPORT = 1u << 8,
++};
++
++// Per-ISA metadata as recorded by the therock-10.2 LLVM fork (the LLVM 24
++// base of ROCm 10.2).  Generated from llvm/lib/Target/AMDGPU/AMDGPU.td and
++// GCNProcessors.td by replicating -gen-amdgpu-target-def
++// (llvm/utils/TableGen/Basic/AMDGPUTargetDefEmitter.cpp): the bitset is the
++// transitive closure of each AMDGPUProcessorModel Features list following
++// Implies edges, and the numerics follow getFeatureValue() with the
++// emitter defaults (MaxWavesPerEU 10, AddressableLocalMemorySize 32768,
++// LDSBankCount 32).  Rows are keyed on the GPUKind enumerators of the LLVM
++// 23 TargetParser and cover every GPU its AMDGPUTargetParser.def
++// enumerates.
++struct IsaTableEntry {
++  GPUKind Kind;
++  unsigned Bits;
++  unsigned MaxWavesPerEU;
++  unsigned MaxHWAddressableLocalMemorySize;
++  unsigned LDSBankCount;
++};
++
++static const IsaTableEntry IsaTable[] = {
++    {GK_GFX600, FEAT_IMAGE_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 10, 32768, 32},  // gfx600
++    {GK_GFX601, FEAT_IMAGE_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 10, 32768, 32},  // gfx601
++    {GK_GFX602, FEAT_IMAGE_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 10, 32768, 32},  // gfx602
++    {GK_GFX700, FEAT_IMAGE_INSTS, 10, 65536, 32},  // gfx700
++    {GK_GFX701, FEAT_IMAGE_INSTS, 10, 65536, 32},  // gfx701
++    {GK_GFX702, FEAT_IMAGE_INSTS, 10, 65536, 16},  // gfx702
++    {GK_GFX703, FEAT_IMAGE_INSTS, 10, 65536, 16},  // gfx703
++    {GK_GFX704, FEAT_IMAGE_INSTS, 10, 65536, 32},  // gfx704
++    {GK_GFX705, FEAT_IMAGE_INSTS, 10, 65536, 16},  // gfx705
++    {GK_GFX801, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx801
++    {GK_GFX802, FEAT_IMAGE_INSTS, 10, 65536, 32},  // gfx802
++    {GK_GFX803, FEAT_IMAGE_INSTS, 10, 65536, 32},  // gfx803
++    {GK_GFX805, FEAT_IMAGE_INSTS, 10, 65536, 32},  // gfx805
++    {GK_GFX810, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 16},  // gfx810
++    {GK_GFX900, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx900
++    {GK_GFX902, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx902
++    {GK_GFX904, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx904
++    {GK_GFX906, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES | FEAT_SRAMECC_SUPPORT, 10, 65536, 32},  // gfx906
++    {GK_GFX908, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES | FEAT_SRAMECC_SUPPORT, 10, 65536, 32},  // gfx908
++    {GK_GFX909, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx909
++    {GK_GFX90A, FEAT_IMAGE_INSTS | FEAT_GFX90A_INSTS | FEAT_XNACK_ON_OFF_MODES | FEAT_SRAMECC_SUPPORT, 8, 65536, 32},  // gfx90a
++    {GK_GFX90C, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx90c
++    {GK_GFX942, FEAT_GFX90A_INSTS | FEAT_XNACK_ON_OFF_MODES | FEAT_SRAMECC_SUPPORT, 8, 65536, 32},  // gfx942
++    {GK_GFX950, FEAT_GFX90A_INSTS | FEAT_XNACK_ON_OFF_MODES | FEAT_SRAMECC_SUPPORT, 8, 163840, 64},  // gfx950
++    {GK_GFX1010, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY | FEAT_XNACK_ON_OFF_MODES, 20, 65536, 32},  // gfx1010
++    {GK_GFX1011, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY | FEAT_XNACK_ON_OFF_MODES, 20, 65536, 32},  // gfx1011
++    {GK_GFX1012, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY | FEAT_XNACK_ON_OFF_MODES, 20, 65536, 32},  // gfx1012
++    {GK_GFX1013, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY | FEAT_XNACK_ON_OFF_MODES, 20, 65536, 32},  // gfx1013
++    {GK_GFX1030, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1030
++    {GK_GFX1031, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1031
++    {GK_GFX1032, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1032
++    {GK_GFX1033, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1033
++    {GK_GFX1034, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1034
++    {GK_GFX1035, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1035
++    {GK_GFX1036, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1036
++    {GK_GFX1100, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1536_PHYSICAL_VGPRS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1100
++    {GK_GFX1101, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1536_PHYSICAL_VGPRS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1101
++    {GK_GFX1102, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1102
++    {GK_GFX1103, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1103
++    {GK_GFX1150, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1150
++    {GK_GFX1151, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1536_PHYSICAL_VGPRS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1151
++    {GK_GFX1152, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1152
++    {GK_GFX1153, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1153
++    {GK_GFX1154, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1154
++    {GK_GFX1170, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1170
++    {GK_GFX1171, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1171
++    {GK_GFX1172, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1172
++    {GK_GFX1200, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1536_PHYSICAL_VGPRS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1200
++    {GK_GFX1201, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1536_PHYSICAL_VGPRS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx1201
++    {GK_GFX1250, FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1024_ADDRESSABLE_VGPRS | FEAT_SRAMECC_SUPPORT, 16, 327680, 64},  // gfx1250
++    {GK_GFX1251, FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1024_ADDRESSABLE_VGPRS | FEAT_SRAMECC_SUPPORT, 16, 327680, 64},  // gfx1251
++    {GK_GFX1310, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS, 16, 196608, 32},  // gfx1310
++    {GK_GFX9_GENERIC, FEAT_IMAGE_INSTS | FEAT_XNACK_ON_OFF_MODES, 10, 65536, 32},  // gfx9-generic
++    {GK_GFX9_4_GENERIC, FEAT_GFX90A_INSTS | FEAT_XNACK_ON_OFF_MODES | FEAT_SRAMECC_SUPPORT, 8, 65536, 32},  // gfx9-4-generic
++    {GK_GFX10_1_GENERIC, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY | FEAT_XNACK_ON_OFF_MODES, 20, 65536, 32},  // gfx10-1-generic
++    {GK_GFX10_3_GENERIC, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx10-3-generic
++    {GK_GFX11_GENERIC, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx11-generic
++    {GK_GFX11_7_GENERIC, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx11-7-generic
++    {GK_GFX12_GENERIC, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1536_PHYSICAL_VGPRS | FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY, 16, 65536, 32},  // gfx12-generic
++    {GK_GFX12_5_GENERIC, FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS | FEAT_1024_ADDRESSABLE_VGPRS | FEAT_SRAMECC_SUPPORT, 16, 327680, 64},  // gfx12-5-generic
++    {GK_GFX13_GENERIC, FEAT_IMAGE_INSTS | FEAT_GFX10_INSTS | FEAT_GFX10_3_INSTS, 16, 196608, 32},  // gfx13-generic
++};
++
++static const IsaTableEntry *getIsaTableEntry(GPUKind AK) {
++  for (const IsaTableEntry &E : IsaTable)
++    if (E.Kind == AK)
++      return &E;
++  return nullptr;
++}
++
++class AMDGPUFeatureBitset {
++  unsigned Bits;
++
++public:
++  AMDGPUFeatureBitset(unsigned Bits = 0) : Bits(Bits) {}
++  bool test(unsigned Feature) const { return Bits & Feature; }
++};
++
++static AMDGPUFeatureBitset getFeatureBitset(GPUKind AK) {
++  const IsaTableEntry *E = getIsaTableEntry(AK);
++  return AMDGPUFeatureBitset(E ? E->Bits : 0);
++}
++
++// The numeric helpers mirror the LLVM 24 definitions in
++// llvm/lib/TargetParser/AMDGPUTargetParser.cpp.  getIsaMetadata() rejects
++// GPUs that are missing from IsaTable before any of these runs, so a null
++// entry cannot leak into published metadata.
++static unsigned getLocalMemorySize(GPUKind AK, bool FullSIMDMode) {
++  const IsaTableEntry *E = getIsaTableEntry(AK);
++  // gfx6 and gfx10/11/12 address half of the physical block.
++  unsigned Size = E ? E->MaxHWAddressableLocalMemorySize : 32768;
++  if (getFeatureBitset(AK).test(FEAT_HALF_ADDRESSABLE_PHYSICAL_LOCAL_MEMORY))
++    Size *= 2;
++
++  // In half-SIMD mode the work-group reaches only half of the block.
++  if (!FullSIMDMode)
++    Size /= 2;
++
++  return Size;
++}
++
++static unsigned getMaxWavesPerEU(GPUKind AK) {
++  const IsaTableEntry *E = getIsaTableEntry(AK);
++  return E ? E->MaxWavesPerEU : 10;
++}
++
++static unsigned getMaxFlatWorkGroupSize() {
++  // Some subtargets allow encoding 2048, but this isn't tested or supported.
++  return 1024;
++}
++
++static unsigned getVGPRAllocGranule(GPUKind AK, bool IsWave32) {
++  const AMDGPUFeatureBitset Features = getFeatureBitset(AK);
++  if (Features.test(FEAT_GFX90A_INSTS))
++    return 8;
++  if (Features.test(FEAT_1536_PHYSICAL_VGPRS))
++    return IsWave32 ? 24 : 12;
++  if (Features.test(FEAT_GFX10_3_INSTS))
++    return IsWave32 ? 16 : 8;
++  return IsWave32 ? 8 : 4;
++}
++
++static unsigned getTotalNumVGPRs(GPUKind AK, bool IsWave32) {
++  const AMDGPUFeatureBitset Features = getFeatureBitset(AK);
++  if (Features.test(FEAT_GFX90A_INSTS))
++    return 512;
++  if (!Features.test(FEAT_GFX10_INSTS))
++    return 256;
++  if (Features.test(FEAT_1536_PHYSICAL_VGPRS))
++    return IsWave32 ? 1536 : 768;
++  return IsWave32 ? 1024 : 512;
++}
++
++static unsigned getAddressableNumVGPRs(GPUKind AK, bool IsWave32) {
++  const AMDGPUFeatureBitset Features = getFeatureBitset(AK);
++  // The unified register file makes the AGPRs addressable as VGPRs.
++  if (Features.test(FEAT_GFX90A_INSTS))
++    return 512;
++  if (Features.test(FEAT_1024_ADDRESSABLE_VGPRS))
++    return IsWave32 ? 1024 : 512;
++  return 256;
++}
++
++static unsigned getLDSBankCount(GPUKind AK) {
++  const IsaTableEntry *E = getIsaTableEntry(AK);
++  return E ? E->LDSBankCount : 32;
++}
++} // namespace llvm::AMDGPU
++#endif
+ 
+ namespace COMGR {
+ namespace metadata {
+@@ -521,6 +726,13 @@
+   Root["Version"] = Doc.getNode("1.0.0", /*Copy=*/true);
+ 
+   AMDGPU::GPUKind Kind = getIsaInfos()[IsaIndex].Kind;
++#if LLVM_VERSION_MAJOR < 24
++  // The fallback table may not know every GPUKind that LLVM 23 enumerates;
++  // report such GPUs as unsupported instead of publishing zeroed metadata.
++  if (!AMDGPU::getIsaTableEntry(Kind)) {
++    return AMD_COMGR_STATUS_ERROR_INVALID_ARGUMENT;
++  }
++#endif
+   const AMDGPU::AMDGPUFeatureBitset &Features = AMDGPU::getFeatureBitset(Kind);
+ 
+   auto FeaturesNode = Doc.getMapNode();
