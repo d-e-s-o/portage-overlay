@@ -1,0 +1,152 @@
+From daacc045502047fd60cbaefb416bb095fea1d3bb Mon Sep 17 00:00:00 2001
+From: Thomas Anderson <thomasanderson@chromium.org>
+Date: Wed, 11 Nov 2026 11:22:22 -0800
+Subject: [PATCH] [X11] Process key events from every master keyboard
+
+With MPX (e.g. after `xinput create-master`), the X server has more
+than one master keyboard. TouchFactory stored a single "virtual core
+keyboard" ID, which each MasterKeyboard in the device list overwrote,
+so the newly created master won and key events from the Virtual core
+keyboard (i.e. all physical keyboards) were dropped by
+ShouldProcessDeviceEvent().
+
+Track the set of master keyboards instead and accept key events from
+any of them. Key events reported by slave keyboards are still ignored.
+
+Tested on Xorg + openbox: after `xinput create-master test 0 1`,
+typing via the Virtual core keyboard reaches a focused <input> again.
+
+Fixed: 573208179
+Change-Id: Ia3d9af29a39b6c42defe00668971e1d509f64524
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/8793153
+Reviewed-by: Avi Drissman <avi@chromium.org>
+Commit-Queue: Thomas Anderson <thomasanderson@chromium.org>
+Cr-Commit-Position: refs/heads/main@{#1742023}
+---
+
+diff --git a/ui/events/devices/x11/touch_factory_x11.cc b/ui/events/devices/x11/touch_factory_x11.cc
+index 52553cf..2b32413 100644
+--- a/ui/events/devices/x11/touch_factory_x11.cc
++++ b/ui/events/devices/x11/touch_factory_x11.cc
+@@ -89,10 +89,17 @@
+   touch_device_lookup_.clear();
+   touch_device_list_.clear();
+   touchscreen_ids_.clear();
++  master_keyboard_devices_.clear();
+ 
+   if (!DeviceDataManagerX11::GetInstance()->IsXInput2Available())
+     return;
+ 
++  UpdateDeviceListFromXI2(
++      DeviceListCacheX11::GetInstance()->GetXI2DeviceList(connection));
++}
++
++void TouchFactory::UpdateDeviceListFromXI2(
++    const std::vector<x11::Input::XIDeviceInfo>& xi_dev_list) {
+   // Instead of asking X for the list of devices all the time, let's maintain a
+   // list of pointer devices we care about.
+   // It should not be necessary to select for slave devices. XInput2 provides
+@@ -106,8 +113,6 @@
+   // floating device is not connected to a master device. So it is necessary to
+   // also select on the floating devices.
+   pointer_device_lookup_.clear();
+-  const XIDeviceList& xi_dev_list =
+-      DeviceListCacheX11::GetInstance()->GetXI2DeviceList(connection);
+   for (const auto& devinfo : xi_dev_list) {
+     if (devinfo.type == x11::Input::DeviceType::FloatingSlave ||
+         devinfo.type == x11::Input::DeviceType::MasterPointer ||
+@@ -142,7 +147,10 @@
+         pointer_device_lookup_.insert(devinfo.deviceid);
+       }
+     } else if (devinfo.type == x11::Input::DeviceType::MasterKeyboard) {
+-      virtual_core_keyboard_device_ = devinfo.deviceid;
++      // With MPX (e.g. after `xinput create-master`), there can be several
++      // master keyboards, each with its own focus. Key events from all of
++      // them must be processed.
++      master_keyboard_devices_.insert(devinfo.deviceid);
+     }
+   }
+ }
+@@ -171,11 +179,12 @@
+            !is_from_slave_device;
+   }
+ 
+-  // Make sure only key-events from the virtual core keyboard are processed.
++  // Make sure only key-events from master keyboards are processed, so that
++  // events duplicated by slave keyboards are ignored.
+   if (xiev.opcode == x11::Input::DeviceEvent::KeyPress ||
+       xiev.opcode == x11::Input::DeviceEvent::KeyRelease) {
+-    return !virtual_core_keyboard_device_.has_value() ||
+-           *virtual_core_keyboard_device_ == xiev.deviceid;
++    return master_keyboard_devices_.empty() ||
++           master_keyboard_devices_.contains(xiev.deviceid);
+   }
+ 
+   return ShouldProcessEventForDevice(xiev.deviceid);
+@@ -294,10 +303,20 @@
+   touch_device_lookup_.clear();
+   touch_device_list_.clear();
+   touchscreen_ids_.clear();
++  master_keyboard_devices_.clear();
+   id_generator_.ResetForTest();
+   SetTouchscreensEnabled(true);
+ }
+ 
++void TouchFactory::SetXI2DeviceListForTest(
++    const std::vector<x11::Input::XIDeviceInfo>& xi_dev_list) {
++  touch_device_lookup_.clear();
++  touch_device_list_.clear();
++  touchscreen_ids_.clear();
++  master_keyboard_devices_.clear();
++  UpdateDeviceListFromXI2(xi_dev_list);
++}
++
+ void TouchFactory::SetTouchDeviceForTest(const std::vector<int>& devices) {
+   touch_device_lookup_.clear();
+   touch_device_list_.clear();
+diff --git a/ui/events/devices/x11/touch_factory_x11.h b/ui/events/devices/x11/touch_factory_x11.h
+index aa29394..0e28e9a7 100644
+--- a/ui/events/devices/x11/touch_factory_x11.h
++++ b/ui/events/devices/x11/touch_factory_x11.h
+@@ -6,7 +6,6 @@
+ #define UI_EVENTS_DEVICES_X11_TOUCH_FACTORY_X11_H_
+ 
+ #include <map>
+-#include <optional>
+ #include <set>
+ #include <utility>
+ #include <vector>
+@@ -94,6 +93,11 @@
+   // Resets the TouchFactory singleton.
+   void ResetForTest();
+ 
++  // Updates the device lists from `xi_dev_list` instead of querying the X
++  // server. This function is only for test purpose.
++  void SetXI2DeviceListForTest(
++      const std::vector<x11::Input::XIDeviceInfo>& xi_dev_list);
++
+   // Sets up the device id in the list |devices| as multi-touch capable
+   // devices and enables touch events processing. This function is only
+   // for test purpose, and it does not query from X server.
+@@ -113,6 +117,9 @@
+ 
+   void CacheTouchscreenIds(x11::Input::DeviceId id);
+ 
++  void UpdateDeviceListFromXI2(
++      const std::vector<x11::Input::XIDeviceInfo>& xi_dev_list);
++
+   bool ShouldProcessEventForDevice(x11::Input::DeviceId device_id) const;
+ 
+   // NOTE: To keep track of touch devices, we currently maintain a lookup table
+@@ -143,8 +150,9 @@
+   // Touch screen <vid, pid>s.
+   std::set<std::pair<int, int>> touchscreen_ids_;
+ 
+-  // Device ID of the virtual core keyboard.
+-  std::optional<x11::Input::DeviceId> virtual_core_keyboard_device_;
++  // Device IDs of the master keyboards. There is usually only the virtual
++  // core keyboard, but MPX allows creating more.
++  base::flat_set<x11::Input::DeviceId> master_keyboard_devices_;
+ 
+   SequentialIDGenerator id_generator_;
+ 

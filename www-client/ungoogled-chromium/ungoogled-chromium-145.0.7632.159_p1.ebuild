@@ -523,6 +523,7 @@ src_prepare() {
 		"${FILESDIR}/chromium-fix-clang-build.patch"
 		"${FILESDIR}/chromium-sandbox-Fix-SYS_SECCOMP-conflict-with-newer-glibc.patch"
 		"${FILESDIR}/chromium-restore-save-button-selection.patch"
+		"${FILESDIR}/chromium-145-process-key-events-from-every-master-keyboard.patch"
 		"${FILESDIR}/chromium-145-my_keyboard_shortcuts.patch"
 	)
 
