@@ -1,0 +1,32 @@
+From 2aca277c9e7c5d7c3b4611760182566d010411bf Mon Sep 17 00:00:00 2001
+From: Alexandre Lissy <lissyx+mozillians@lissyx.dyndns.org>
+Date: Thu, 2 Jul 2026 20:13:41 +0000
+Subject: [PATCH] Bug 2007074 - Handle XDG_CONFIG_HOME for profile on
+ Thunderbird r=thunderbird-back-end-reviewers,Thinker,babolivier
+
+Enable handling of XDG on Thunderbird, and update gtest accordingly.
+
+Differential Revision: https://phabricator.services.mozilla.com/D309109
+---
+ toolkit/tests/gtest/TestXREAppDir.cpp | 484 +++++++++++++++++++++++++-
+ toolkit/xre/nsXREDirProvider.cpp      |  25 +-
+ 2 files changed, 489 insertions(+), 20 deletions(-)
+
+diff --git a/toolkit/xre/nsXREDirProvider.cpp b/toolkit/xre/nsXREDirProvider.cpp
+index 9d1b98b10db4f..dcce3335e14f9 100644
+--- a/toolkit/xre/nsXREDirProvider.cpp
++++ b/toolkit/xre/nsXREDirProvider.cpp
+@@ -1337,7 +1337,12 @@ nsresult nsXREDirProvider::AppendFromAppData(nsIFile* aFile, bool aIsDotted) {
+   // future?
+   if (gAppData->profile) {
+     nsAutoCString profile;
+-    profile = gAppData->profile;
++#  if defined(MOZ_THUNDERBIRD)
++    if (gAppData->profile[0] != '.') {
++      profile.Assign('.');
++    }
++#  endif
++    profile.Append(gAppData->profile);
+     MOZ_TRY(aFile->AppendRelativeNativePath(profile));
+   } else {
+     nsAutoCString vendor;
