@@ -1,0 +1,42 @@
+From ba945103f47ddf8f62b091c97d8b4c9d968eb753 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sat, 19 Dec 2026 14:06:43 -0800
+Subject: [PATCH] Make FIFO scratch space reachable from the tmux server's uid
+
+fzy-tmux builds its plumbing (mktemp -d, mkfifo) in the invoking
+process, but the picker itself runs in a pane created by
+split-window. That pane is forked by the tmux server, so it always
+runs as the uid that originally started the server, regardless of
+which uid sent the command.
+Running fzy-tmux from a root shell attached to a regular user's
+session (su / sudo -E, with TMUX preserved) therefore broke the
+handshake, because the pane-side user could not touch the scratch
+space.
+Fix it by chmod-ing the temporary directory to 0711 so any user can
+traverse it, and the FIFOs to 0666 so the pane can open them for
+reading and writing no matter what umask the invoker had. Local users
+who guess the mktemp path could inject candidates or read the
+selection; that is the same exposure the world-openable FIFO design
+already implied.
+---
+ contrib/fzy-tmux | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/contrib/fzy-tmux b/contrib/fzy-tmux
+index 1f5d5f..c65b7f 100755
+--- a/contrib/fzy-tmux
++++ b/contrib/fzy-tmux
+@@ -22,8 +22,10 @@ main() {
+     if [ -z "${PATH_DIR_TMP}" ]; then
+         fatal "Unable to create a temporary directory"
+     fi
++    chmod 0711 "${PATH_DIR_TMP}"
+ 
+     mkfifo "${PATH_FIFO_IN}" "${PATH_FIFO_OUT}" "${PATH_FIFO_RET}"
++    chmod 0666 "${PATH_FIFO_IN}" "${PATH_FIFO_OUT}" "${PATH_FIFO_RET}"
+ 
+     export TMUX=$(_echo "${TMUX}" | cut -d , -f 1,2)
+     eval "tmux \
+-- 
+2.56.0
+
