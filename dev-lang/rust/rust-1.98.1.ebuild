@@ -909,7 +909,7 @@ src_install() {
 
 	newenvd - "51${P}" <<-_EOF_
 		RUST_SRC_PATH="/usr/lib/rustlib/src/rust/src/"
-		CARGO_HOME="/tmp/cargo-home/"
+		CARGO_HOME="/tmp/rust/cargo/"
 	_EOF_
 
 	# We want gdb to automatically find the correct Rust sources
