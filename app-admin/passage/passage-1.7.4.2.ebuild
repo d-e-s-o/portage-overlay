@@ -44,7 +44,6 @@ src_install() {
 	PASSAGE_AGE="age-gpg" passage "$@"
 	EOF
 
-	exeinto /usr/bin/
-	newexe pass pass
-	newexe ${FILESDIR}/age-gpg age-gpg
+	dobin pass
+	dobin ${FILESDIR}/age-gpg
 }
