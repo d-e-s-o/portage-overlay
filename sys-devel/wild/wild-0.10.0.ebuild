@@ -316,6 +316,11 @@ src_install() {
 
 	dosym ${PN} /usr/bin/ld.${PN}
 
+	# Depending on the 'system-llvm' USE flag Rust uses a different
+	# linker.
+	local linker=rust-lld
+	has_version "dev-lang/rust[system-llvm]" && linker=wasm-ld
+
 	cat <<-EOF > wild-wasm
 		#!/usr/bin/env bash
 
@@ -324,7 +329,7 @@ src_install() {
 		    [[ "\$arg" != '--ld-path=wild' ]] && args+=("\$arg")
 		done
 
-		exec rust-lld "\${args[@]}"
+		exec ${linker} "\${args[@]}"
 	EOF
 	dobin wild-wasm
 }
