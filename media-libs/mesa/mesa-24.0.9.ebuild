@@ -3,10 +3,10 @@
 
 EAPI=8
 
-LLVM_COMPAT=( {15..22} )
+LLVM_COMPAT=( {15..18} )
 LLVM_OPTIONAL=1
 
-inherit flag-o-matic llvm-r1 meson-multilib python-no-clowntown linux-info toolchain-funcs
+inherit flag-o-matic llvm-r1 meson-multilib python-any-no-clowntown linux-info toolchain-funcs
 
 MY_P="${P/_/-}"
 
@@ -164,6 +164,7 @@ x86? (
 
 PATCHES=(
 	"${FILESDIR}"/24.0.4-dzn-Include-vulkan_core.h-instead-of-vulkan.h-in-the.patch
+	"${FILESDIR}"/24.0.9-c11-threads-fix-build-on-c23.patch
 )
 
 pkg_pretend() {
