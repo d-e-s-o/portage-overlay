@@ -1,0 +1,249 @@
+--- a/src/event_loop.c
++++ b/src/event_loop.c
+@@ -23,6 +23,7 @@
+ #include <unistd.h>
+ 
+ #include <assert.h> /* assert() */
++#include <poll.h> /* poll() */
+ #include <signal.h> /* signal() */
+ #include <stddef.h> /* NULL size_t wchar_t */
+ #include <stdlib.h> /* free() */
+@@ -62,6 +63,7 @@
+ static int ensure_term_is_ready(void);
+ static int get_char_async_loop(WINDOW *win, wint_t *c, int timeout,
+ 		int process_callbacks);
++static int get_char_idle(WINDOW *win, wint_t *c);
+ static int is_previewed(const char path[]);
+ static void process_scheduled_updates(void);
+ TSTATIC int process_scheduled_updates_of_view(view_t *view);
+@@ -162,8 +164,20 @@
+ 			                     /* Lua might not be initialized in tests. */
+ 			                     && curr_stats.vlua != NULL;
+ 
+-			got_input = (get_char_async_loop(status_bar, &c, actual_timeout,
+-						process_callbacks) != ERR);
++			/* Deep idle: no partial input, no pending waits, normal mode.
++			 * Do a last round of bookkeeping and then block until a real
++			 * event (key press or signal) arrives; no polling. */
++			const int deep_idle = input_buf_pos == 0
++			                   && !wait_for_enter
++			                   && !wait_for_suggestion
++			                   && bg_jobs == NULL
++			                   && !vcache_has_pending_jobs()
++			                   && vle_mode_is(NORMAL_MODE);
++
++			got_input = (deep_idle
++					? get_char_idle(status_bar, &c)
++					: get_char_async_loop(status_bar, &c, actual_timeout,
++							process_callbacks)) != ERR;
+ 
+ 			/* If suggestion delay timed out, reset it and wait the rest of the
+ 			 * timeout. */
+@@ -513,6 +527,111 @@
+ 	return ERR;
+ }
+ 
++/* Adjusts result of reading a key to what the main loop expects. */
++static int
++finish_key(int result, wint_t *c)
++{
++	if(result == KEY_CODE_YES)
++	{
++		*c = K(*c);
++	}
++	else if(*c == L'\0')
++	{
++		*c = WC_C_SPACE;
++	}
++
++	return result;
++}
++
++/* Performs a final round of background bookkeeping and then blocks until
++ * something interesting happens: input arrives, a directory displayed in one
++ * of the views changes (reported by its inotify descriptor, no polling), or a
++ * signal like SIGWINCH interrupts the wait.  Returns like
++ * get_char_async_loop() does. */
++static int
++get_char_idle(WINDOW *win, wint_t *c)
++{
++	for(;;)
++	{
++		if(should_check_views_for_changes())
++		{
++			check_view_for_changes(curr_view);
++			check_view_for_changes(other_view);
++		}
++
++		process_scheduled_updates();
++
++		if(curr_stats.ipc != NULL)
++		{
++			ipc_check(curr_stats.ipc);
++		}
++
++		if(vcache_check(&is_previewed))
++		{
++			stats_redraw_later();
++		}
++
++		update_hardware_cursor();
++
++		if(input_queue[0] != L'\0')
++		{
++			*c = input_queue[0];
++			wmemmove(input_queue, input_queue + 1, wcslen(input_queue));
++			return OK;
++		}
++
++		/* Pick up any input that curses has already buffered. */
++		wtimeout(win, /*delay=*/0);
++		int result = compat_wget_wch(win, c);
++		if(result != ERR)
++		{
++			return finish_key(result, c);
++		}
++
++		struct pollfd fds[3];
++		nfds_t nfds = 0;
++
++		fds[nfds].fd = STDIN_FILENO;
++		fds[nfds].events = POLLIN;
++		++nfds;
++
++		/* Wait on directory watchers as well so that external changes are
++		 * noticed instantly without waking up periodically. */
++		int fd = fswatch_get_fd(curr_view->watch);
++		if(fd != -1)
++		{
++			fds[nfds].fd = fd;
++			fds[nfds].events = POLLIN;
++			++nfds;
++		}
++
++		fd = fswatch_get_fd(other_view->watch);
++		if(fd != -1)
++		{
++			fds[nfds].fd = fd;
++			fds[nfds].events = POLLIN;
++			++nfds;
++		}
++
++		int ready = poll(fds, nfds, /*timeout=*/-1);
++		if(ready == -1)
++		{
++			/* Most likely EINTR (e.g. terminal resize), let the main loop deal
++			 * with it. */
++			return ERR;
++		}
++
++		if((fds[0].revents & POLLIN) != 0)
++		{
++			wtimeout(win, /*delay=*/-1);
++			result = compat_wget_wch(win, c);
++			return finish_key(result, c);
++		}
++
++		/* A watched directory changed; the bookkeeping above will reload
++		 * affected views and drain watcher descriptors in the process. */
++	}
++}
+ /* Checks if preview of specified path is visible.  Returns non-zero if so and
+  * zero otherwise. */
+ static int
+--- a/src/vcache.c
++++ b/src/vcache.c
+@@ -141,6 +141,21 @@
+ }
+ 
+ int
++vcache_has_pending_jobs(void)
++{
++	size_t i;
++	for(i = 0U; i < DA_SIZE(cache); ++i)
++	{
++		if(cache[i]->job != NULL)
++		{
++			return 1;
++		}
++	}
++
++	return 0;
++}
++
++int
+ vcache_check(vcache_is_previewed_cb is_previewed)
+ {
+ 	int changed = 0;
+--- a/src/vcache.h
++++ b/src/vcache.h
+@@ -67,6 +67,11 @@
+ 	size_t vcache_entry_size(void);
+ )
+ 
++
++/* Returns non-zero if there are asynchronous jobs that are still running,
++ * zero otherwise. */
++int vcache_has_pending_jobs(void);
++
+ #endif /* VIFM__VCACHE_H__ */
+ 
+ /* vim: set tabstop=2 softtabstop=2 shiftwidth=2 noexpandtab cinoptions-=(0 : */
+--- a/src/utils/fswatch.h
++++ b/src/utils/fswatch.h
+@@ -45,6 +45,11 @@
+  * query.  Returns latest state. */
+ FSWatchState fswatch_poll(fswatch_t *w);
+ 
++/* Returns the file descriptor that becomes readable when the watched path
++ * changes (suitable for poll()), or -1 if there is no such descriptor (e.g.
++ * stamp-based monitoring is used).  w can be NULL. */
++int fswatch_get_fd(const fswatch_t *w);
++
+ #endif /* VIFM__UTILS__FSWATCH_H__ */
+ 
+ /* vim: set tabstop=2 softtabstop=2 shiftwidth=2 noexpandtab cinoptions-=(0 : */
+--- a/src/utils/fswatch_nix.c
++++ b/src/utils/fswatch_nix.c
+@@ -298,6 +298,11 @@
+ 	return 1;
+ }
+ 
++int
++fswatch_get_fd(const fswatch_t *w)
++{
++	return (w == NULL ? -1 : w->fd);
++}
+ #else
+ 
+ #include "filemon.h"
+@@ -362,6 +367,14 @@
+ 	return (changed ? FSWS_UPDATED : FSWS_UNCHANGED);
+ }
+ 
++
++int
++fswatch_get_fd(const fswatch_t *w)
++{
++	(void)w;
++	return -1;
++}
++
+ #endif
+ 
+ /* vim: set tabstop=2 softtabstop=2 shiftwidth=2 noexpandtab cinoptions-=(0 : */
+--- a/src/utils/fswatch_win.c
++++ b/src/utils/fswatch_win.c
+@@ -133,5 +133,12 @@
+ 	return error;
+ }
+ 
++int
++fswatch_get_fd(const fswatch_t *w)
++{
++	(void)w;
++	return -1;
++}
++
+ /* vim: set tabstop=2 softtabstop=2 shiftwidth=2 noexpandtab cinoptions-=(0 : */
+ /* vim: set cinoptions+=t0 filetype=c : */
