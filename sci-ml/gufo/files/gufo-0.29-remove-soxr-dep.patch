@@ -1,0 +1,52 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 454163..9a160f 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -88,7 +88,6 @@ endif()
+ find_package(PkgConfig REQUIRED)
+ pkg_check_modules(WEBP REQUIRED IMPORTED_TARGET libwebp)
+ pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
+-pkg_check_modules(SOXR REQUIRED IMPORTED_TARGET soxr)
+ pkg_check_modules(AV REQUIRED IMPORTED_TARGET libavformat libavcodec libavutil libswscale)
+ find_package(OpenSSL REQUIRED COMPONENTS Crypto)
+ set(GUFO_FFMPEG_EXECUTABLE "ffmpeg" CACHE STRING
+diff --git a/src/models/embedding_gemma2/extension.cmake b/src/models/embedding_gemma2/extension.cmake
+index a3d6d2..8e6fba 100644
+--- a/src/models/embedding_gemma2/extension.cmake
++++ b/src/models/embedding_gemma2/extension.cmake
+@@ -19,7 +19,6 @@ gufo_extension_target(
+     gufo_platform
+     Threads::Threads
+     PkgConfig::SNDFILE
+-    PkgConfig::SOXR
+ )
+ 
+ if(TARGET gufo_embedding_gemma2)
+diff --git a/src/models/embedding_gemma2/audio_decoder.cpp b/src/models/embedding_gemma2/audio_decoder.cpp
+index 74ad2b..0216a0 100644
+--- a/src/models/embedding_gemma2/audio_decoder.cpp
++++ b/src/models/embedding_gemma2/audio_decoder.cpp
+@@ -1,7 +1,6 @@
+ #include "src/models/embedding_gemma2/audio_decoder.hpp"
+ 
+ #include <sndfile.h>
+-#include <soxr.h>
+ 
+ #include <algorithm>
+ #include <array>
+@@ -117,15 +116,6 @@ std::vector<float> DecodeAudio(std::span<const std::uint8_t> bytes,
+   const std::size_t length =
+       (mono.size() * kAudioSampleRate + info.samplerate - 1) / info.samplerate;
+   std::vector<float> output(length + 1, 0);
+-  const auto io_spec = soxr_io_spec(SOXR_FLOAT32_I, SOXR_FLOAT32_I);
+-  const auto quality = soxr_quality_spec(SOXR_HQ, 0);
+-  std::size_t consumed = 0, produced = 0;
+-  const auto failure = soxr_oneshot(
+-      info.samplerate, kAudioSampleRate, 1, mono.data(), mono.size(), &consumed,
+-      output.data(), output.size(), &produced, &io_spec, &quality, nullptr);
+-  if (failure || consumed != mono.size() || reader.Stop())
+-    throw std::runtime_error("embedding audio resampling failed or cancelled");
+-  output.resize(length);  // librosa's fix_length uses ceil, padding with zero.
+   return output;
+ }
+ }  // namespace gufo::models::embedding_gemma2

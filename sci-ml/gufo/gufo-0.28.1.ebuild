@@ -61,7 +61,7 @@ BDEPEND="
 "
 
 PATCHES=(
-	"${FILESDIR}"/${PN}-remove-soxr-dep.patch
+	"${FILESDIR}"/${PN}-0.28-remove-soxr-dep.patch
 	#"${FILESDIR}"/${PN}-remove-unused-model-support.patch
 	"${FILESDIR}"/${PN}-fix-type-mismatches.patch
 	# We remove support for Deepseek model, in part because it requires
