@@ -5,6 +5,6 @@
 		<remote-id type="github">gufo-org/gufo</remote-id>
 	</upstream>
 	<use>
-		<flag name="deepseek_v4_flash">Build the DeepSeek V4 Flash model extension (requires sci-libs/rocWMMA)</flag>
+		<flag name="deepseek-v4-flash">Build the DeepSeek V4 Flash model extension (requires sci-libs/rocWMMA)</flag>
 	</use>
 </pkgmetadata>
