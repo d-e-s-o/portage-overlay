@@ -40,7 +40,7 @@ BDEPEND="dev-util/xxd"
 PATCHES=(
 	"${FILESDIR}/${PN}-10.1.0-use-system-hsakmt.patch"
 	"${FILESDIR}/${PN}-10.1.0-resume-timestamps.patch"
-	"${FILESDIR}/rocr-fixed-cwsr-rocm10.patch"
+	"${FILESDIR}/rocr-fixed-cwsr-rocm10.1.patch"
 )
 
 # skip false positive detection in samples, bug #958188
