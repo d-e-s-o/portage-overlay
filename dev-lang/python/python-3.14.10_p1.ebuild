@@ -89,7 +89,7 @@ BDEPEND="
 	tail-call-interp? (
 		|| (
 			>=sys-devel/gcc-16:*
-			>=llvm-core/clang-19:*
+			>=llvm-core/clang-20:*
 		)
 	)
 "
