@@ -1,0 +1,11 @@
+--- a/third_party/blink/renderer/core/intersection_observer/intersection_observation.cc
++++ b/third_party/blink/renderer/core/intersection_observer/intersection_observation.cc
+@@ -77,7 +77,7 @@ int64_t IntersectionObservation::ComputeIntersection(
+       update_type = kScrollOnly;
+     }
+     UMA_HISTOGRAM_ENUMERATION("Blink.IntersectionObservation.UpdateType",
+-                              update_type);
++                              update_type, 4);
+     if (update_type == kNoUpdate) {
+ #if CHECK_SKIPPED_UPDATE_ON_SCROLL()
+       cached_rects_backup.emplace(cached_rects_);
