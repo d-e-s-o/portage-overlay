@@ -29,7 +29,6 @@ RDEPEND="
   app-shells/bash
   dev-vcs/git
   sys-apps/coreutils
-  sys-apps/debianutils
   sys-apps/gawk
   sys-apps/sed
 "
