@@ -34,7 +34,6 @@ DEPEND="${RDEPEND}"
 BDEPEND="
 	dev-util/glib-utils
 	dev-util/intltool
-	=media-gfx/exiv2-0.27*
 	virtual/pkgconfig
 	nls? ( sys-devel/gettext )"
 
