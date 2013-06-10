@@ -1,0 +1,23 @@
+diff -r f6a701d64d64 src/feature.h
+--- a/src/feature.h	Sun Jul 31 15:33:31 2011 +0200
++++ b/src/feature.h	Sun Jul 31 15:35:46 2011 +0200
+@@ -813,16 +813,17 @@
+ 	|| defined(FEAT_GUI_MSWIN) \
+ 	|| defined(FEAT_GUI_MAC)
+ #  define FEAT_CON_DIALOG
+-#  define FEAT_GUI_DIALOG
++//#  define FEAT_GUI_DIALOG
+ # else
+ #  define FEAT_CON_DIALOG
+ # endif
+ #endif
++
+ #if !defined(FEAT_GUI_DIALOG) && (defined(FEAT_GUI_MOTIF) \
+ 	|| defined(FEAT_GUI_ATHENA) || defined(FEAT_GUI_GTK) \
+ 	|| defined(FEAT_GUI_W32))
+ /* need a dialog to show error messages when starting from the desktop */
+-# define FEAT_GUI_DIALOG
++//# define FEAT_GUI_DIALOG
+ #endif
+ #if defined(FEAT_GUI_DIALOG) && \
+ 	(defined(FEAT_GUI_MOTIF) || defined(FEAT_GUI_ATHENA) \
