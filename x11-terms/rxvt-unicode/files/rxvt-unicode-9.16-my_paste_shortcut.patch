@@ -1,0 +1,33 @@
+diff --git a/src/command.C b/src/command.C
+index ab1a4cd..a8f3b9e 100644
+--- a/src/command.C
++++ b/src/command.C
+@@ -580,6 +580,28 @@ rxvt_term::key_press (XKeyEvent &ev)
+             }
+         }
+ 
++      if (ctrl && keysym == XK_v)
++      {
++        // Ctrl+V = paste mouse selection
++        selection_request (ev.time, Sel_Primary);
++        return;
++      }
++      else if (ctrl && shft && keysym == XK_V)
++      {
++        // Ctrl+Shift+V = paste clipboard
++        selection_request (ev.time, Sel_Clipboard);
++        return;
++      }
++      /**
++       * @todo this does not work! we need a way to copy something into the "real" clipboard
++       */
++      //else if (ctrl && shft && keysym == XK_C)
++      //{
++      //  // Ctrl+Shift+C = copy selection to clipboard
++      //  selection_make (ev.time);
++      //  return;
++      //}
++
+ #if ENABLE_FRILLS || ISO_14755
+       // ISO 14755 support
+       if (iso14755buf & (ISO_14755_STARTED | ISO_14755_51))

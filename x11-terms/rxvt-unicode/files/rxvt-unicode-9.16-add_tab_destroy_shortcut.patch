@@ -1,0 +1,26 @@
+diff --git a/src/perl/tabbed b/src/perl/tabbed
+index f578990..e2a4ab2 100644
+--- a/src/perl/tabbed
++++ b/src/perl/tabbed
+@@ -381,6 +381,7 @@ sub tab_key_press {
+    my $key_h = 0x0068; # small letter h
+    my $key_l = 0x006c; # small letter l
+    my $key_n = 0x006e; # small letter n
++   my $key_w = 0x0077; # small letter w
+    my $key_H = 0x0048; # capital letter H
+    my $key_L = 0x004c; # capital letter L
+ 
+@@ -445,6 +446,13 @@ sub tab_key_press {
+          }
+          return 1;
+       }
++      elsif ($keysym == $key_w)
++      {
++         # we want to actually stop the process, not just destroy the tab
++         # for whatever reason sending SIGTERM (15) does not work (to shutdown gracefully), so we
++         # have to use SIGKILL (9) to do it the hard way
++         kill 9, $self->{cur}->get_pid();
++      }
+       elsif (exists $tab_index{$keysym})
+       {
+          my $idx = $tab_index{$keysym};

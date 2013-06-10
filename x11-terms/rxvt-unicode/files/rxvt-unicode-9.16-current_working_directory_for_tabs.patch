@@ -1,0 +1,64 @@
+diff --git a/src/perl/tabbed b/src/perl/tabbed
+index f3f800e..4581650 100644
+--- a/src/perl/tabbed
++++ b/src/perl/tabbed
+@@ -426,7 +426,22 @@ sub tab_key_press {
+       }
+       elsif ($keysym == $key_n)
+       {
+-         $self->new_tab;
++         # on Linux /proc/<pid>/cwd is a symlink pointing to the current working directory of the
++         # process with id <pid>
++         my $cwd = "/proc/" . $self->{cur}->get_pid() . "/cwd";
++
++         if (-l $cwd)
++         {
++            my @argv;
++            push(@argv, "-cd");
++            push(@argv, readlink($cwd));
++
++            $self->new_tab (@argv);
++         }
++         else
++         {
++            $self->new_tab;
++         }
+          return 1;
+       }
+       elsif (exists $tab_index{$keysym})
+diff --git a/src/rxvtperl.xs b/src/rxvtperl.xs
+index 4d8709e..f21c15e 100644
+--- a/src/rxvtperl.xs
++++ b/src/rxvtperl.xs
+@@ -1290,6 +1290,15 @@ rxvt_term::strwidth (SV *str)
+ 	OUTPUT:
+         RETVAL
+ 
++pid_t
++rxvt_term::get_pid()
++    CODE:
++    {
++      RETVAL = THIS->cmd_pid;
++    }
++    OUTPUT:
++    RETVAL
++
+ SV *
+ rxvt_term::locale_encode (SV *str)
+ 	CODE:
+diff --git a/src/typemap b/src/typemap
+index 8ad9f12..fef4037 100644
+--- a/src/typemap
++++ b/src/typemap
+@@ -4,6 +4,11 @@ Time			T_UV
+ Atom			T_UV
+ Window			T_UV
+ Pixmap			T_UV
++
++# pid_t is no registered type in my perl distribution, thus we need to register it here
++# according to /usr/include/bits/typesizes.h it is a signed type, so we declare it this way
++pid_t			T_IV
++
+ rxvt_img::nv		T_NV
+ 
+ urxvt::pixbuf           T_PTROBJ
