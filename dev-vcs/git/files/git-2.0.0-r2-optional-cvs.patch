@@ -1,17 +1,19 @@
-From eadb20b065c33d46b49c8c95d8cde0c9fe7c62a4 Mon Sep 17 00:00:00 2001
+From e19ad5a8492d83db79a09b459cb17ccee78e0001 Mon Sep 17 00:00:00 2001
 From: Robin Johnson <robbat2@gentoo.org>
-Date: Wed, 22 Aug 2012 04:25:06 +0000
+Date: Fri, 25 Apr 2014 12:30:42 +0200
 Subject: [PATCH] Makefile: Add NO_CVS define to disable all CVS interface
  utilities
 
 Forward-ported from 1.7.12 to current git.git v1.8.4
 Forward-ported from v1.8.4 to v1.8.5.1
 Forward-ported from v1.8.5.3 to v1.9.0_rc3
+Forward-ported from 1.9.0_rc3 to current git.git v2.0.0_rc0
+Forward-ported from v2.0.0_rc0 to v2.0.0
 
-diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
---- git-1.9.0.rc3.orig/Makefile	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/Makefile	2014-02-08 11:50:21.219488765 -0800
-@@ -263,6 +263,8 @@
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/Makefile git-2.0.0/Makefile
+--- git-2.0.0.orig/Makefile	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/Makefile	2014-05-28 16:50:10.148376954 -0700
+@@ -255,6 +255,8 @@
  #
  # Define NO_TCLTK if you do not want Tcl/Tk GUI.
  #
@@ -20,7 +22,7 @@ diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
  # The TCL_PATH variable governs the location of the Tcl interpreter
  # used to optimize git-gui for your system.  Only used if NO_TCLTK
  # is not set.  Defaults to the bare 'tclsh'.
-@@ -437,6 +439,7 @@
+@@ -436,6 +438,7 @@
  PROGRAM_OBJS =
  PROGRAMS =
  SCRIPT_PERL =
@@ -28,7 +30,7 @@ diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
  SCRIPT_PYTHON =
  SCRIPT_SH =
  SCRIPT_LIB =
-@@ -476,20 +479,21 @@
+@@ -475,20 +478,21 @@
  SCRIPT_PERL += git-add--interactive.perl
  SCRIPT_PERL += git-difftool.perl
  SCRIPT_PERL += git-archimport.perl
@@ -54,7 +56,7 @@ diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
  SCRIPT_PYTHON_GEN = $(patsubst %.py,%,$(SCRIPT_PYTHON))
  
  SCRIPT_SH_INS = $(filter-out $(NO_INSTALL),$(SCRIPT_SH_GEN))
-@@ -1776,8 +1780,18 @@
+@@ -1779,8 +1783,18 @@
  	  $(join -DMAJOR= -DMINOR=, $(wordlist 1,2,$(subst -, ,$(subst ., ,$(GIT_VERSION))))) \
  	  -DGIT_VERSION="\\\"$(GIT_VERSION)\\\"" $< -o $@
  
@@ -74,7 +76,7 @@ diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
  
  perl/perl.mak: perl/PM.stamp
  
-@@ -1790,7 +1804,7 @@
+@@ -1793,7 +1807,7 @@
  	$(QUIET_SUBDIR0)perl $(QUIET_SUBDIR1) PERL_PATH='$(PERL_PATH_SQ)' prefix='$(prefix_SQ)' $(@F)
  
  PERL_DEFINES = $(PERL_PATH_SQ):$(PERLLIB_EXTRA_SQ)
@@ -83,7 +85,8 @@ diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
  	$(QUIET_GEN)$(RM) $@ $@+ && \
  	INSTLIBDIR=`MAKEFLAGS= $(MAKE) -C perl -s --no-print-directory instlibdir` && \
  	INSTLIBDIR_EXTRA='$(PERLLIB_EXTRA_SQ)' && \
-@@ -1824,14 +1838,17 @@
+@@ -1826,15 +1840,18 @@
+ 	$(QUIET_GEN)$(cmd_munge_script) && \
  	chmod +x $@+ && \
  	mv $@+ $@
  else # NO_PERL
@@ -103,9 +106,9 @@ diff -Nuar git-1.9.0.rc3.orig/Makefile git-1.9.0.rc3/Makefile
  
  ifndef NO_PYTHON
  $(SCRIPT_PYTHON_GEN): GIT-CFLAGS GIT-PREFIX GIT-PYTHON-VARS
-diff -Nuar git-1.9.0.rc3.orig/t/t9200-git-cvsexportcommit.sh git-1.9.0.rc3/t/t9200-git-cvsexportcommit.sh
---- git-1.9.0.rc3.orig/t/t9200-git-cvsexportcommit.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9200-git-cvsexportcommit.sh	2014-02-08 11:49:12.243179483 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9200-git-cvsexportcommit.sh git-2.0.0/t/t9200-git-cvsexportcommit.sh
+--- git-2.0.0.orig/t/t9200-git-cvsexportcommit.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9200-git-cvsexportcommit.sh	2014-05-28 16:47:41.812727825 -0700
 @@ -11,6 +11,11 @@
  	test_done
  fi
@@ -118,9 +121,9 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9200-git-cvsexportcommit.sh git-1.9.0.rc3/t/t92
  cvs >/dev/null 2>&1
  if test $? -ne 1
  then
-diff -Nuar git-1.9.0.rc3.orig/t/t9400-git-cvsserver-server.sh git-1.9.0.rc3/t/t9400-git-cvsserver-server.sh
---- git-1.9.0.rc3.orig/t/t9400-git-cvsserver-server.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9400-git-cvsserver-server.sh	2014-02-08 11:49:12.244179502 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9400-git-cvsserver-server.sh git-2.0.0/t/t9400-git-cvsserver-server.sh
+--- git-2.0.0.orig/t/t9400-git-cvsserver-server.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9400-git-cvsserver-server.sh	2014-05-28 16:47:41.812727825 -0700
 @@ -11,9 +11,15 @@
  . ./test-lib.sh
  
@@ -138,9 +141,9 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9400-git-cvsserver-server.sh git-1.9.0.rc3/t/t9
  cvs >/dev/null 2>&1
  if test $? -ne 1
  then
-diff -Nuar git-1.9.0.rc3.orig/t/t9401-git-cvsserver-crlf.sh git-1.9.0.rc3/t/t9401-git-cvsserver-crlf.sh
---- git-1.9.0.rc3.orig/t/t9401-git-cvsserver-crlf.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9401-git-cvsserver-crlf.sh	2014-02-08 11:49:12.244179502 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9401-git-cvsserver-crlf.sh git-2.0.0/t/t9401-git-cvsserver-crlf.sh
+--- git-2.0.0.orig/t/t9401-git-cvsserver-crlf.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9401-git-cvsserver-crlf.sh	2014-05-28 16:47:41.812727825 -0700
 @@ -57,15 +57,20 @@
      return $stat
  }
@@ -167,9 +170,9 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9401-git-cvsserver-crlf.sh git-1.9.0.rc3/t/t940
      test_done
  fi
  perl -e 'use DBI; use DBD::SQLite' >/dev/null 2>&1 || {
-diff -Nuar git-1.9.0.rc3.orig/t/t9600-cvsimport.sh git-1.9.0.rc3/t/t9600-cvsimport.sh
---- git-1.9.0.rc3.orig/t/t9600-cvsimport.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9600-cvsimport.sh	2014-02-08 11:49:12.244179502 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9600-cvsimport.sh git-2.0.0/t/t9600-cvsimport.sh
+--- git-2.0.0.orig/t/t9600-cvsimport.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9600-cvsimport.sh	2014-05-28 16:47:41.813727843 -0700
 @@ -3,14 +3,25 @@
  test_description='git cvsimport basic tests'
  . ./lib-cvs.sh
@@ -296,9 +299,9 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9600-cvsimport.sh git-1.9.0.rc3/t/t9600-cvsimpo
 +test_expect_success 'test entire HEAD' 'test_cmp_branch_tree master'
  
  test_done
-diff -Nuar git-1.9.0.rc3.orig/t/t9601-cvsimport-vendor-branch.sh git-1.9.0.rc3/t/t9601-cvsimport-vendor-branch.sh
---- git-1.9.0.rc3.orig/t/t9601-cvsimport-vendor-branch.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9601-cvsimport-vendor-branch.sh	2014-02-08 11:49:12.244179502 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9601-cvsimport-vendor-branch.sh git-2.0.0/t/t9601-cvsimport-vendor-branch.sh
+--- git-2.0.0.orig/t/t9601-cvsimport-vendor-branch.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9601-cvsimport-vendor-branch.sh	2014-05-28 16:47:41.813727843 -0700
 @@ -34,6 +34,17 @@
  test_description='git cvsimport handling of vendor branches'
  . ./lib-cvs.sh
@@ -317,9 +320,9 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9601-cvsimport-vendor-branch.sh git-1.9.0.rc3/t
  setup_cvs_test_repository t9601
  
  test_expect_success PERL 'import a module with a vendor branch' '
-diff -Nuar git-1.9.0.rc3.orig/t/t9602-cvsimport-branches-tags.sh git-1.9.0.rc3/t/t9602-cvsimport-branches-tags.sh
---- git-1.9.0.rc3.orig/t/t9602-cvsimport-branches-tags.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9602-cvsimport-branches-tags.sh	2014-02-08 11:49:12.244179502 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9602-cvsimport-branches-tags.sh git-2.0.0/t/t9602-cvsimport-branches-tags.sh
+--- git-2.0.0.orig/t/t9602-cvsimport-branches-tags.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9602-cvsimport-branches-tags.sh	2014-05-28 16:47:41.813727843 -0700
 @@ -6,6 +6,17 @@
  test_description='git cvsimport handling of branches and tags'
  . ./lib-cvs.sh
@@ -338,9 +341,9 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9602-cvsimport-branches-tags.sh git-1.9.0.rc3/t
  setup_cvs_test_repository t9602
  
  test_expect_success PERL 'import module' '
-diff -Nuar git-1.9.0.rc3.orig/t/t9603-cvsimport-patchsets.sh git-1.9.0.rc3/t/t9603-cvsimport-patchsets.sh
---- git-1.9.0.rc3.orig/t/t9603-cvsimport-patchsets.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/t9603-cvsimport-patchsets.sh	2014-02-08 11:49:12.244179502 -0800
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/t9603-cvsimport-patchsets.sh git-2.0.0/t/t9603-cvsimport-patchsets.sh
+--- git-2.0.0.orig/t/t9603-cvsimport-patchsets.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/t9603-cvsimport-patchsets.sh	2014-05-28 16:47:41.813727843 -0700
 @@ -14,6 +14,17 @@
  test_description='git cvsimport testing for correct patchset estimation'
  . ./lib-cvs.sh
@@ -359,10 +362,10 @@ diff -Nuar git-1.9.0.rc3.orig/t/t9603-cvsimport-patchsets.sh git-1.9.0.rc3/t/t96
  setup_cvs_test_repository t9603
  
  test_expect_failure 'import with criss cross times on revisions' '
-diff -Nuar git-1.9.0.rc3.orig/t/test-lib.sh git-1.9.0.rc3/t/test-lib.sh
---- git-1.9.0.rc3.orig/t/test-lib.sh	2014-02-07 12:45:45.000000000 -0800
-+++ git-1.9.0.rc3/t/test-lib.sh	2014-02-08 11:49:12.244179502 -0800
-@@ -772,6 +772,7 @@
+diff -Nuar --exclude '*.orig' --exclude '*.rej' git-2.0.0.orig/t/test-lib.sh git-2.0.0/t/test-lib.sh
+--- git-2.0.0.orig/t/test-lib.sh	2014-05-28 12:10:36.000000000 -0700
++++ git-2.0.0/t/test-lib.sh	2014-05-28 16:47:41.813727843 -0700
+@@ -777,6 +777,7 @@
  esac
  
  ( COLUMNS=1 && test $COLUMNS = 1 ) && test_set_prereq COLUMNS_CAN_BE_1
