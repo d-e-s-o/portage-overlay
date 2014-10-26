@@ -1,9 +1,18 @@
+From 7a31e559c6e08e5b59670320359b44f86b798a55 Mon Sep 17 00:00:00 2001
+From: deso <deso@devnull.com>
+Date: Sat, 23 Feb 2013 08:32:03 -0800
+Subject: [PATCH 2/6] added custom paste shortcuts
+
+---
+ src/command.C | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
 diff --git a/src/command.C b/src/command.C
-index ab1a4cd..a8f3b9e 100644
+index 153f0e1..7f659c5 100644
 --- a/src/command.C
 +++ b/src/command.C
-@@ -580,6 +580,28 @@ rxvt_term::key_press (XKeyEvent &ev)
-             }
+@@ -604,6 +604,28 @@ rxvt_term::key_press (XKeyEvent &ev)
+           return;
          }
  
 +      if (ctrl && keysym == XK_v)
@@ -31,3 +40,6 @@ index ab1a4cd..a8f3b9e 100644
  #if ENABLE_FRILLS || ISO_14755
        // ISO 14755 support
        if (iso14755buf & (ISO_14755_STARTED | ISO_14755_51))
+-- 
+2.0.4
+

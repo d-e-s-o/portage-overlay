@@ -1,5 +1,16 @@
+From 8676930120b58e34fac40acd9b2e9417a08f5b0e Mon Sep 17 00:00:00 2001
+From: deso <deso@devnull.com>
+Date: Sat, 23 Feb 2013 08:34:01 -0800
+Subject: [PATCH 4/6] added better "current working directory" support for tabs
+
+---
+ src/perl/tabbed | 17 ++++++++++++++++-
+ src/rxvtperl.xs |  9 +++++++++
+ src/typemap     |  5 +++++
+ 3 files changed, 30 insertions(+), 1 deletion(-)
+
 diff --git a/src/perl/tabbed b/src/perl/tabbed
-index f3f800e..4581650 100644
+index dd20a8d..6511474 100644
 --- a/src/perl/tabbed
 +++ b/src/perl/tabbed
 @@ -426,7 +426,22 @@ sub tab_key_press {
@@ -27,10 +38,10 @@ index f3f800e..4581650 100644
        }
        elsif (exists $tab_index{$keysym})
 diff --git a/src/rxvtperl.xs b/src/rxvtperl.xs
-index 4d8709e..f21c15e 100644
+index 92ad48c..acfc4e9 100644
 --- a/src/rxvtperl.xs
 +++ b/src/rxvtperl.xs
-@@ -1290,6 +1290,15 @@ rxvt_term::strwidth (SV *str)
+@@ -1304,6 +1304,15 @@ rxvt_term::strwidth (SV *str)
  	OUTPUT:
          RETVAL
  
@@ -62,3 +73,6 @@ index 8ad9f12..fef4037 100644
  rxvt_img::nv		T_NV
  
  urxvt::pixbuf           T_PTROBJ
+-- 
+2.0.4
+

@@ -1,5 +1,14 @@
+From 5cd8ca13613aa52b0173b437e9c61b6d214320c8 Mon Sep 17 00:00:00 2001
+From: deso <deso@devnull.com>
+Date: Sat, 23 Feb 2013 08:30:18 -0800
+Subject: [PATCH 1/6] customized keyboard shortcuts for tabs
+
+---
+ src/perl/tabbed | 97 +++++++++++++++++++++++++++++++++++++++++++++++----------
+ 1 file changed, 80 insertions(+), 17 deletions(-)
+
 diff --git a/src/perl/tabbed b/src/perl/tabbed
-index 76a917f..f3f800e 100644
+index 82937ec..dd20a8d 100644
 --- a/src/perl/tabbed
 +++ b/src/perl/tabbed
 @@ -46,11 +46,12 @@ sub refresh {
@@ -134,3 +143,6 @@ index 76a917f..f3f800e 100644
           return 1;
        }
     }
+-- 
+2.0.4
+

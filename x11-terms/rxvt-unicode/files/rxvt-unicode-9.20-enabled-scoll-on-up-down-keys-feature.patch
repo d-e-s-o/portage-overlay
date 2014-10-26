@@ -1,3 +1,12 @@
+From 1e439139aaf1b1faae795258896802096fc7c894 Mon Sep 17 00:00:00 2001
+From: deso <deso@devnull.com>
+Date: Sat, 23 Feb 2013 08:32:46 -0800
+Subject: [PATCH 3/6] enabled "scoll on up/down keys" feature
+
+---
+ src/feature.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/src/feature.h b/src/feature.h
 index 151d29e..682d63b 100644
 --- a/src/feature.h
@@ -11,3 +20,6 @@ index 151d29e..682d63b 100644
  /* #define SCROLL_ON_HOMEEND_KEYS */
  
  /*
+-- 
+2.0.4
+

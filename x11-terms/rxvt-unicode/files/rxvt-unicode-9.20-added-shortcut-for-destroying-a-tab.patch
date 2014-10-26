@@ -1,5 +1,14 @@
+From e8664c6c0f2d983263c610cd968a2232e4037396 Mon Sep 17 00:00:00 2001
+From: deso <deso@devnull.com>
+Date: Sat, 23 Feb 2013 22:06:48 -0800
+Subject: [PATCH 6/6] added shortcut for destroying a tab
+
+---
+ src/perl/tabbed | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
 diff --git a/src/perl/tabbed b/src/perl/tabbed
-index f578990..e2a4ab2 100644
+index 43ca1f4..a593f14 100644
 --- a/src/perl/tabbed
 +++ b/src/perl/tabbed
 @@ -381,6 +381,7 @@ sub tab_key_press {
@@ -24,3 +33,6 @@ index f578990..e2a4ab2 100644
        elsif (exists $tab_index{$keysym})
        {
           my $idx = $tab_index{$keysym};
+-- 
+2.0.4
+

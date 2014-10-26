@@ -1,5 +1,14 @@
+From c902df845a70140cc42fe80b7c92813a9f03cc12 Mon Sep 17 00:00:00 2001
+From: deso <deso@devnull.com>
+Date: Sat, 23 Feb 2013 08:35:29 -0800
+Subject: [PATCH 5/6] fixed tab focusing problem
+
+---
+ src/perl/tabbed | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
 diff --git a/src/perl/tabbed b/src/perl/tabbed
-index 4581650..f578990 100644
+index 6511474..43ca1f4 100644
 --- a/src/perl/tabbed
 +++ b/src/perl/tabbed
 @@ -338,12 +338,13 @@ sub tab_start {
@@ -17,3 +26,6 @@ index 4581650..f578990 100644
        } else {
           $self->refresh;
        }
+-- 
+2.0.4
+
