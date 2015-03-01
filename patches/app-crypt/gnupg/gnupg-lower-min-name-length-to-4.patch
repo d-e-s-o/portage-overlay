@@ -1,0 +1,15 @@
+diff --git g10/keygen.c g10/keygen.c
+index 6d3dfa..23abaa 100644
+--- g10/keygen.c
++++ g10/keygen.c
+@@ -2113,8 +2113,8 @@ ask_user_id (int mode, KBNODE keyblock)
+ 		    tty_printf(_("Invalid character in name\n"));
+ 		else if( digitp(aname) )
+ 		    tty_printf(_("Name may not start with a digit\n"));
+-		else if( strlen(aname) < 5 )
+-		    tty_printf(_("Name must be at least 5 characters long\n"));
++		else if( strlen(aname) < 4 )
++		    tty_printf(_("Name must be at least 4 characters long\n"));
+ 		else
+ 		    break;
+ 	    }
