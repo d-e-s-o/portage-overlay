@@ -1,0 +1,65 @@
+diff --git cmd-clear-history.c cmd-clear-history.c
+index cce3ea..56efdd 100644
+--- cmd-clear-history.c
++++ cmd-clear-history.c
+@@ -17,6 +17,9 @@
+  */
+ 
+ #include <sys/types.h>
++#ifdef __GLIBC__
++# include <malloc.h>
++#endif
+ 
+ #include "tmux.h"
+ 
+@@ -41,12 +44,24 @@ cmd_clear_history_exec(struct cmd *self, struct cmd_q *cmdq)
+ 	struct args		*args = self->args;
+ 	struct window_pane	*wp;
+ 	struct grid		*gd;
++	struct grid_line	*gl;
++	u_int	yy;
+ 
+ 	if (cmd_find_pane(cmdq, args_get(args, 't'), NULL, &wp) == NULL)
+ 		return (CMD_RETURN_ERROR);
+ 	gd = wp->base.grid;
+ 
+-	grid_move_lines(gd, 0, gd->hsize, gd->sy);
++	for (yy = 0; yy < gd->hsize+gd->sy; yy++) {
++		gl = &gd->linedata[yy];
++		free(gl->celldata);
++	}
++
++	free(gd->linedata);
++#ifdef M_TRIM_THRESHOLD
++	malloc_trim(0);
++#endif
++
++	gd->linedata = xcalloc(gd->sy, sizeof *gd->linedata);
+ 	gd->hsize = 0;
+ 
+ 	return (CMD_RETURN_NORMAL);
+diff --git grid.c grid.c
+index 52d6f6..74e6fa 100644
+--- grid.c
++++ grid.c
+@@ -20,6 +20,9 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef __GLIBC__
++# include <malloc.h>
++#endif
+ 
+ #include "tmux.h"
+ 
+@@ -113,6 +116,10 @@ grid_destroy(struct grid *gd)
+ 	free(gd->linedata);
+ 
+ 	free(gd);
++
++#ifdef M_TRIM_THRESHOLD
++	malloc_trim(0);
++#endif
+ }
+ 
+ /* Compare grids. */
