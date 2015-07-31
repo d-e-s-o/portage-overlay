@@ -1,5 +1,5 @@
 diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
-index 9c41fdd..3e46bc8 100644
+index 3e91a9..15709b 100644
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
 @@ -75,6 +75,7 @@
@@ -11,10 +11,10 @@ index 9c41fdd..3e46bc8 100644
  // Page-related commands
  #define IDC_BOOKMARK_PAGE               35000
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 4e6c9e1..ce9b873 100644
+index ab25a9..328441 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -440,6 +440,7 @@ void BrowserCommandController::ExecuteCommandWithDisposition(
+@@ -445,6 +445,7 @@ void BrowserCommandController::ExecuteCommandWithDisposition(
      case IDC_SELECT_TAB_5:
      case IDC_SELECT_TAB_6:
      case IDC_SELECT_TAB_7:
@@ -22,7 +22,7 @@ index 4e6c9e1..ce9b873 100644
        SelectNumberedTab(browser_, id - IDC_SELECT_TAB_0);
        break;
      case IDC_SELECT_LAST_TAB:
-@@ -993,6 +994,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1006,6 +1007,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, normal_window);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, normal_window);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, normal_window);
@@ -31,10 +31,10 @@ index 4e6c9e1..ce9b873 100644
  #if defined(OS_WIN)
    bool metro = browser_->host_desktop_type() == chrome::HOST_DESKTOP_TYPE_ASH;
 diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/views/accelerator_table.cc
-index b1081d5..a7e969f 100644
+index 1c022b..18babb 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
-@@ -21,167 +21,62 @@ namespace {
+@@ -21,169 +21,71 @@ namespace {
  // Do not use Ctrl-Alt as a shortcut modifier, as it is used by i18n keyboards:
  // http://blogs.msdn.com/b/oldnewthing/archive/2004/03/29/101121.aspx
  const AcceleratorMapping kAcceleratorMap[] = {
@@ -73,9 +73,9 @@ index b1081d5..a7e969f 100644
 +  { ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_DEV_TOOLS_INSPECT },
    { ui::VKEY_O, ui::EF_CONTROL_DOWN, IDC_OPEN_FILE },
    { ui::VKEY_P, ui::EF_CONTROL_DOWN, IDC_PRINT},
- #if !defined(DISABLE_BASIC_PRINTING)
+ #if defined(ENABLE_BASIC_PRINTING)
    { ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_BASIC_PRINT},
- #endif  // !DISABLE_BASIC_PRINTING
+ #endif  // ENABLE_BASIC_PRINTING
    { ui::VKEY_R, ui::EF_CONTROL_DOWN, IDC_RELOAD },
 -  { ui::VKEY_R, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
 -    IDC_RELOAD_IGNORING_CACHE },
@@ -194,12 +194,19 @@ index b1081d5..a7e969f 100644
 -    IDC_HELP_PAGE_VIA_KEYBOARD },
 -  { ui::VKEY_BROWSER_FAVORITES, ui::EF_NONE, IDC_SHOW_BOOKMARK_MANAGER },
 -  { ui::VKEY_BROWSER_STOP, ui::EF_NONE, IDC_STOP },
+-  { ui::VKEY_P, ui::EF_CONTROL_DOWN | ui::EF_ALT_DOWN,
+-    IDC_TOUCH_HUD_PROJECTION_TOGGLE },
 -#else  // OS_CHROMEOS
 -  { ui::VKEY_DELETE, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
 -    IDC_CLEAR_BROWSING_DATA },
--  { ui::VKEY_LMENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
--  { ui::VKEY_MENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
--  { ui::VKEY_RMENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
++  // TODO: Test these out. Remove if not required.
++  { ui::VKEY_J, ui::EF_CONTROL_DOWN, IDC_FOCUS_NEXT_PANE },
++  { ui::VKEY_K, ui::EF_CONTROL_DOWN, IDC_FOCUS_PREVIOUS_PANE },
++  { ui::VKEY_LWIN, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
++  { ui::VKEY_RWIN, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
+   { ui::VKEY_LMENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
+   { ui::VKEY_MENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
+   { ui::VKEY_RMENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR },
 -  // On Windows, all VKEY_BROWSER_* keys except VKEY_BROWSER_SEARCH are handled
 -  // via WM_APPCOMMAND.
 -  { ui::VKEY_BROWSER_SEARCH, ui::EF_NONE, IDC_FOCUS_SEARCH },
@@ -216,6 +223,7 @@ index b1081d5..a7e969f 100644
 -  { ui::VKEY_Q, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_EXIT },
 -  { ui::VKEY_N, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
 -    IDC_NEW_INCOGNITO_WINDOW },
++  // /TODO
 +  { ui::VKEY_F, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_FULLSCREEN },
 +  { ui::VKEY_DELETE, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_TASK_MANAGER },
 +  { ui::VKEY_Q, ui::EF_CONTROL_DOWN, IDC_EXIT },
