@@ -1,0 +1,41 @@
+diff --git a/cmd-rename-window.c b/cmd-rename-window.c
+index f647ab..d2adf4 100644
+--- a/cmd-rename-window.c
++++ b/cmd-rename-window.c
+@@ -49,6 +49,7 @@ cmd_rename_window_exec(struct cmd *self, struct cmd_q *cmdq)
+ 
+ 	window_set_name(wl->window, args->argv[0]);
+ 	options_set_number(&wl->window->options, "automatic-rename", 0);
++	options_set_number(&wl->window->options, "user-renamed", 1);
+ 
+ 	server_status_window(wl->window);
+ 
+diff --git a/input.c b/input.c
+index ce103b..222122 100644
+--- a/input.c
++++ b/input.c
+@@ -1740,6 +1740,8 @@ input_exit_rename(struct input_ctx *ictx)
+ 		return;
+ 	if (!options_get_number(&ictx->wp->window->options, "allow-rename"))
+ 		return;
++	if (options_get_number(&ictx->wp->window->options, "user-renamed"))
++		return;
+ 	log_debug("%s: \"%s\"", __func__, ictx->input_buf);
+ 
+ 	window_set_name(ictx->wp->window, ictx->input_buf);
+diff --git a/options-table.c b/options-table.c
+index 64d3ed..14601a 100644
+--- a/options-table.c
++++ b/options-table.c
+@@ -671,6 +671,11 @@ const struct options_table_entry window_options_table[] = {
+ 	  .default_num = 0
+ 	},
+ 
++	{ .name = "user-renamed",
++	  .type = OPTIONS_TABLE_FLAG,
++	  .default_num = 0
++	},
++
+ 	{ .name = "utf8",
+ 	  .type = OPTIONS_TABLE_FLAG,
+ 	  .default_num = 0 /* overridden in main() */
