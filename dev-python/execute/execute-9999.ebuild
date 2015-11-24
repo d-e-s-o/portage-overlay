@@ -25,9 +25,9 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 
 PYTHON_COMPAT=( python3_{2,3,4} )
-inherit python-single-r1
+inherit python-r1
 
-RDEPEND="dev-python/cleanup"
+RDEPEND="dev-python/cleanup[${PYTHON_USEDEP}]"
 DEPEND="${RDEPEND}"
 
 EGIT_BRANCH="devel"
@@ -40,6 +40,9 @@ src_compile() {
 }
 
 src_install() {
-  python_moduleinto deso/execute
-  python_domodule execute/src/deso/execute/*.py
+  installation() {
+    python_moduleinto deso/execute
+    python_domodule execute/src/deso/execute/*.py
+  }
+  python_foreach_impl installation
 }
