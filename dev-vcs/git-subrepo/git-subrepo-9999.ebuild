@@ -23,6 +23,7 @@ HOMEPAGE="https://github.com/d-e-s-o/git-subrepo"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
+IUSE="+doc"
 
 PYTHON_COMPAT=( python3_{2,3,4} )
 inherit python-r1
@@ -57,4 +58,10 @@ src_install() {
     python_newexe git-subrepo/src/deso/git/subrepo/git-subrepo.py git-subrepo
   }
   python_foreach_impl installation
+
+  if use doc; then
+    dodoc git-subrepo/doc/*.txt
+    doman git-subrepo/doc/*.1
+    dohtml git-subrepo/doc/*.html
+  fi
 }
