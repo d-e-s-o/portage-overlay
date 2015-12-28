@@ -27,11 +27,22 @@ KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 PYTHON_COMPAT=( python3_{2,3,4} )
 inherit python-r1
 
-DEPEND="dev-python/setuptools[${PYTHON_USEDEP}]"
-RDEPEND="${DEPEND}"
+RDEPEND="${PYTHON_DEPS}"
+DEPEND="${RDEPEND}"
 
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/copyright"
 
 inherit git-2
-inherit distutils-r1
+
+src_compile() {
+  true
+}
+
+src_install() {
+  installation() {
+    python_moduleinto deso/copyright
+    python_domodule copyright/src/deso/copyright/*.py
+  }
+  python_foreach_impl installation
+}
