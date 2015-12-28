@@ -23,7 +23,7 @@ HOMEPAGE="https://github.com/d-e-s-o/git-subrepo"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
-IUSE="+doc"
+IUSE="+doc +module"
 
 PYTHON_COMPAT=( python3_{2,3,4} )
 inherit python-r1
@@ -48,6 +48,10 @@ src_compile() {
 
 src_install() {
   installation() {
+    if use module; then
+      python_moduleinto deso/git/subrepo
+      python_domodule git-subrepo/src/deso/git/subrepo/*.py
+    fi
     # We want the installed script to not contain the .py extension, so
     # we cannot use python_doscript which would do all the magic itself
     # but have to invoke the main functionality it provides ourselves.
