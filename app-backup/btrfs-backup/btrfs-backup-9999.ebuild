@@ -25,7 +25,7 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 IUSE="+test tests"
 
-PYTHON_COMPAT=( python3_{2,3} )
+PYTHON_COMPAT=( python3_{2,3,4} )
 inherit python-r1
 
 RDEPEND="
@@ -84,10 +84,18 @@ src_prepare() {
   fi
 }
 
-python_install_all() {
-  distutils-r1_python_install_all
+python_compile() {
+  pushd "${S}"/btrfs-backup > /dev/null || die
+  distutils-r1_python_compile
+  popd > /dev/null || die
+}
+
+python_install() {
+  pushd "${S}"/btrfs-backup > /dev/null || die
+  distutils-r1_python_install
 
   doinitd "${FILESDIR}"/init.d/btrfs-backup
+  popd > /dev/null || die
 }
 
 # Note that python_test() is the default function that is invoked by
@@ -103,5 +111,6 @@ python_test() {
   # the temporary directory and running it there did not make a change.
   # Unfortunately, setup.py's test command does not accept any parameters that
   # would allow to change this directory or disable this behavior entirely.
-  TEST_TMP_DIR="${TMPDIR}" ${EPYTHON} -m unittest discover --buffer "${S}/src/deso/btrfs/test" || die
+  TEST_TMP_DIR="${TMPDIR}" ${EPYTHON} -m unittest discover --buffer\
+    "${S}/btrfs-backup/src/deso/btrfs/test" || die
 }
