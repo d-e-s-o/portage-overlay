@@ -1,0 +1,13 @@
+diff --git a/src/conf.c b/src/conf.c
+index 3e5368..35d7aa 100644
+--- a/src/conf.c
++++ b/src/conf.c
+@@ -1831,6 +1831,8 @@ int get_conf(const char *conffile, int securitycheck, list_t **acc_list,
+         return e;
+     }
+     fclose(f);
++    /* We don't care whether the user owns the file or not. */
++    conffile_contains_secrets = 0;
+     e = CONF_EOK;
+     if (securitycheck && conffile_contains_secrets)
+     {
