@@ -1,0 +1,15 @@
+diff --git src/rc/openrc-run.c src/rc/openrc-run.c
+index ccdadd..907b10 100644
+--- src/rc/openrc-run.c
++++ src/rc/openrc-run.c
+@@ -506,8 +506,10 @@ svc_wait(const char *svc)
+ 				return false;
+ 			timespecsub(&warn, &interval, &warn);
+ 			if (warn.tv_sec <= 0) {
++				/*
+ 				ewarn("%s: waiting for %s (%d seconds)",
+ 				    applet, svc, (int)timeout.tv_sec);
++				*/
+ 				warn.tv_sec = WARN_TIMEOUT;
+ 				warn.tv_nsec = 0;
+ 			}
