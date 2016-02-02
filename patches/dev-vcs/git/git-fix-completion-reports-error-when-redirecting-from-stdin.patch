@@ -1,0 +1,13 @@
+diff --git a/git b/git
+index 3b1a9b..34117d 100644
+--- a/contrib/completion/git-completion.bash
++++ b/contrib/completion/git-completion.bash
+@@ -770,7 +770,7 @@ __git_aliases ()
+ __git_aliased_command ()
+ {
+ 	local word cmdline=$(git --git-dir="$(__gitdir)" \
+-		config --get "alias.$1")
++		config --get "alias.$1" 2> /dev/null)
+ 	for word in $cmdline; do
+ 		case "$word" in
+ 		\!gitk|gitk)
