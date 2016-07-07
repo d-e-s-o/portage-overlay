@@ -1,0 +1,19 @@
+--- /usr/lib/python-exec/python2.7/hg-fast-export.py	2016-06-29 11:27:55.701820644 -0700
++++ /tmp/hg-fast-export.py	2016-06-29 11:21:49.751283908 -0700
+@@ -179,6 +179,8 @@
+     return n
+ 
+   (revnode,_,user,(time,timezone),files,desc,branch,_)=get_changeset(ui,repo,revision,authors,encoding)
++  ctx=repo.changectx(str(revision))
++  desc += '\n\nhg commit: %d:%s' % ((revision+1), ctx.hex())
+ 
+   branch=get_branchname(branch)
+ 
+@@ -196,7 +198,6 @@
+   wr(desc)
+   wr()
+ 
+-  ctx=repo.changectx(str(revision))
+   man=ctx.manifest()
+   added,changed,removed,type=[],[],[],''
+ 
