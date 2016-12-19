@@ -26,10 +26,11 @@ KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 IUSE="+doc +module"
 
 PYTHON_COMPAT=( python3_{2,3,4} )
-inherit python-r1
+inherit python-r1 bash-completion-r1
 
 RDEPEND="
   ${PYTHON_DEPS}
+  dev-python/argcomp[${PYTHON_USEDEP}]
   dev-python/cleanup[${PYTHON_USEDEP}]
   dev-python/execute[${PYTHON_USEDEP}]
   dev-vcs/git
@@ -62,6 +63,8 @@ src_install() {
     python_newexe git-subrepo/src/deso/git/subrepo/git-subrepo.py git-subrepo
   }
   python_foreach_impl installation
+
+  dobashcomp git-subrepo/support/bash_completion.d/git-subrepo
 
   if use doc; then
     dodoc git-subrepo/doc/*.txt
