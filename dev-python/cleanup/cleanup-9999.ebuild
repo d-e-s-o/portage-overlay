@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2015 deso (deso@posteo.net)                             *
+# *   Copyright (C) 2015,2017 deso (deso@posteo.net)                        *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -23,6 +23,7 @@ HOMEPAGE="https://github.com/d-e-s-o/cleanup"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
+IUSE="tests"
 
 PYTHON_COMPAT=( python3_{2,3,4} )
 inherit python-r1
@@ -34,15 +35,23 @@ EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/cleanup"
 
 inherit git-2
+inherit distutils-r1
 
-src_compile() {
-  true
+python_prepare_all() {
+  if ! use tests; then
+    epatch "${FILESDIR}"/${PN}-remove-tests.patch
+  fi
+  distutils-r1_python_prepare_all
 }
 
-src_install() {
-  installation() {
-    python_moduleinto deso/cleanup
-    python_domodule cleanup/src/deso/cleanup/*.py
-  }
-  python_foreach_impl installation
+python_compile() {
+  pushd "${S}"/cleanup > /dev/null || die
+  distutils-r1_python_compile
+  popd > /dev/null || die
+}
+
+python_install() {
+  pushd "${S}"/cleanup > /dev/null || die
+  distutils-r1_python_install
+  popd > /dev/null || die
 }
