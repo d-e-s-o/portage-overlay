@@ -1,0 +1,79 @@
+commit 95f628fa8d18b55b23314ea6fd03922fe12ee2a9
+Author: deso <deso@posteo.net>
+Date:   Sun Jan 15 11:29:35 2017 -0800
+
+    unittest: properly report import errors
+    
+    TestLoader's loadTestsFromName method, which is used for finding a test
+    case to execute, opportunistically tries to import a module in order to
+    inspect it for tests. If an import error occurs, it strips of the last
+    part of the name and retries. This logic is required in order to
+    transparently handle the specification of TestCase names and individual
+    test methods.
+    However, this approach is prone to masking errors and potentially
+    causing wrong imports because it does not differentiate between the case
+    that a module cannot be found and one where the module was found but
+    cannot be imported (say, due to a missing dependency). To illustrate the
+    latter case consider that during development the user added an import
+    statement to a unittest that cannot be resolved because it has not yet
+    been defined in the actual product code (a typical scenario in test
+    driven development). In such a case loadTestsFromName would see an
+    import error and deduce that the module does not exists. It strips off
+    the last part of the full name specifier and retries. Now, if another
+    module would match that name, it would be imported wrongly, for if the
+    user now goes and implements the import in the product, suddenly a
+    different module would be imported. If, on the other hand, no module is
+    found, a generic error is raised that does not detail the actual import
+    problem.
+    This change fixes the problem by splitting the import in two parts.
+    First, we use importlib.util.find_spec (available with Python 3.4) to
+    check if the given name is a discoverable module. If that is not the
+    case we strip off a part as before and continue. If a module was found,
+    however, we perform a normal import and report any error during that
+    import directly to the user.
+
+diff --git Lib/unittest/loader.py Lib/unittest/loader.py
+index af3921..4d5dec 100644
+--- Lib/unittest/loader.py
++++ Lib/unittest/loader.py
+@@ -8,6 +8,7 @@ import types
+ import functools
+ 
+ from fnmatch import fnmatch
++from importlib.util import find_spec
+ 
+ from . import case, suite, util
+ 
+@@ -112,13 +113,28 @@ class TestLoader(object):
+         if module is None:
+             parts_copy = parts[:]
+             while parts_copy:
++                # Search for the given module.
+                 try:
+-                    module = __import__('.'.join(parts_copy))
+-                    break
+-                except ImportError:
++                    spec = find_spec('.'.join(parts_copy))
++                # Note that find_spec uses __import__(...,
++                # fromlist=["path"]) internally and that in turn might
++                # fail for bogus packages. This problem manifests as an
++                # AttributeError so we catch that as well.
++                except (ImportError, AttributeError):
++                    spec = None
++
++                if spec is None:
+                     del parts_copy[-1]
+                     if not parts_copy:
+-                        raise
++                        raise ImportError("%s not found" % name)
++                else:
++                    # Only if we found a module do we import it. This
++                    # way we can distinguish module-not-found errors
++                    # from actual import errors in the module, e.g.,
++                    # because a dependency cannot be resolved, and allow
++                    # for easy trouble shooting by the user.
++                    module = __import__('.'.join(parts_copy))
++                    break
+             parts = parts[1:]
+         obj = module
+         for part in parts:
