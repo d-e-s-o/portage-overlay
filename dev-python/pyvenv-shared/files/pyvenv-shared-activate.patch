@@ -1,0 +1,23 @@
+--- bin/activate	2017-01-22 21:54:38.397178514 -0800
++++ bin/activate	2016-01-09 20:19:15.528759407 -0800
+@@ -37,7 +37,19 @@
+ # unset irrelavent variables
+ deactivate nondestructive
+ 
+-VIRTUAL_ENV="/tmp/portage/dev-python/pyvenv-shared-9999/work/pyvenv-shared-9999/pyvenv"
++# Chances are we have pyvenv-auto.sh sourced which provides
++# functionality to find a pyvenv. Only if that is not the case we simply
++# use PWD as the virtual env path (which might be wrong if we did not
++# cd into the root of a virtual env; that is assumed to be good enough
++# an approach).
++if declare -F _pyvenv_find_venv > /dev/null; then
++  VIRTUAL_ENV=$(_pyvenv_find_venv "${PWD}")
++else
++  VIRTUAL_ENV="${PWD}"
++fi
++if [ -z "${VIRTUAL_ENV}" ]; then
++  echo "No virtual env found"
++fi
+ export VIRTUAL_ENV
+ 
+ _OLD_VIRTUAL_PATH="$PATH"
