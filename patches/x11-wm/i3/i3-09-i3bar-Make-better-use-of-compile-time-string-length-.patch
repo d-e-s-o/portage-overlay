@@ -1,0 +1,270 @@
+From 606dbf3c2a7d651add8bd67209c1ed36eda70e76 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Fri, 17 Nov 2017 06:58:12 -0800
+Subject: [PATCH 09/15] i3bar: Make better use of compile time string length
+ evaluation
+
+The i3bar program contains a couple of locations where we use strlen on
+a string that clearly is known at compile time and contained in the
+binary. There is no point in doing so when the same information can be
+retrieved statically by means of the sizeof operator.
+This change fixes those occurrences. It also replaces a couple of magic
+lengths with their symbolic counterparts and makes use of the return
+value provided by the *printf* family of functions to avoid duplicated
+string length assessment.
+---
+ i3bar/src/child.c  | 12 +++++++++---
+ i3bar/src/config.c | 33 ++++++++++++++++++++++++---------
+ i3bar/src/ipc.c    | 14 +++++++-------
+ i3bar/src/xcb.c    | 22 +++++++++++++++-------
+ src/ipc.c          |  8 ++++----
+ 5 files changed, 59 insertions(+), 30 deletions(-)
+
+diff --git a/i3bar/src/child.c b/i3bar/src/child.c
+index fe989c..1a3a24 100644
+--- a/i3bar/src/child.c
++++ b/i3bar/src/child.c
+@@ -218,13 +218,19 @@ static int stdin_string(void *context, const unsigned char *val, size_t len) {
+         return 1;
+     }
+     if (strcasecmp(ctx->last_map_key, "markup") == 0) {
+-        ctx->block.pango_markup = (len == strlen("pango") && !strncasecmp((const char *)val, "pango", strlen("pango")));
++        const char pango[] = "pango";
++        const size_t pango_len = sizeof(pango) - 1;
++        ctx->block.pango_markup = (len == pango_len && !strncasecmp((const char *)val, pango, pango_len));
+         return 1;
+     }
+     if (strcasecmp(ctx->last_map_key, "align") == 0) {
+-        if (len == strlen("center") && !strncmp((const char *)val, "center", strlen("center"))) {
++        const char center[] = "center";
++        const char right[] = "right";
++        const size_t center_len = sizeof(center) - 1;
++        const size_t right_len = sizeof(right) - 1;
++        if (len == center_len && !strncmp((const char *)val, center, center_len)) {
+             ctx->block.align = ALIGN_CENTER;
+-        } else if (len == strlen("right") && !strncmp((const char *)val, "right", strlen("right"))) {
++        } else if (len == right_len && !strncmp((const char *)val, right, right_len)) {
+             ctx->block.align = ALIGN_RIGHT;
+         } else {
+             ctx->block.align = ALIGN_LEFT;
+diff --git a/i3bar/src/config.c b/i3bar/src/config.c
+index cbe84d..a4430b 100644
+--- a/i3bar/src/config.c
++++ b/i3bar/src/config.c
+@@ -71,6 +71,21 @@ static int config_null_cb(void *params_) {
+  *
+  */
+ static int config_string_cb(void *params_, const unsigned char *val, size_t _len) {
++    const char dock[] = "dock";
++    const char hide[] = "hide";
++    const char none[] = "none";
++    const char shift[] = "shift";
++    const char ctrl[] = "ctrl";
++    const char mod[] = "Mod";
++    const char top[] = "top";
++    const size_t dock_len = sizeof(dock) - 1;
++    const size_t hide_len = sizeof(hide) - 1;
++    const size_t none_len = sizeof(none) - 1;
++    const size_t shift_len = sizeof(shift) - 1;
++    const size_t ctrl_len = sizeof(ctrl) - 1;
++    const size_t mod_len = sizeof(mod) - 1;
++    const size_t top_len = sizeof(top) - 1;
++
+     int len = (int)_len;
+     /* The id and socket_path are ignored, we already know them. */
+     if (!strcmp(cur_key, "id") || !strcmp(cur_key, "socket_path"))
+@@ -107,34 +122,34 @@ static int config_string_cb(void *params_, const unsigned char *val, size_t _len
+ 
+     if (!strcmp(cur_key, "mode")) {
+         DLOG("mode = %.*s, len = %d\n", len, val, len);
+-        config.hide_on_modifier = (len == 4 && !strncmp((const char *)val, "dock", strlen("dock")) ? M_DOCK
+-                                                                                                   : (len == 4 && !strncmp((const char *)val, "hide", strlen("hide")) ? M_HIDE
+-                                                                                                                                                                      : M_INVISIBLE));
++        config.hide_on_modifier = (len == hide_len && !strncmp((const char *)val, dock, dock_len) ? M_DOCK
++                                                                                                  : (len == hide_len && !strncmp((const char *)val, hide, hide_len) ? M_HIDE
++                                                                                                                                                                    : M_INVISIBLE));
+         return 1;
+     }
+ 
+     if (!strcmp(cur_key, "hidden_state")) {
+         DLOG("hidden_state = %.*s, len = %d\n", len, val, len);
+-        config.hidden_state = (len == 4 && !strncmp((const char *)val, "hide", strlen("hide")) ? S_HIDE : S_SHOW);
++        config.hidden_state = (len == hide_len && !strncmp((const char *)val, hide, hide_len) ? S_HIDE : S_SHOW);
+         return 1;
+     }
+ 
+     if (!strcmp(cur_key, "modifier")) {
+         DLOG("modifier = %.*s\n", len, val);
+-        if (len == 4 && !strncmp((const char *)val, "none", strlen("none"))) {
++        if (len == none_len && !strncmp((const char *)val, none, none_len)) {
+             config.modifier = XCB_NONE;
+             return 1;
+         }
+ 
+-        if (len == 5 && !strncmp((const char *)val, "shift", strlen("shift"))) {
++        if (len == shift_len && !strncmp((const char *)val, shift, shift_len)) {
+             config.modifier = ShiftMask;
+             return 1;
+         }
+-        if (len == 4 && !strncmp((const char *)val, "ctrl", strlen("ctrl"))) {
++        if (len == ctrl_len && !strncmp((const char *)val, ctrl, ctrl_len)) {
+             config.modifier = ControlMask;
+             return 1;
+         }
+-        if (len == 4 && !strncmp((const char *)val, "Mod", strlen("Mod"))) {
++        if (len == mod_len + 1 && !strncmp((const char *)val, mod, mod_len)) {
+             switch (val[3]) {
+                 case '1':
+                     config.modifier = Mod1Mask;
+@@ -179,7 +194,7 @@ static int config_string_cb(void *params_, const unsigned char *val, size_t _len
+ 
+     if (!strcmp(cur_key, "position")) {
+         DLOG("position = %.*s\n", len, val);
+-        config.position = (len == 3 && !strncmp((const char *)val, "top", strlen("top")) ? POS_TOP : POS_BOT);
++        config.position = (len == top_len && !strncmp((const char *)val, top, top_len) ? POS_TOP : POS_BOT);
+         return 1;
+     }
+ 
+diff --git a/i3bar/src/ipc.c b/i3bar/src/ipc.c
+index c932aa..8ab70e 100644
+--- a/i3bar/src/ipc.c
++++ b/i3bar/src/ipc.c
+@@ -216,7 +216,7 @@ void got_data(struct ev_loop *loop, ev_io *watcher, int events) {
+     int fd = watcher->fd;
+ 
+     /* First we only read the header, because we know its length */
+-    uint32_t header_len = strlen(I3_IPC_MAGIC) + sizeof(uint32_t) * 2;
++    uint32_t header_len = sizeof(I3_IPC_MAGIC) - 1 + sizeof(uint32_t) * 2;
+     char *header = smalloc(header_len);
+ 
+     /* We first parse the fixed-length IPC header, to know, how much data
+@@ -241,15 +241,15 @@ void got_data(struct ev_loop *loop, ev_io *watcher, int events) {
+         rec += n;
+     }
+ 
+-    if (strncmp(header, I3_IPC_MAGIC, strlen(I3_IPC_MAGIC))) {
++    if (strncmp(header, I3_IPC_MAGIC, sizeof(I3_IPC_MAGIC) - 1)) {
+         ELOG("Wrong magic code: %.*s\n Expected: %s\n",
+-             (int)strlen(I3_IPC_MAGIC),
++             (int)sizeof(I3_IPC_MAGIC) - 1,
+              header,
+              I3_IPC_MAGIC);
+         exit(EXIT_FAILURE);
+     }
+ 
+-    char *walk = header + strlen(I3_IPC_MAGIC);
++    char *walk = header + sizeof(I3_IPC_MAGIC) - 1;
+     uint32_t size;
+     memcpy(&size, (uint32_t *)walk, sizeof(uint32_t));
+     walk += sizeof(uint32_t);
+@@ -300,15 +300,15 @@ int i3_send_msg(uint32_t type, const char *payload) {
+     }
+ 
+     /* We are a wellbehaved client and send a proper header first */
+-    uint32_t to_write = strlen(I3_IPC_MAGIC) + sizeof(uint32_t) * 2 + len;
++    uint32_t to_write = sizeof(I3_IPC_MAGIC) - 1 + sizeof(uint32_t) * 2 + len;
+     /* TODO: I'm not entirely sure if this buffer really has to contain more
+      * than the pure header (why not just write() the payload from *payload?),
+      * but we leave it for now */
+     char *buffer = smalloc(to_write);
+     char *walk = buffer;
+ 
+-    strncpy(buffer, I3_IPC_MAGIC, strlen(I3_IPC_MAGIC));
+-    walk += strlen(I3_IPC_MAGIC);
++    strncpy(buffer, I3_IPC_MAGIC, sizeof(I3_IPC_MAGIC) - 1);
++    walk += sizeof(I3_IPC_MAGIC) - 1;
+     memcpy(walk, &len, sizeof(uint32_t));
+     walk += sizeof(uint32_t);
+     memcpy(walk, &type, sizeof(uint32_t));
+diff --git a/i3bar/src/xcb.c b/i3bar/src/xcb.c
+index fa7e5e..f807a5 100644
+--- a/i3bar/src/xcb.c
++++ b/i3bar/src/xcb.c
+@@ -15,6 +15,7 @@
+ #include <xcb/xcb_aux.h>
+ #include <xcb/xcb_cursor.h>
+ 
++#include <assert.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
+@@ -1218,7 +1219,7 @@ char *init_xcb_early() {
+     DLOG("Connected to xcb\n");
+ 
+ /* We have to request the atoms we need */
+-#define ATOM_DO(name) atom_cookies[name] = xcb_intern_atom(xcb_connection, 0, strlen(#name), #name);
++#define ATOM_DO(name) atom_cookies[name] = xcb_intern_atom(xcb_connection, 0, sizeof(#name) - 1, #name);
+ #include "xcb_atoms.def"
+ 
+     root_screen = xcb_aux_get_screen(xcb_connection, screen);
+@@ -1372,11 +1373,16 @@ static void send_tray_clientmessage(void) {
+ void init_tray(void) {
+     DLOG("Initializing system tray functionality\n");
+     /* request the tray manager atom for the X11 display we are running on */
+-    char atomname[strlen("_NET_SYSTEM_TRAY_S") + 11];
+-    snprintf(atomname, strlen("_NET_SYSTEM_TRAY_S") + 11, "_NET_SYSTEM_TRAY_S%d", screen);
++    const char atomSystray[] = "_NET_SYSTEM_TRAY_S";
++    char atomname[sizeof(atomSystray) + 10];
++    int printed;
++
++    printed = snprintf(atomname, sizeof(atomname), "_NET_SYSTEM_TRAY_S%d", screen);
++    assert(printed < sizeof(atomname));
++
+     xcb_intern_atom_cookie_t tray_cookie;
+     if (tray_reply == NULL)
+-        tray_cookie = xcb_intern_atom(xcb_connection, 0, strlen(atomname), atomname);
++        tray_cookie = xcb_intern_atom(xcb_connection, 0, printed, atomname);
+ 
+     /* tray support: we need a window to own the selection */
+     selwin = xcb_generate_id(xcb_connection);
+@@ -1735,11 +1741,13 @@ void reconfig_windows(bool redraw_bars) {
+                                                XCB_ATOM_WM_CLASS,
+                                                XCB_ATOM_STRING,
+                                                8,
+-                                               (strlen("i3bar") + 1) * 2,
++                                               sizeof("i3bar") * 2,
+                                                "i3bar\0i3bar\0");
+ 
+             char *name;
+-            sasprintf(&name, "i3bar for output %s", walk->name);
++            int printed;
++
++            printed = sasprintf(&name, "i3bar for output %s", walk->name);
+             xcb_void_cookie_t name_cookie;
+             name_cookie = xcb_change_property(xcb_connection,
+                                               XCB_PROP_MODE_REPLACE,
+@@ -1747,7 +1755,7 @@ void reconfig_windows(bool redraw_bars) {
+                                               XCB_ATOM_WM_NAME,
+                                               XCB_ATOM_STRING,
+                                               8,
+-                                              strlen(name),
++                                              printed,
+                                               name);
+             free(name);
+ 
+diff --git a/src/ipc.c b/src/ipc.c
+index 85fa14..12af90 100644
+--- a/src/ipc.c
++++ b/src/ipc.c
+@@ -1101,14 +1101,14 @@ IPC_HANDLER(subscribe) {
+         ELOG("YAJL parse error: %s\n", err);
+         yajl_free_error(p, err);
+ 
+-        const char *reply = "{\"success\":false}";
+-        ipc_send_message(fd, strlen(reply), I3_IPC_REPLY_TYPE_SUBSCRIBE, (const uint8_t *)reply);
++        const char reply[] = "{\"success\":false}";
++        ipc_send_message(fd, sizeof(reply) - 1, I3_IPC_REPLY_TYPE_SUBSCRIBE, (const uint8_t *)reply);
+         yajl_free(p);
+         return;
+     }
+     yajl_free(p);
+-    const char *reply = "{\"success\":true}";
+-    ipc_send_message(fd, strlen(reply), I3_IPC_REPLY_TYPE_SUBSCRIBE, (const uint8_t *)reply);
++    const char reply[] = "{\"success\":true}";
++    ipc_send_message(fd, sizeof(reply) - 1, I3_IPC_REPLY_TYPE_SUBSCRIBE, (const uint8_t *)reply);
+ }
+ 
+ /*
+-- 
+2.13.6
+

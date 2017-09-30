@@ -1,0 +1,150 @@
+From f71898d32c1103156c6beba0f4b65d148b1c4ba6 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sat, 11 Nov 2017 21:00:08 -0800
+Subject: [PATCH 07/15] Rework handling of multi monitor setups
+
+Handling of multi monitor setups in i3 is quite different from that in
+awesome and other window managers. In i3 the idea is that different
+workspaces can reside on different monitors ("outputs" in i3 jargon).
+Although that may work in scenarios where not many named workspaces are
+in use, it is not a feasible approach when solely using numbered
+workspaces in a dynamically created fashion.
+To address this issue, this change reworks the logic slightly. Instead
+of numbering workspaces continuously over monitors we introduce
+boundaries: each monitor gets workspaces that start with the number one.
+The remaining logic stays the same at a high level but a couple of
+adjustments have to be made internally to honor outputs when looking up
+workspaces.
+---
+ include/workspace.h |  2 ++
+ src/commands.c      | 11 ++++++-----
+ src/workspace.c     | 26 +++++++++++++++++---------
+ 3 files changed, 25 insertions(+), 14 deletions(-)
+
+diff --git a/include/workspace.h b/include/workspace.h
+index 3cca73..c1c923 100644
+--- a/include/workspace.h
++++ b/include/workspace.h
+@@ -35,6 +35,8 @@
+  */
+ Con *workspace_get(const char *num, bool *created);
+ 
++Con *workspace_get_on_output(Con *output, const char *num, bool *created);
++
+ /**
+  * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
+  * workspace web”), so that when an output needs a workspace, i3 can start with
+diff --git a/src/commands.c b/src/commands.c
+index 1e2b76..443707 100644
+--- a/src/commands.c
++++ b/src/commands.c
+@@ -412,7 +412,8 @@ void cmd_move_con_to_workspace_number(I3_CMD, const char *which, const char *_no
+ 
+     LOG("should move window to workspace %s\n", which);
+     /* get the workspace */
+-    Con *output, *workspace = NULL;
++    Con *out, *workspace = NULL;
++    Con *output = con_get_output(focused);
+ 
+     long parsed_num = ws_name_to_number(which);
+ 
+@@ -422,12 +423,12 @@ void cmd_move_con_to_workspace_number(I3_CMD, const char *which, const char *_no
+         return;
+     }
+ 
+-    TAILQ_FOREACH(output, &(croot->nodes_head), nodes)
+-    GREP_FIRST(workspace, output_get_content(output),
+-               child->num == parsed_num);
++    TAILQ_FOREACH(out, &(croot->nodes_head), nodes)
++    GREP_FIRST(workspace, output_get_content(out),
++               child->num == parsed_num && con_get_output(child) == output);
+ 
+     if (!workspace) {
+-        workspace = workspace_get(which, NULL);
++        workspace = workspace_get_on_output(output, which, NULL);
+     }
+ 
+     if (!no_auto_back_and_forth)
+diff --git a/src/workspace.c b/src/workspace.c
+index de4eb7..d118c9 100644
+--- a/src/workspace.c
++++ b/src/workspace.c
+@@ -45,11 +45,12 @@ static void _workspace_apply_default_orientation(Con *ws) {
+  * memory and initializing the data structures correctly).
+  *
+  */
+-Con *workspace_get(const char *num, bool *created) {
+-    Con *output, *workspace = NULL;
++Con *workspace_get_on_output(Con *output, const char *num, bool *created) {
++    Con *out, *workspace = NULL;
+ 
+-    TAILQ_FOREACH(output, &(croot->nodes_head), nodes)
+-    GREP_FIRST(workspace, output_get_content(output), !strcasecmp(child->name, num));
++    TAILQ_FOREACH(out, &(croot->nodes_head), nodes)
++    GREP_FIRST(workspace, output_get_content(out), !strcasecmp(child->name, num) &&
++                                                   (output == NULL || con_get_output(child) == output));
+ 
+     if (workspace == NULL) {
+         LOG("Creating new workspace \"%s\"\n", num);
+@@ -109,6 +110,10 @@ Con *workspace_get(const char *num, bool *created) {
+     return workspace;
+ }
+ 
++Con *workspace_get(const char *num, bool *created) {
++    return workspace_get_on_output(NULL, num, created);
++}
++
+ /*
+  * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
+  * workspace web”), so that when an output needs a workspace, i3 can start with
+@@ -200,7 +205,8 @@ Con *create_workspace_on_output(Output *output, Con *content) {
+ 
+         current = NULL;
+         TAILQ_FOREACH(out, &(croot->nodes_head), nodes)
+-        GREP_FIRST(current, output_get_content(out), !strcasecmp(child->name, target_name));
++        GREP_FIRST(current, output_get_content(out), !strcasecmp(child->name, target_name) &&
++                                                     get_output_for_con(child) == output);
+         exists = (current != NULL);
+         if (!exists) {
+             ws->name = sstrdup(target_name);
+@@ -224,7 +230,8 @@ Con *create_workspace_on_output(Output *output, Con *content) {
+ 
+             current = NULL;
+             TAILQ_FOREACH(out, &(croot->nodes_head), nodes)
+-            GREP_FIRST(current, output_get_content(out), child->num == ws->num);
++            GREP_FIRST(current, output_get_content(out), child->num == ws->num &&
++                                                         get_output_for_con(child) == output);
+             exists = (current != NULL);
+ 
+             DLOG("result for ws %d: exists = %d\n", c, exists);
+@@ -627,7 +634,7 @@ Con *workspace_next_on_output(void) {
+             /* Ups, that will make boom somewhere. */
+             return NULL;
+         }
+-        next = workspace_get(num_str, NULL);
++        next = workspace_get_on_output(output, num_str, NULL);
+     }
+ 
+     /* Find next named workspace. */
+@@ -981,7 +988,8 @@ bool workspace_move_to_output(Con *ws, const char *name) {
+ 
+ Con *workspace_select(const char *num) {
+     bool created;
+-    Con *workspace = workspace_get(num, &created);
++    Con *output = con_get_output(focused);
++    Con *workspace = workspace_get_on_output(output, num, &created);
+ 
+     /* If the workspace already exists we simply use it. */
+     if (!created) {
+@@ -1009,7 +1017,7 @@ Con *workspace_select(const char *num) {
+          * would save us all those unnecessary calls to ewmh_update_*. But given
+          * the expected low frequency of those creations we should be fine.
+          */
+-        (void)workspace_get(num_str, &created);
++        (void)workspace_get_on_output(output, num_str, &created);
+     }
+     return workspace;
+ }
+-- 
+2.13.6
+

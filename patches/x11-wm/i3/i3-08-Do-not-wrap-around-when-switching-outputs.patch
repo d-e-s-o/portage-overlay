@@ -1,0 +1,43 @@
+From e50fb6cc66c03dce61d0065bd7c624ef6de7b08a Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Tue, 14 Nov 2017 21:06:42 -0800
+Subject: [PATCH 08/15] Do not wrap around when switching outputs
+
+When switching to another output i3 wraps around. For example, if we are
+already focused on the right most output and issue a command to focus
+the next output to the right it will actually start over with the left
+most one.
+This behavior is undesired. This patch adjusts the output changing logic
+to no longer wrap around. If we reached the right most container and
+issue a 'focus output right' command the focus will simply stay where it
+is. The behavior when changing the output in another direction
+(left/up/down) is adjusted in a similar way.
+---
+ src/output.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/output.c b/src/output.c
+index e76903..8e1216 100644
+--- a/src/output.c
++++ b/src/output.c
+@@ -32,13 +32,13 @@ Output *get_output_from_string(Output *current_output, const char *output_str) {
+     if (strcasecmp(output_str, "current") == 0) {
+         return get_output_for_con(focused);
+     } else if (strcasecmp(output_str, "left") == 0) {
+-        return get_output_next_wrap(D_LEFT, current_output);
++        return get_output_next(D_LEFT, current_output, CLOSEST_OUTPUT);
+     } else if (strcasecmp(output_str, "right") == 0) {
+-        return get_output_next_wrap(D_RIGHT, current_output);
++        return get_output_next(D_RIGHT, current_output, CLOSEST_OUTPUT);
+     } else if (strcasecmp(output_str, "up") == 0) {
+-        return get_output_next_wrap(D_UP, current_output);
++        return get_output_next(D_UP, current_output, CLOSEST_OUTPUT);
+     } else if (strcasecmp(output_str, "down") == 0) {
+-        return get_output_next_wrap(D_DOWN, current_output);
++        return get_output_next(D_DOWN, current_output, CLOSEST_OUTPUT);
+     }
+ 
+     return get_output_by_name(output_str, true);
+-- 
+2.13.6
+

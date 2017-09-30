@@ -1,0 +1,264 @@
+From bd7554460af2643a6daee14b4590c69b0d1eb34f Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Thu, 23 Nov 2017 15:40:57 -0800
+Subject: [PATCH 13/15] Perform proper cleanup for signals with 'Term' action
+
+Issue #3049 describes a case where terminating i3 by means of SIGTERM
+causes it to leak the runtime directory and all its contents. There are
+multiple issues at play: first, any cleanup handlers registered via
+atexit are never invoked when a signal terminates the program (see
+atexit(3)). Hence, the log SHM log cleanup performed in i3_exit is not
+invoked in that case. Second, compared to the shutdown path for the
+'exit' command, we do not unlink the UNIX domain socket we create,
+causing it to be leaked as well. Third, a handler for SIGTERM is not
+registered at all despite handle_signal claiming to be the handler for
+all 'Term' signals.
+This change addresses all three problems and results in a graceful exit
+including cleanup to happen when we receive a signal with the default
+action 'Term'. It addresses issue #3049.
+---
+ src/main.c                        | 68 ++++++++++++++++++++++++++++++---------
+ testcases/lib/i3test.pm.in        | 47 +++++++++++++++++++++++++--
+ testcases/t/540-sigterm-cleanup.t | 35 ++++++++++++++++++++
+ 3 files changed, 132 insertions(+), 18 deletions(-)
+ create mode 100644 testcases/t/540-sigterm-cleanup.t
+
+diff --git a/src/main.c b/src/main.c
+index 0d1457..f833b0 100644
+--- a/src/main.c
++++ b/src/main.c
+@@ -174,21 +174,64 @@ static void i3_exit(void) {
+         fflush(stderr);
+         shm_unlink(shmlogname);
+     }
++    ipc_shutdown(SHUTDOWN_REASON_EXIT);
++    unlink(config.ipc_socket_path);
+ }
+ 
+ /*
+- * (One-shot) Handler for all signals with default action "Term", see signal(7)
++ * (One-shot) Handler for all signals with default action "Core", see signal(7)
+  *
+  * Unlinks the SHM log and re-raises the signal.
+  *
+  */
+-static void handle_signal(int sig, siginfo_t *info, void *data) {
++static void handle_core_signal(int sig, siginfo_t *info, void *data) {
+     if (*shmlogname != '\0') {
+         shm_unlink(shmlogname);
+     }
+     raise(sig);
+ }
+ 
++/*
++ * (One-shot) Handler for all signals with default action "Term", see signal(7)
++ *
++ * Exits the program gracefully.
++ *
++ */
++static void handle_term_signal(struct ev_loop *loop, ev_signal *signal, int revents) {
++    /* We exit gracefully here in the sense that cleanup handlers
++     * installed via atexit are invoked. */
++    exit(128 + signal->signum);
++}
++
++/*
++ * Set up handlers for all signals with default action "Term", see signal(7)
++ *
++ */
++static void setup_term_handlers(void) {
++    static struct ev_signal signal_watchers[6];
++    size_t num_watchers = sizeof(signal_watchers) / sizeof(signal_watchers[0]);
++
++    /* We have to rely on libev functionality here and should not use
++     * sigaction handlers because we need to invoke the exit handlers
++     * and cannot do so from an asynchronous signal handling context as
++     * not all code triggered during exit is signal safe (and exiting
++     * the main loop from said handler is not easily possible). libev's
++     * signal handlers does not impose such a constraint on us. */
++    ev_signal_init(&signal_watchers[0], handle_term_signal, SIGHUP);
++    ev_signal_init(&signal_watchers[1], handle_term_signal, SIGINT);
++    ev_signal_init(&signal_watchers[2], handle_term_signal, SIGALRM);
++    ev_signal_init(&signal_watchers[3], handle_term_signal, SIGTERM);
++    ev_signal_init(&signal_watchers[4], handle_term_signal, SIGUSR1);
++    ev_signal_init(&signal_watchers[5], handle_term_signal, SIGUSR1);
++    for (size_t i = 0; i < num_watchers; i++) {
++        ev_signal_start(main_loop, &signal_watchers[i]);
++        /* The signal handlers should not block ev_run from returning
++         * and so none of the signal handlers should hold a reference to
++         * the main loop. */
++        ev_unref(main_loop);
++    }
++}
++
+ int main(int argc, char *argv[]) {
+     /* Keep a symbol pointing to the I3_VERSION string constant so that we have
+      * it in gdb backtraces. */
+@@ -854,15 +897,15 @@ int main(int argc, char *argv[]) {
+         err(EXIT_FAILURE, "pledge");
+ #endif
+ 
+-    struct sigaction action;
+-
+-    action.sa_sigaction = handle_signal;
+-    action.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
+-    sigemptyset(&action.sa_mask);
+-
+     if (!disable_signalhandler)
+         setup_signal_handler();
+     else {
++        struct sigaction action;
++
++        action.sa_sigaction = handle_core_signal;
++        action.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
++        sigemptyset(&action.sa_mask);
++
+         /* Catch all signals with default action "Core", see signal(7) */
+         if (sigaction(SIGQUIT, &action, NULL) == -1 ||
+             sigaction(SIGILL, &action, NULL) == -1 ||
+@@ -872,14 +915,7 @@ int main(int argc, char *argv[]) {
+             ELOG("Could not setup signal handler.\n");
+     }
+ 
+-    /* Catch all signals with default action "Term", see signal(7) */
+-    if (sigaction(SIGHUP, &action, NULL) == -1 ||
+-        sigaction(SIGINT, &action, NULL) == -1 ||
+-        sigaction(SIGALRM, &action, NULL) == -1 ||
+-        sigaction(SIGUSR1, &action, NULL) == -1 ||
+-        sigaction(SIGUSR2, &action, NULL) == -1)
+-        ELOG("Could not setup signal handler.\n");
+-
++    setup_term_handlers();
+     /* Ignore SIGPIPE to survive errors when an IPC client disconnects
+      * while we are sending them a message */
+     signal(SIGPIPE, SIG_IGN);
+diff --git a/testcases/lib/i3test.pm.in b/testcases/lib/i3test.pm.in
+index a484c9..e6186b 100644
+--- a/testcases/lib/i3test.pm.in
++++ b/testcases/lib/i3test.pm.in
+@@ -12,6 +12,7 @@ use AnyEvent::I3;
+ use List::Util qw(first);
+ use Time::HiRes qw(sleep);
+ use Cwd qw(abs_path);
++use POSIX ':sys_wait_h';
+ use Scalar::Util qw(blessed);
+ use SocketActivation;
+ use i3test::Util qw(slurp);
+@@ -37,6 +38,7 @@ our @EXPORT = qw(
+     cmd
+     sync_with_i3
+     exit_gracefully
++    exit_forcefully
+     workspace_exists
+     focused_ws
+     get_socket_path
+@@ -121,7 +123,7 @@ END {
+ 
+     } else {
+         kill(-9, $i3_pid)
+-            or $tester->BAIL_OUT("could not kill i3");
++            or $tester->BAIL_OUT("could not kill i3: $!");
+ 
+         waitpid $i3_pid, 0;
+     }
+@@ -756,7 +758,7 @@ sub exit_gracefully {
+ 
+     if (!$exited) {
+         kill(9, $pid)
+-            or $tester->BAIL_OUT("could not kill i3");
++            or $tester->BAIL_OUT("could not kill i3: $!");
+     }
+ 
+     if ($socketpath =~ m,^/tmp/i3-test-socket-,) {
+@@ -767,6 +769,47 @@ sub exit_gracefully {
+     undef $i3_pid;
+ }
+ 
++=head2 exit_forcefully($pid, [ $signal ])
++
++Tries to exit i3 forcefully by sending a signal (defaults to SIGTERM).
++
++You only need to use this function if you want to test signal handling
++(in which case you must have launched i3 on your own with
++C<launch_with_config>).
++
++  use i3test i3_autostart => 0;
++  my $pid = launch_with_config($config);
++  # …
++  exit_forcefully($pid);
++
++=cut
++sub exit_forcefully {
++    my ($pid, $signal) = @_;
++    $signal ||= 'TERM';
++
++    # Send the given signal to the i3 instance and wait for up to 10s
++    # for it to terminate.
++    kill($signal, $pid)
++        or $tester->BAIL_OUT("could not kill i3: $!");
++    my $status;
++    my $timeout = 10;
++    do {
++        $status = waitpid $pid, WNOHANG;
++
++        if ($status <= 0) {
++            sleep(1);
++            $timeout--;
++        }
++    } while ($status <= 0 && $timeout > 0);
++
++    if ($status <= 0) {
++        kill('KILL', $pid)
++            or $tester->BAIL_OUT("could not kill i3: $!");
++        waitpid $pid, 0;
++    }
++    undef $i3_pid;
++}
++
+ =head2 get_socket_path([ $cache ])
+ 
+ Gets the socket path from the C<I3_SOCKET_PATH> atom stored on the X11 root
+diff --git a/testcases/t/540-sigterm-cleanup.t b/testcases/t/540-sigterm-cleanup.t
+new file mode 100644
+index 000000..5e5b9b
+--- /dev/null
++++ b/testcases/t/540-sigterm-cleanup.t
+@@ -0,0 +1,35 @@
++#!perl
++# vim:ts=4:sw=4:expandtab
++#
++# Please read the following documents before working on tests:
++# • https://build.i3wm.org/docs/testsuite.html
++#   (or docs/testsuite)
++#
++# • https://build.i3wm.org/docs/lib-i3test.html
++#   (alternatively: perldoc ./testcases/lib/i3test.pm)
++#
++# • https://build.i3wm.org/docs/ipc.html
++#   (or docs/ipc)
++#
++# • http://onyxneon.com/books/modern_perl/modern_perl_a4.pdf
++#   (unless you are already familiar with Perl)
++#
++# Tests that the socket file is cleaned up properly after gracefully
++# shutting down i3 via SIGTERM.
++# Ticket: #3049
++use i3test i3_autostart => 0;
++
++my $config = <<EOT;
++# i3 config file (v4)
++font -misc-fixed-medium-r-normal--13-120-75-75-C-70-iso10646-1
++EOT
++
++my $pid = launch_with_config($config, dont_add_socket_path => 1);
++my $socket = get_socket_path();
++ok(-S $socket, "socket $socket exists");
++
++exit_forcefully($pid, 'TERM');
++
++ok(!-e $socket, "socket $socket no longer exists");
++
++done_testing;
+-- 
+2.13.6
+
