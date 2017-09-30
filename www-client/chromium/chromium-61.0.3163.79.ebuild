@@ -156,7 +156,6 @@ PATCHES=(
 	"${FILESDIR}/${PN}-atk-r1.patch"
 	"${FILESDIR}/${PN}-mojo-dep.patch"
 	"${FILESDIR}/${PN}-gcc5-r1.patch"
-	"${FILESDIR}/${PN}-59-my_keyboard_shortcuts.patch"
 )
 
 pre_build_checks() {
