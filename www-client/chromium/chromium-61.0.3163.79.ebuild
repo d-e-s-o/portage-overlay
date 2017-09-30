@@ -412,6 +412,28 @@ src_configure() {
 	fi
 	build/linux/unbundle/replace_gn_files.py --system-libraries "${gn_system_libraries[@]}" || die
 
+	# See //chrome/common/features.gni
+	myconf_gn+=" enable_captive_portal_detection=false"
+	myconf_gn+=" enable_google_now=false"
+	myconf_gn+=" enable_native_notifications=false"
+	myconf_gn+=" enable_one_click_signin=false"
+	myconf_gn+=" enable_session_service=false"
+	myconf_gn+=" enable_supervised_users=false"
+	myconf_gn+=" enable_service_discovery=false"
+	myconf_gn+=" enable_vr=false"
+	# See //net/features.gni
+	myconf_gn+=" enable_reporting=false"
+	# See //extensions/features/features.gni
+	myconf_gn+=" enable_wifi_display=false"
+	# See //components/signin
+	myconf_gn+=" enable_dice_support=false"
+	# See //components/offline_pages/features/features.gni
+	myconf_gn+=" enable_offline_pages=true"
+	# See //printing/features/features.gni
+	myconf_gn+=" enable_print_preview=false"
+	# See //components/signin/features.gni
+	myconf_gn+=" enable_mirror=false"
+
 	# Optional dependencies.
 	myconf_gn+=" enable_hangout_services_extension=$(usex hangouts true false)"
 	myconf_gn+=" enable_widevine=$(usex widevine true false)"
@@ -475,32 +497,6 @@ src_configure() {
 
 	# Disable fatal linker warnings, bug 506268.
 	myconf_gn+=" fatal_linker_warnings=false"
-
-	# see build/common.gypi
-	#myconf+="
-	#  -Dinternal_pdf=1
-	#  -Denable_automation=0
-	#  -Dinput_speech=0
-	#  -Denable_google_now=0
-	#  -Denable_language_detection=0
-	#  -Denable_hotwording=0
-	#  -Denable_web_speech=0
-	#  -Denable_google_now=0
-	#  -Denable_media_router=0
-	#  -Denable_themes=0
-	#  -Denable_hangout_services_extension=0
-	#  -Denable_webvr=0
-	#  -Denable_new_npdevice_api=0
-	#  -Denable_dart=0
-	#  -Denable_rlz_support=0
-	#  -Denable_rlz=0
-	#  -Denable_one_click_signin=0
-	#  -Denable_pepper_cdms=0
-	#  -Denable_browser_cdms=0
-	#  -Denable_session_service=0
-	#  -Denable_hidpi=0
-	#  -Denable_pre_sync_backup=0
-	#  -Drelease_unwind_tables=0"
 
 	# Avoid CFLAGS problems, bug #352457, bug #390147.
 	if ! use custom-cflags; then
