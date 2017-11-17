@@ -1,0 +1,59 @@
+From 90c1ded73dda8bc517332f8d49b3746c75af6f3f Mon Sep 17 00:00:00 2001
+From: deso <deso@posteo.net>
+Date: Fri, 11 Dec 2015 18:49:06 -0800
+Subject: [PATCH 2/5] reduce memory footprint by employing malloc_trim
+
+When tmux is used in conjunction with a lot of sessions/windows with a
+potentially huge history, memory usage by tmux can become excessive.
+Apparently, this it's less the fact that tmux is a memory hog or that it
+actually leaks but rather that glibc's malloc fails to free the memory
+back to the system in a timely manner.
+This change employs malloc_trim(3) to advice glibc to free memory back
+to the system in an attempt to reduce the overall memory footprint. The
+patch was originally devised by 42wim [1] and slightly adapted to work
+with more recent versions of tmux.
+
+[1] http://blog.42.be/2015/02/tmux-memory-usage-on-linux.html
+---
+ grid.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/grid.c b/grid.c
+index aa9aea..23e800 100644
+--- a/grid.c
++++ b/grid.c
+@@ -20,6 +20,9 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#ifdef __GLIBC__
++# include <malloc.h>
++#endif
+ 
+ #include "tmux.h"
+ 
+@@ -254,6 +257,10 @@ grid_destroy(struct grid *gd)
+ 	free(gd->linedata);
+ 
+ 	free(gd);
++
++#ifdef M_TRIM_THRESHOLD
++	malloc_trim(0);
++#endif
+ }
+ 
+ /* Compare grids. */
+@@ -341,6 +348,10 @@ grid_clear_history(struct grid *gd)
+ 	memmove(&gd->linedata[0], &gd->linedata[gd->hsize],
+ 	    gd->sy * (sizeof *gd->linedata));
+ 
++#ifdef M_TRIM_THRESHOLD
++	malloc_trim(0);
++#endif
++
+ 	gd->hscrolled = 0;
+ 	gd->hsize = 0;
+ 
+-- 
+2.13.6
+
