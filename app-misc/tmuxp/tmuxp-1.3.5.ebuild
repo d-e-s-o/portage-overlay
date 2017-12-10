@@ -24,7 +24,7 @@ LICENSE="BSD"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-PYTHON_COMPAT=( python3_4 )
+PYTHON_COMPAT=( python3_{4,5} )
 inherit python-r1
 inherit distutils-r1
 
