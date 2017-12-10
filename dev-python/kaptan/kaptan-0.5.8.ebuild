@@ -24,13 +24,16 @@ LICENSE="BSD"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-PYTHON_COMPAT=( python3_4 )
+PYTHON_COMPAT=( python3_{4,5} )
 inherit python-r1
 inherit distutils-r1
 
 RDEPEND="
   >=dev-python/pyyaml-3.11[${PYTHON_USEDEP}]"
-DEPEND="${RDEPEND}"
+DEPEND="
+  dev-python/setuptools[${PYTHON_USEDEP}]
+  ${RDEPEND}
+"
 
 EGIT_COMMIT="v0.5.8"
 EGIT_REPO_URI="https://github.com/emre/kaptan.git"
