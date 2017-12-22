@@ -1,0 +1,13 @@
+diff --git a/src/password-store.sh b/src/password-store.sh
+index d77ff1..ae0a71 100755
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -43,7 +43,7 @@ git_commit() {
+ 	local sign=""
+ 	[[ -n $INNER_GIT_DIR ]] || return
+ 	[[ $(git -C "$INNER_GIT_DIR" config --bool --get pass.signcommits) == "true" ]] && sign="-S"
+-	git -C "$INNER_GIT_DIR" commit $sign -m "$1"
++	git -C "$INNER_GIT_DIR" commit --no-verify $sign -m "$1"
+ }
+ yesno() {
+ 	[[ -t 0 ]] || return 0
