@@ -1,0 +1,63 @@
+From 65585773d96d96829945d05be53939990bb36870 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Tue, 2 Jan 2018 11:25:43 -0800
+Subject: [PATCH] Correctly change back current directory after view update
+
+The file browser has the nice ability of changing the current working
+directory to the currently displayed one. That changing happens
+depending on which view is active (the left or the right side).
+Unfortunately, if there are updates happening on the other side, for
+example because a file increased its size, the current working directory
+will be changed not not reverted as part of the view update process.
+That is a problem when spawning off a new shell and expecting it to have
+its working directory set to the currently active view's one.
+This change fixes the problem by correctly restoring the current working
+directory after each update operation.
+---
+ src/filelist.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/filelist.c b/src/filelist.c
+index 9cdbbc..74942d 100644
+--- a/src/filelist.c
++++ b/src/filelist.c
+@@ -1519,6 +1519,8 @@ load_dir_list_internal(FileView *view, int reload, int draw_only)
+ static int
+ populate_dir_list_internal(FileView *view, int reload)
+ {
++	char *saved_cwd;
++
+ 	view->filtered = 0;
+ 
+ 	if(flist_custom_active(view))
+@@ -1539,6 +1541,7 @@ populate_dir_list_internal(FileView *view, int reload)
+ 		update_all_windows();
+ 	}
+ 
++	saved_cwd = save_cwd();
+ 	/* this is needed for lstat() below */
+ 	if(vifm_chdir(view->curr_dir) != 0 && !is_unc_root(view->curr_dir))
+ 	{
+@@ -1600,6 +1603,7 @@ populate_dir_list_internal(FileView *view, int reload)
+ 	{
+ 		if(rescue_from_empty_filelist(view))
+ 		{
++			restore_cwd(saved_cwd);
+ 			return 0;
+ 		}
+ 
+@@ -1611,9 +1615,11 @@ populate_dir_list_internal(FileView *view, int reload)
+ 	if(update_dir_watcher(view) != 0 && !is_unc_root(view->curr_dir))
+ 	{
+ 		LOG_SERROR_MSG(errno, "Can't get directory mtime \"%s\"", view->curr_dir);
++		restore_cwd(saved_cwd);
+ 		return 1;
+ 	}
+ 
++	restore_cwd(saved_cwd);
+ 	return 0;
+ }
+ 
+-- 
+2.13.6
+
