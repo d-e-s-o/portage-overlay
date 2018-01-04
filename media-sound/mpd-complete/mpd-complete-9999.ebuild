@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=5
+EAPI=6
 
 DESCRIPTION="A script offering help in providing tab completion functionality for mpd (1)/mpc (1)."
 HOMEPAGE="https://github.com/d-e-s-o/mpd-complete"
@@ -37,7 +37,7 @@ DEPEND="${RDEPEND}"
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/mpd-complete"
 
-inherit git-2
+inherit git-r3
 
 src_compile() {
   true
