@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2015,2017 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2015,2017-2018 Daniel Mueller (deso@posteo.net)         *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -25,7 +25,7 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 
 PYTHON_COMPAT=( python3_{4,5,6} )
-inherit python-r1
+inherit python-r1 bash-completion-r1
 
 RDEPEND="
   ${PYTHON_DEPS}
@@ -49,4 +49,6 @@ src_install() {
     python_newexe mpd-complete/src/deso/mpdcomp/mpd-complete.py mpd-complete
   }
   python_foreach_impl installation
+
+  dobashcomp mpd-complete/support/bash_completion.d/mpd-complete
 }
