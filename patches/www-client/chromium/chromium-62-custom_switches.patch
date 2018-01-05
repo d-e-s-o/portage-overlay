@@ -1,0 +1,21 @@
+diff --git a/chrome/app/chrome_main.cc b/chrome/app/chrome_main.cc
+index 90b02a..a8c2e3 100644
+--- a/chrome/app/chrome_main.cc
++++ b/chrome/app/chrome_main.cc
+@@ -89,8 +89,15 @@ int ChromeMain(int argc, const char** argv) {
+   base::CommandLine::Init(params.argc, params.argv);
+ #endif  // defined(OS_WIN)
+   base::CommandLine::Init(0, nullptr);
+-  const base::CommandLine* command_line(base::CommandLine::ForCurrentProcess());
++  base::CommandLine* command_line(base::CommandLine::ForCurrentProcess());
+   ALLOW_UNUSED_LOCAL(command_line);
++  command_line->AppendSwitch(switches::kNoFirstRun);
++  command_line->AppendSwitch(switches::kNoDefaultBrowserCheck);
++  command_line->AppendSwitch(switches::kDisableBundledPpapiFlash);
++  //command_line->AppendSwitch(switches::kSbDisableAutoUpdate);
++  //command_line->AppendSwitch(switches::kDisableInfoBars);
++  command_line->AppendSwitch(switches::kDisableClientSidePhishingDetection);
++  command_line->AppendSwitch(switches::kDisableDeviceDiscoveryNotifications);
+ 
+   // Chrome-specific process modes.
+ #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_WIN)
