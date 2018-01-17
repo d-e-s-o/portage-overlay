@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=5
+EAPI=6
 
 DESCRIPTION="A pre-commit hook for handling copyright headers hook in git(1)."
 HOMEPAGE="https://github.com/d-e-s-o/git-hook-copyright"
@@ -39,7 +39,7 @@ DEPEND="${RDEPEND}"
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/git-hook-copyright"
 
-inherit git-2
+inherit git-r3
 
 src_compile() {
   true
