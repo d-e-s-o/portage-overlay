@@ -4,7 +4,7 @@
  # unset irrelavent variables
  deactivate nondestructive
  
--VIRTUAL_ENV="/tmp/portage/dev-python/pyvenv-shared-9999/work/pyvenv-shared-9999/pyvenv"
+-VIRTUAL_ENV="${S}/pyvenv"
 +# Chances are we have pyvenv-auto.sh sourced which provides
 +# functionality to find a pyvenv. Only if that is not the case we simply
 +# use PWD as the virtual env path (which might be wrong if we did not

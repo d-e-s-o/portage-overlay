@@ -42,7 +42,18 @@ src_prepare() {
   rm bin/activate.fish
   rm --recursive lib
   rm --recursive lib64
-  epatch "${FILESDIR}/pyvenv-shared-activate.patch"
+  # We have a bunch of problems here. First, we want to patch a file
+  # that is created by the pyvenv module. The file contains an absolute
+  # path that effectively can be configured by the user (through portage
+  # variables). So the patch we have prepared has the literal string
+  # ${S} in it, which we replace with the actual source directory here.
+  # Second, in order for this replacement to work we need to copy over
+  # the patch into the source directory. The reason is that sed attempts
+  # to create a temporary file and the sandboxing mechanism prohibits
+  # that from happening in the files directory.
+  cp "${FILESDIR}/pyvenv-shared-activate.patch" "${S}/"
+  sed --in-place "s!\${S}!${S}!" "${S}/pyvenv-shared-activate.patch"
+  epatch "${S}/pyvenv-shared-activate.patch"
   popd > /dev/null || die
   cat > "${S}/pyvenv-shared" <<EOF
 #!/bin/sh
