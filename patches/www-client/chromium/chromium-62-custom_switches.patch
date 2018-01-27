@@ -2,7 +2,7 @@ diff --git a/chrome/app/chrome_main.cc b/chrome/app/chrome_main.cc
 index 90b02a..a8c2e3 100644
 --- a/chrome/app/chrome_main.cc
 +++ b/chrome/app/chrome_main.cc
-@@ -89,8 +89,15 @@ int ChromeMain(int argc, const char** argv) {
+@@ -89,8 +89,16 @@ int ChromeMain(int argc, const char** argv) {
    base::CommandLine::Init(params.argc, params.argv);
  #endif  // defined(OS_WIN)
    base::CommandLine::Init(0, nullptr);
@@ -16,6 +16,7 @@ index 90b02a..a8c2e3 100644
 +  //command_line->AppendSwitch(switches::kDisableInfoBars);
 +  command_line->AppendSwitch(switches::kDisableClientSidePhishingDetection);
 +  command_line->AppendSwitch(switches::kDisableDeviceDiscoveryNotifications);
++  command_line->AppendSwitch(switches::kSitePerProcess);
  
    // Chrome-specific process modes.
  #if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_WIN)
