@@ -1,0 +1,12 @@
+diff --git app.cpp app.cpp
+index eb7e05..00cd99 100644
+--- app.cpp
++++ app.cpp
+@@ -329,6 +329,7 @@ void App::Run() {
+ #endif
+ 		firstlogin = false;
+ 		if (autologin) {
++			setBackground(themedir);
+ 			Login();
+ 		}
+ 	}
