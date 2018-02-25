@@ -35,7 +35,8 @@ src_unpack() {
 }
 
 src_install() {
-	insinto /usr/src/rust
+	SRC_DIR="/usr/src/rust"
+	insinto "${SRC_DIR}"
 
 	rm "${WORKDIR}"/rust-${PV}/src/Cargo.* || die
 	rm "${WORKDIR}"/rust-${PV}/src/*.txt || die
@@ -63,4 +64,9 @@ src_install() {
 	chmod -R +X "${WORKDIR}"/rust-${PV}/src/ || die
 
 	doins -r "${WORKDIR}"/rust-${PV}/src/*
+
+	cat <<-EOF > "${T}"/50${P}
+	RUST_SRC_PATH="${SRC_DIR}"
+	EOF
+	doenvd "${T}"/50${P}
 }
