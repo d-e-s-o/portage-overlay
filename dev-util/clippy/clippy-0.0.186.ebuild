@@ -114,3 +114,20 @@ src_compile() {
 
 	cargo_src_compile
 }
+
+src_install() {
+	cargo_src_install
+
+	# Clippy does not work with the stable compiler (and probably never
+	# will), so we need access to the nightly rustc. It will use that
+	# automatically (as it got build with it), but it cannot find
+	# the Rust runtime libraries. By adjusting RUSTFLAGS we make them
+	# known.
+	# TODO: This functionality really should be available globally. For
+	#       now we only have it here as clippy is the only program
+	#       actively using the nightly rustc.
+	cat <<-EOF > "${T}"/50${P}
+	RUSTFLAGS="-L/opt/rust-bin-9999/lib/rustlib/x86_64-unknown-linux-gnu/lib/"
+	EOF
+	doenvd "${T}"/50${P}
+}
