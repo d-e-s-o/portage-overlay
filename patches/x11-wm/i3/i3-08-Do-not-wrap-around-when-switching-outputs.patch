@@ -1,7 +1,7 @@
 From e50fb6cc66c03dce61d0065bd7c624ef6de7b08a Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Tue, 14 Nov 2017 21:06:42 -0800
-Subject: [PATCH 08/15] Do not wrap around when switching outputs
+Subject: [PATCH 08/16] Do not wrap around when switching outputs
 
 When switching to another output i3 wraps around. For example, if we are
 already focused on the right most output and issue a command to focus
@@ -39,5 +39,5 @@ index e76903..8e1216 100644
  
      return get_output_by_name(output_str, true);
 -- 
-2.13.6
+2.16.1
 

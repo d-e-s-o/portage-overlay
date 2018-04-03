@@ -1,7 +1,7 @@
 From dedd3cbddd49bd6c92429bf43309ba940a2641e6 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 29 Sep 2017 21:25:30 -0700
-Subject: [PATCH 04/15] Allow for creation of new workspace when selecting next
+Subject: [PATCH 04/16] Allow for creation of new workspace when selecting next
  one
 
 Until now, i3 when asked to select the next workspace would cycle
@@ -47,5 +47,5 @@ index 397557..de4eb7 100644
  
      /* Find next named workspace. */
 -- 
-2.13.6
+2.16.1
 

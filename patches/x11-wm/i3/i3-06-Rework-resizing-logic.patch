@@ -1,7 +1,7 @@
 From 15fb513caa9ca16508ec148b924854c41c7f49a3 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 30 Sep 2017 12:19:16 -0700
-Subject: [PATCH 06/15] Rework resizing logic
+Subject: [PATCH 06/16] Rework resizing logic
 
 i3's logic for resizing, although understandably logical, is unintuitive
 for users of Awesome, tmux, or vim. In particular, the way i3 resizes
@@ -87,5 +87,5 @@ index 30d5a3..1e2b76 100644
  }
  
 -- 
-2.13.6
+2.16.1
 

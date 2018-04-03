@@ -1,7 +1,7 @@
 From bd7554460af2643a6daee14b4590c69b0d1eb34f Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Thu, 23 Nov 2017 15:40:57 -0800
-Subject: [PATCH 13/15] Perform proper cleanup for signals with 'Term' action
+Subject: [PATCH 13/16] Perform proper cleanup for signals with 'Term' action
 
 Issue #3049 describes a case where terminating i3 by means of SIGTERM
 causes it to leak the runtime directory and all its contents. There are
@@ -260,5 +260,5 @@ index 000000..5e5b9b
 +
 +done_testing;
 -- 
-2.13.6
+2.16.1
 

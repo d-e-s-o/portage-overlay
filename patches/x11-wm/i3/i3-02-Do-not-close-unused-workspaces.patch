@@ -1,7 +1,7 @@
 From f9cd1792ef9e24f8459a48b094395f4ea4129082 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 29 Sep 2017 21:13:37 -0700
-Subject: [PATCH 02/15] Do not close unused workspaces
+Subject: [PATCH 02/16] Do not close unused workspaces
 
 i3 takes dynamics a bit too far for my taste: with the deletion of every
 unused workspace it quickly becomes non-obvious which workspaces numbers
@@ -75,5 +75,5 @@ index 4b350b..eed894 100644
      workspace->fullscreen_mode = CF_OUTPUT;
      LOG("focused now = %p / %s\n", focused, focused->name);
 -- 
-2.13.6
+2.16.1
 

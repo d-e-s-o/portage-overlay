@@ -1,7 +1,7 @@
 From f71898d32c1103156c6beba0f4b65d148b1c4ba6 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 11 Nov 2017 21:00:08 -0800
-Subject: [PATCH 07/15] Rework handling of multi monitor setups
+Subject: [PATCH 07/16] Rework handling of multi monitor setups
 
 Handling of multi monitor setups in i3 is quite different from that in
 awesome and other window managers. In i3 the idea is that different
@@ -146,5 +146,5 @@ index de4eb7..d118c9 100644
      return workspace;
  }
 -- 
-2.13.6
+2.16.1
 

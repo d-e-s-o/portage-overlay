@@ -1,7 +1,7 @@
 From fa6877866ff16337255291ce7794f442550d584a Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 18 Nov 2017 11:24:55 -0800
-Subject: [PATCH 11/15] Correctly sort in workspaces when disabling outputs
+Subject: [PATCH 11/16] Correctly sort in workspaces when disabling outputs
 
 When an output (i.e., monitor) that is managed by i3 is disabled, all
 workspaces get moved to the "first" output. That becomes a problem with
@@ -58,5 +58,5 @@ index 1d3330..8bc7a9 100644
                  DLOG("Done\n");
              }
 -- 
-2.13.6
+2.16.1
 

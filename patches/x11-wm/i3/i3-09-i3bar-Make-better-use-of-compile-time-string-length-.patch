@@ -1,7 +1,7 @@
 From 606dbf3c2a7d651add8bd67209c1ed36eda70e76 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 17 Nov 2017 06:58:12 -0800
-Subject: [PATCH 09/15] i3bar: Make better use of compile time string length
+Subject: [PATCH 09/16] i3bar: Make better use of compile time string length
  evaluation
 
 The i3bar program contains a couple of locations where we use strlen on
@@ -266,5 +266,5 @@ index 85fa14..12af90 100644
  
  /*
 -- 
-2.13.6
+2.16.1
 

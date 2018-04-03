@@ -1,7 +1,7 @@
 From 8f65294cf74f4ad351a2570aab1086f389285f96 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 29 Sep 2017 21:16:48 -0700
-Subject: [PATCH 03/15] Create lower number workspaces as needed
+Subject: [PATCH 03/16] Create lower number workspaces as needed
 
 It is very annoying that when switching to a workspace that this
 workspace is created if it does not exist but not the ones with a lower
@@ -114,5 +114,5 @@ index eed894..397557 100644
 +    return workspace;
 +}
 -- 
-2.13.6
+2.16.1
 

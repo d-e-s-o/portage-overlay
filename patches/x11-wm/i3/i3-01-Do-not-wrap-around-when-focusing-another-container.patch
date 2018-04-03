@@ -1,7 +1,7 @@
 From 2de8b12e3f25eb9717a240fde8edb4e2ac0cb0a0 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 24 Sep 2017 15:01:38 -0700
-Subject: [PATCH 01/15] Do not wrap around when focusing another container
+Subject: [PATCH 01/16] Do not wrap around when focusing another container
 
 When focusing the next container to the right we may actually focus one
 that is left of the current one if we already reached the right most
@@ -29,5 +29,5 @@ index d5f457..cb30bd 100644
  
  /*
 -- 
-2.13.6
+2.16.1
 

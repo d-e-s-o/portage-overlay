@@ -1,7 +1,7 @@
 From c5c7581ede4acd487bedaf34dedbd4d843788142 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Wed, 29 Nov 2017 08:10:38 -0800
-Subject: [PATCH 14/15] Rework focus changing for floating windows
+Subject: [PATCH 14/16] Rework focus changing for floating windows
 
 Floating windows feel quite alien compared to "normal" ones when it
 comes to their focusing behavior. In particular, three problems have
@@ -120,5 +120,5 @@ index ba0969..405ab9 100644
      return (Rect){a.x + b.x,
                    a.y + b.y,
 -- 
-2.13.6
+2.16.1
 

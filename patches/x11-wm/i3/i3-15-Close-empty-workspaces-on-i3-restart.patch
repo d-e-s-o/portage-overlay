@@ -1,7 +1,7 @@
 From 0a3bc6451e6c038bac0b35be5a6d4f96fbe7063b Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Thu, 21 Dec 2017 22:22:13 -0800
-Subject: [PATCH 15/15] Close empty workspaces on i3 restart
+Subject: [PATCH 15/16] Close empty workspaces on i3 restart
 
 The change to no longer destroy empty workspaces combined with i3's
 ability to create them easily dynamically can lead to situations where
@@ -101,5 +101,5 @@ index 5923c8..579193 100644
      result = true;
  
 -- 
-2.13.6
+2.16.1
 

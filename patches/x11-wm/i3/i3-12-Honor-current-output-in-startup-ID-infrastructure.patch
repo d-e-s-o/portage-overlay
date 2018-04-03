@@ -1,7 +1,7 @@
 From 91250b8a110482d3323813cc0b4d8264f2dbfb84 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 18 Nov 2017 16:16:09 -0800
-Subject: [PATCH 12/15] Honor current output in startup ID infrastructure
+Subject: [PATCH 12/16] Honor current output in startup ID infrastructure
 
 Currently, the startup ID infrastructure (used for 'exec' statements
 without the --no-startup-id switch) does not honor the current output.
@@ -117,5 +117,5 @@ index 166842..7150a3 100644
      return sequence->workspace;
  }
 -- 
-2.13.6
+2.16.1
 

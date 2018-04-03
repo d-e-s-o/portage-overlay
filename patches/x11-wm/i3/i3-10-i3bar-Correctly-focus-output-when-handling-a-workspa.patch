@@ -1,7 +1,7 @@
 From 2d52de7f394dd83bfe872d8050cf27fad8e64daf Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 17 Nov 2017 07:59:33 -0800
-Subject: [PATCH 10/15] i3bar: Correctly focus output when handling a workspace
+Subject: [PATCH 10/16] i3bar: Correctly focus output when handling a workspace
  mouse click
 
 In a multi monitor setup, there are two problems when it comes to
@@ -53,5 +53,5 @@ index f807a5..e6a154 100644
           inpos++, outpos++) {
          if (utf8_name[inpos] == '"' || utf8_name[inpos] == '\\') {
 -- 
-2.13.6
+2.16.1
 
