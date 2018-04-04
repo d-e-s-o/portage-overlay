@@ -1,5 +1,14 @@
---- gentoo/slim.theme	2014-10-25 11:46:03.000000000 +0100
-+++ gentoo/slim.theme	2014-10-25 11:44:56.495051848 +0100
+--- gentoo/slim.theme
++++ gentoo/slim.theme
+@@ -10,7 +10,7 @@
+ msg_shadow_color   #aaaaaa
+ 
+ # Screen background style. Valid values: stretch, tile
+-background_style        stretch
++background_style        tile
+ 
+ # Input controls
+ input_panel_x           50%
 @@ -20,7 +20,7 @@
  input_pass_x            146
  input_pass_y            111
@@ -9,7 +18,7 @@
  input_color           #999999
  input_shadow_xoffset 1
  input_shadow_yoffset 1 
-@@ -32,21 +32,21 @@
+@@ -33,21 +33,21 @@
  welcome_color          	#666666
  welcome_x              	15
  welcome_y              	20
