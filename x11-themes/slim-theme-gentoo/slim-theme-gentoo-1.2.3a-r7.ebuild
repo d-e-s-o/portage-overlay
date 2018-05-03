@@ -17,7 +17,10 @@ KEYWORDS="amd64 arm ~mips ppc ppc64 sparc x86 ~x86-fbsd"
 IUSE=""
 
 RDEPEND="x11-misc/slim"
-DEPEND="!x11-themes/simple-themes"
+DEPEND="
+	!x11-themes/simple-themes
+	media-gfx/imagemagick[png]
+"
 
 RESTRICT="strip binchecks"
 
@@ -25,6 +28,7 @@ S="${WORKDIR}"
 
 src_prepare() {
 	epatch "${FILESDIR}/${PN}_-_adjustments.diff"
+	mogrify -resize '1920x' -crop '1920x1080+0+180' gentoo/background.png || die "mogrify failed"
 }
 
 src_compile() {
