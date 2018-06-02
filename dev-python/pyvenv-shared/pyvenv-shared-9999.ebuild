@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2017 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2017-2018 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -24,7 +24,7 @@ LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-PYTHON_COMPAT=( python3_{3,4,5} )
+PYTHON_COMPAT=( python3_{3,4,5,6} )
 inherit python-single-r1
 
 RDEPEND="${PYTHON_DEPS}"
