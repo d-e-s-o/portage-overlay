@@ -1,5 +1,7 @@
+#!/bin/sh
+
 #/***************************************************************************
-# *   Copyright (C) 2018 deso (deso@posteo.net)                             *
+# *   Copyright (C) 2018 Daniel Mueller (deso@posteo.net)                   *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -15,30 +17,10 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+# If we are in a virtual environment we deactivate it before executing
+# Python.
+if [ -n "${VIRTUAL_ENV}" ]; then
+  deactivate
+fi
 
-DESCRIPTION="Automatic pyvenv detection and activation."
-HOMEPAGE="https://github.com/d-e-s-o/pyvenv-auto"
-
-LICENSE="GPL-3"
-SLOT="0"
-KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
-
-RDEPEND="
-  app-shells/bash
-  sys-apps/coreutils
-"
-DEPEND="${RDEPEND}"
-
-EGIT_BRANCH="devel"
-EGIT_REPO_URI="https://github.com/d-e-s-o/pyvenv-auto"
-
-inherit git-r3
-
-src_install() {
-  exeinto /usr/bin/
-  doexe "${FILESDIR}/python-no-venv"
-
-  insinto /usr/share/pyvenv-auto/
-  doins pyvenv-auto.sh
-}
+exec /usr/bin/python "$@"
