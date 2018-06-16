@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2017 deso (deso@posteo.net)                             *
+# *   Copyright (C) 2018 deso (deso@posteo.net)                             *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=5
+EAPI=6
 
 DESCRIPTION="Automatic pyvenv detection and activation."
 HOMEPAGE="https://github.com/d-e-s-o/pyvenv-auto"
@@ -33,7 +33,7 @@ DEPEND="${RDEPEND}"
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/pyvenv-auto"
 
-inherit git-2
+inherit git-r3
 
 src_install() {
   insinto /usr/share/pyvenv-auto/
