@@ -75,5 +75,5 @@ index 4b350b..eed894 100644
      workspace->fullscreen_mode = CF_OUTPUT;
      LOG("focused now = %p / %s\n", focused, focused->name);
 -- 
-2.16.1
+2.16.4
 

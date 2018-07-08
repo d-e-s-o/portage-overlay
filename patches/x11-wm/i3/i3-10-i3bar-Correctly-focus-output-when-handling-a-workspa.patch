@@ -53,5 +53,5 @@ index f807a5..e6a154 100644
           inpos++, outpos++) {
          if (utf8_name[inpos] == '"' || utf8_name[inpos] == '\\') {
 -- 
-2.16.1
+2.16.4
 
