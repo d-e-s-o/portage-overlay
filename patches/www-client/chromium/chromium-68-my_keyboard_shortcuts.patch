@@ -1,0 +1,177 @@
+diff --git chrome/app/chrome_command_ids.h chrome/app/chrome_command_ids.h
+index b10ac6..8b909e 100644
+--- a/chrome/app/chrome_command_ids.h
++++ b/chrome/app/chrome_command_ids.h
+@@ -50,7 +50,8 @@
+ #define IDC_SELECT_TAB_5                34023
+ #define IDC_SELECT_TAB_6                34024
+ #define IDC_SELECT_TAB_7                34025
+-#define IDC_SELECT_LAST_TAB             34026
++#define IDC_SELECT_TAB_8                34026
++#define IDC_SELECT_LAST_TAB             34054
+ #define IDC_DUPLICATE_TAB               34027
+ #define IDC_RESTORE_TAB                 34028
+ #define IDC_SHOW_AS_TAB                 34029
+diff --git chrome/browser/ui/browser_command_controller.cc chrome/browser/ui/browser_command_controller.cc
+index a44b8b..162074 100644
+--- a/chrome/browser/ui/browser_command_controller.cc
++++ b/chrome/browser/ui/browser_command_controller.cc
+@@ -384,6 +384,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
+     case IDC_SELECT_TAB_5:
+     case IDC_SELECT_TAB_6:
+     case IDC_SELECT_TAB_7:
++    case IDC_SELECT_TAB_8:
+       base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
+       SelectNumberedTab(browser_, id - IDC_SELECT_TAB_0);
+       break;
+@@ -918,6 +919,7 @@ void BrowserCommandController::InitCommandState() {
+   command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, normal_window);
+   command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, normal_window);
+   command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, normal_window);
++  command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_8, normal_window);
+   command_updater_.UpdateCommandEnabled(IDC_SELECT_LAST_TAB, normal_window);
+ 
+   // These are always enabled; the menu determines their menu item visibility.
+diff --git chrome/browser/ui/views/accelerator_table.cc chrome/browser/ui/views/accelerator_table.cc
+index d1fcbb..efa086 100644
+--- a/chrome/browser/ui/views/accelerator_table.cc
++++ b/chrome/browser/ui/views/accelerator_table.cc
+@@ -24,8 +24,8 @@ namespace {
+ // to list the ones that do not have a key equivalent in the main menu, i.e.
+ // only the ones in global_keyboard_shortcuts_mac.mm.
+ const AcceleratorMapping kAcceleratorMap[] = {
+-    {ui::VKEY_D, ui::EF_PLATFORM_ACCELERATOR, IDC_BOOKMARK_PAGE},
+-    {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
++    {ui::VKEY_M, ui::EF_PLATFORM_ACCELERATOR, IDC_BOOKMARK_PAGE},
++    {ui::VKEY_M, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_BOOKMARK_ALL_TABS},
+     {ui::VKEY_W, ui::EF_PLATFORM_ACCELERATOR, IDC_CLOSE_TAB},
+     {ui::VKEY_W, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+@@ -35,26 +35,23 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     {ui::VKEY_G, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_FIND_PREVIOUS},
+     {ui::VKEY_L, ui::EF_PLATFORM_ACCELERATOR, IDC_FOCUS_LOCATION},
+-    {ui::VKEY_F12, ui::EF_NONE, IDC_DEV_TOOLS_TOGGLE},
++    {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_DEV_TOOLS_TOGGLE},
+     {ui::VKEY_O, ui::EF_PLATFORM_ACCELERATOR, IDC_OPEN_FILE},
+     {ui::VKEY_P, ui::EF_PLATFORM_ACCELERATOR, IDC_PRINT},
+     {ui::VKEY_R, ui::EF_PLATFORM_ACCELERATOR, IDC_RELOAD},
+     {ui::VKEY_R, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_RELOAD_BYPASSING_CACHE},
+     {ui::VKEY_S, ui::EF_PLATFORM_ACCELERATOR, IDC_SAVE_PAGE},
+-    {ui::VKEY_9, ui::EF_PLATFORM_ACCELERATOR, IDC_SELECT_LAST_TAB},
+-    {ui::VKEY_NUMPAD9, ui::EF_PLATFORM_ACCELERATOR, IDC_SELECT_LAST_TAB},
++    {ui::VKEY_0, ui::EF_ALT_DOWN, IDC_SELECT_LAST_TAB},
+ #if defined(OS_LINUX) && !defined(OS_CHROMEOS)
+-    {ui::VKEY_9, ui::EF_ALT_DOWN, IDC_SELECT_LAST_TAB},
+-    {ui::VKEY_NUMPAD9, ui::EF_ALT_DOWN, IDC_SELECT_LAST_TAB},
+-    {ui::VKEY_NEXT, ui::EF_CONTROL_DOWN | ui::EF_SHIFT_DOWN, IDC_MOVE_TAB_NEXT},
+-    {ui::VKEY_PRIOR, ui::EF_CONTROL_DOWN | ui::EF_SHIFT_DOWN,
++    {ui::VKEY_L, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_MOVE_TAB_NEXT},
++    {ui::VKEY_H, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN,
+      IDC_MOVE_TAB_PREVIOUS},
+ #endif
+     // Control modifier is rarely used on Mac, so we allow it only in several
+     // specific cases.
+-    {ui::VKEY_TAB, ui::EF_CONTROL_DOWN, IDC_SELECT_NEXT_TAB},
+-    {ui::VKEY_NEXT, ui::EF_CONTROL_DOWN, IDC_SELECT_NEXT_TAB},
++    {ui::VKEY_L, ui::EF_ALT_DOWN, IDC_SELECT_NEXT_TAB},
++    {ui::VKEY_H, ui::EF_ALT_DOWN, IDC_SELECT_PREVIOUS_TAB},
+     {ui::VKEY_TAB, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
+      IDC_SELECT_PREVIOUS_TAB},
+     {ui::VKEY_PRIOR, ui::EF_CONTROL_DOWN, IDC_SELECT_PREVIOUS_TAB},
+@@ -91,9 +88,9 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     {ui::VKEY_NUMPAD7, ui::EF_ALT_DOWN, IDC_SELECT_TAB_6},
+     {ui::VKEY_8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
+     {ui::VKEY_NUMPAD8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
+-    {ui::VKEY_BROWSER_FAVORITES, ui::EF_NONE, IDC_SHOW_BOOKMARK_BAR},
++    {ui::VKEY_9, ui::EF_ALT_DOWN, IDC_SELECT_TAB_8},
+ #endif  // OS_LINUX && !OS_CHROMEOS
+-    {ui::VKEY_B, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
++    {ui::VKEY_B, ui::EF_PLATFORM_ACCELERATOR,
+      IDC_SHOW_BOOKMARK_BAR},
+     {ui::VKEY_ESCAPE, ui::EF_NONE, IDC_STOP},
+     {ui::VKEY_OEM_MINUS, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
+@@ -112,16 +109,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     {ui::VKEY_F5, ui::EF_NONE, IDC_RELOAD},
+     {ui::VKEY_F5, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
+     {ui::VKEY_F5, ui::EF_SHIFT_DOWN, IDC_RELOAD_BYPASSING_CACHE},
+-    {ui::VKEY_F6, ui::EF_NONE, IDC_FOCUS_NEXT_PANE},
+-    {ui::VKEY_F6, ui::EF_SHIFT_DOWN, IDC_FOCUS_PREVIOUS_PANE},
++    {ui::VKEY_J, ui::EF_PLATFORM_ACCELERATOR, IDC_FOCUS_NEXT_PANE},
++    {ui::VKEY_K, ui::EF_PLATFORM_ACCELERATOR, IDC_FOCUS_PREVIOUS_PANE},
+     {ui::VKEY_F10, ui::EF_NONE, IDC_FOCUS_MENU_BAR},
+-    {ui::VKEY_F11, ui::EF_NONE, IDC_FULLSCREEN},
++    {ui::VKEY_F, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_FULLSCREEN},
+ #endif  // !OS_MACOSX
+ 
+   // Platform-specific key maps.
+ #if defined(OS_LINUX)
+-    {ui::VKEY_BROWSER_BACK, ui::EF_NONE, IDC_BACK},
+-    {ui::VKEY_BROWSER_FORWARD, ui::EF_NONE, IDC_FORWARD},
++    {ui::VKEY_H, ui::EF_PLATFORM_ACCELERATOR, IDC_BACK},
++    {ui::VKEY_L, ui::EF_PLATFORM_ACCELERATOR, IDC_FORWARD},
+     {ui::VKEY_BROWSER_HOME, ui::EF_NONE, IDC_HOME},
+     {ui::VKEY_BROWSER_REFRESH, ui::EF_NONE, IDC_RELOAD},
+     {ui::VKEY_BROWSER_REFRESH, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
+@@ -140,7 +137,7 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     // On Chrome OS, Search + Esc is used to call out task manager.
+     {ui::VKEY_ESCAPE, ui::EF_COMMAND_DOWN, IDC_TASK_MANAGER},
+ #else  // !OS_CHROMEOS
+-    {ui::VKEY_ESCAPE, ui::EF_SHIFT_DOWN, IDC_TASK_MANAGER},
++    {ui::VKEY_DELETE, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_TASK_MANAGER},
+     {ui::VKEY_LMENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR},
+     {ui::VKEY_MENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR},
+     {ui::VKEY_RMENU, ui::EF_NONE, IDC_FOCUS_MENU_BAR},
+@@ -169,7 +166,7 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     {ui::VKEY_OEM_4, ui::EF_COMMAND_DOWN, IDC_BACK},
+     {ui::VKEY_LEFT, ui::EF_COMMAND_DOWN, IDC_BACK},
+ #if BUILDFLAG(ENABLE_PRINTING)
+-    {ui::VKEY_P, ui::EF_COMMAND_DOWN | ui::EF_ALT_DOWN, IDC_BASIC_PRINT},
++    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_BASIC_PRINT},
+ #endif  // ENABLE_PRINTING
+     {ui::VKEY_BACK, ui::EF_COMMAND_DOWN | ui::EF_SHIFT_DOWN,
+      IDC_CLEAR_BROWSING_DATA},
+@@ -185,7 +182,7 @@ const AcceleratorMapping kAcceleratorMap[] = {
+      IDC_DEV_TOOLS_INSPECT},
+     {ui::VKEY_I, ui::EF_COMMAND_DOWN | ui::EF_SHIFT_DOWN,
+      IDC_EMAIL_PAGE_LOCATION},
+-    {ui::VKEY_Q, ui::EF_COMMAND_DOWN, IDC_EXIT},
++    {ui::VKEY_Q, ui::EF_PLATFORM_ACCELERATOR, IDC_EXIT},
+     {ui::VKEY_F, ui::EF_COMMAND_DOWN | ui::EF_ALT_DOWN, IDC_FOCUS_SEARCH},
+     // VKEY_OEM_6 is Right Brace ']}' key.
+     {ui::VKEY_OEM_6, ui::EF_COMMAND_DOWN, IDC_FORWARD},
+@@ -222,25 +219,24 @@ const AcceleratorMapping kAcceleratorMap[] = {
+      IDC_CLEAR_BROWSING_DATA},
+ #endif  // !OS_CHROMEOS
+     {ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_DEV_TOOLS},
+-    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
++    {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_DEV_TOOLS_CONSOLE},
+-    {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
++    {ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_DEV_TOOLS_INSPECT},
+     {ui::VKEY_B, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_FOCUS_BOOKMARKS},
+     {ui::VKEY_A, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN,
+      IDC_FOCUS_INACTIVE_POPUP_FOR_ACCESSIBILITY},
+-    {ui::VKEY_D, ui::EF_ALT_DOWN, IDC_FOCUS_LOCATION},
+-    {ui::VKEY_E, ui::EF_CONTROL_DOWN, IDC_FOCUS_SEARCH},
+-    {ui::VKEY_K, ui::EF_CONTROL_DOWN, IDC_FOCUS_SEARCH},
++    {ui::VKEY_E, ui::EF_CONTROL_DOWN, IDC_FOCUS_LOCATION},
++    {ui::VKEY_D, ui::EF_CONTROL_DOWN, IDC_FOCUS_SEARCH},
+     {ui::VKEY_T, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_FOCUS_TOOLBAR},
+     {ui::VKEY_RIGHT, ui::EF_ALT_DOWN, IDC_FORWARD},
+     {ui::VKEY_HOME, ui::EF_ALT_DOWN, IDC_HOME},
+-    {ui::VKEY_E, ui::EF_ALT_DOWN, IDC_SHOW_APP_MENU},
++    {ui::VKEY_M, ui::EF_ALT_DOWN, IDC_SHOW_APP_MENU},
+     {ui::VKEY_F, ui::EF_ALT_DOWN, IDC_SHOW_APP_MENU},
+-    {ui::VKEY_O, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
++    {ui::VKEY_B, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
+      IDC_SHOW_BOOKMARK_MANAGER},
+-    {ui::VKEY_J, ui::EF_CONTROL_DOWN, IDC_SHOW_DOWNLOADS},
+-    {ui::VKEY_H, ui::EF_CONTROL_DOWN, IDC_SHOW_HISTORY},
++    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_DOWNLOADS},
++    {ui::VKEY_V, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_HISTORY},
+     {ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
+ #if !defined(OS_CHROMEOS)
+     // On Chrome OS, these keys are assigned to change UI scale.
