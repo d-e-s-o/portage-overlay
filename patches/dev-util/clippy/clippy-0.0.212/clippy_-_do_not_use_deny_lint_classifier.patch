@@ -1,4 +1,4 @@
-From 3f69b89dc9fb254f19e850142d641b70b1d622ba Mon Sep 17 00:00:00 2001
+From aa56bceb7900a767c092b6b0b7ffea57787bf057 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Wed, 4 Jul 2018 17:10:01 -0700
 Subject: [PATCH] Do not use 'Deny' lint classifier
@@ -16,18 +16,18 @@ that fall into the correctness category in favor of 'Warn'.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/clippy_lints/src/lib.rs b/clippy_lints/src/lib.rs
-index da6db4..0428d8 100644
+index 288273..d4d0f7 100644
 --- a/clippy_lints/src/lib.rs
 +++ b/clippy_lints/src/lib.rs
-@@ -21,7 +21,7 @@ macro_rules! declare_clippy_lint {
-         declare_lint! { pub $name, Warn, $description, report_in_external_macro: true }
+@@ -37,7 +37,7 @@ macro_rules! declare_clippy_lint {
+         declare_lint! { pub $name, Warn, $description }
      };
      { pub $name:tt, correctness, $description:tt } => {
--        declare_lint! { pub $name, Deny, $description, report_in_external_macro: true }
-+        declare_lint! { pub $name, Warn, $description, report_in_external_macro: true }
+-        declare_lint! { pub $name, Deny, $description }
++        declare_lint! { pub $name, Warn, $description }
      };
      { pub $name:tt, complexity, $description:tt } => {
-         declare_lint! { pub $name, Warn, $description, report_in_external_macro: true }
+         declare_lint! { pub $name, Warn, $description }
 -- 
 2.16.4
 
