@@ -1,0 +1,56 @@
+diff --git src/items.rs src/items.rs
+index ff6351..6aca83 100644
+--- a/src/items.rs
++++ b/src/items.rs
+@@ -2024,7 +2024,6 @@ fn rewrite_fn_base(
+     )?;
+ 
+     let put_args_in_block = match context.config.indent_style() {
+-        IndentStyle::Block => arg_str.contains('\n') || arg_str.len() > one_line_budget,
+         _ => false,
+     } && !fd.inputs.is_empty();
+ 
+@@ -2059,10 +2058,8 @@ fn rewrite_fn_base(
+     // Return type.
+     if let ast::FunctionRetTy::Ty(..) = fd.output {
+         let ret_should_indent = match context.config.indent_style() {
+-            // If our args are block layout then we surely must have space.
+-            IndentStyle::Block if put_args_in_block || fd.inputs.is_empty() => false,
+             _ if args_last_line_contains_comment => false,
+-            _ if result.contains('\n') || multi_line_ret_str => true,
++            _ if result.contains('\n') || multi_line_ret_str => false,
+             _ => {
+                 // If the return type would push over the max width, then put the return type on
+                 // a new line. With the +1 for the signature length an additional space between
+@@ -2326,17 +2323,10 @@ fn rewrite_args(
+         .map_or(false, |s| s.trim().starts_with("//"));
+ 
+     let (indent, trailing_comma) = match context.config.indent_style() {
+-        IndentStyle::Block if fits_in_one_line => {
+-            (indent.block_indent(context.config), SeparatorTactic::Never)
+-        }
+-        IndentStyle::Block => (
+-            indent.block_indent(context.config),
+-            context.config.trailing_comma(),
+-        ),
+-        IndentStyle::Visual if last_line_ends_with_comment => {
++        IndentStyle::Visual | IndentStyle::Block if last_line_ends_with_comment => {
+             (arg_indent, context.config.trailing_comma())
+         }
+-        IndentStyle::Visual => (arg_indent, SeparatorTactic::Never),
++        IndentStyle::Visual | IndentStyle::Block => (arg_indent, SeparatorTactic::Never),
+     };
+ 
+     let tactic = definitive_tactic(
+@@ -2408,10 +2398,7 @@ fn compute_budgets_for_args(
+         if one_line_budget > 0 {
+             // 4 = "() {".len()
+             let (indent, multi_line_budget) = match context.config.indent_style() {
+-                IndentStyle::Block => {
+-                    let indent = indent.block_indent(context.config);
+-                    (indent, context.budget(indent.width() + 1))
+-                }
++                IndentStyle::Block |
+                 IndentStyle::Visual => {
+                     let indent = indent + result.len() + 1;
+                     let multi_line_overhead = indent.width() + if newline_brace { 2 } else { 4 };
