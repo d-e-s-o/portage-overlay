@@ -1,4 +1,4 @@
-From 205c59eb6af1cf4963460d03df0032a022844690 Mon Sep 17 00:00:00 2001
+From aaf30f388837deb200c581e3ba0538c0334503e1 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 20 May 2018 09:30:14 -0700
 Subject: [PATCH] Add support for CARGO_TARGET_DIR_PREFIX
@@ -11,17 +11,17 @@ This change addresses https://github.com/rust-lang/cargo/issues/5544.
 TODO: Definitely not finished. This patch needs more tests and may need
       additional config.toml support (?).
 ---
- src/cargo/util/config.rs                      | 11 ++++
- .../src/reference/environment-variables.md    |  4 ++
- tests/testsuite/build.rs                      | 58 +++++++++++++++++++
- tests/testsuite/support/mod.rs                |  1 +
+ src/cargo/util/config.rs                       | 11 +++++
+ src/doc/src/reference/environment-variables.md |  4 ++
+ tests/testsuite/build.rs                       | 58 ++++++++++++++++++++++++++
+ tests/testsuite/cargotest/mod.rs               |  1 +
  4 files changed, 74 insertions(+)
 
 diff --git a/src/cargo/util/config.rs b/src/cargo/util/config.rs
-index dd5464..f3e7f0 100644
+index f3a1d7..b042f0 100644
 --- a/src/cargo/util/config.rs
 +++ b/src/cargo/util/config.rs
-@@ -290,6 +290,17 @@ impl Config {
+@@ -252,6 +252,17 @@ impl Config {
              Ok(Some(dir.clone()))
          } else if let Some(dir) = env::var_os("CARGO_TARGET_DIR") {
              Ok(Some(Filesystem::new(self.cwd.join(dir))))
@@ -40,7 +40,7 @@ index dd5464..f3e7f0 100644
              let val = self.cwd.join(val.val);
              Ok(Some(Filesystem::new(val)))
 diff --git a/src/doc/src/reference/environment-variables.md b/src/doc/src/reference/environment-variables.md
-index 56b059..f61756 100644
+index c216b0..bc11cd 100644
 --- a/src/doc/src/reference/environment-variables.md
 +++ b/src/doc/src/reference/environment-variables.md
 @@ -13,6 +13,10 @@ system:
@@ -55,11 +55,11 @@ index 56b059..f61756 100644
    relative to the current working directory.
  * `RUSTC` — Instead of running `rustc`, Cargo will execute this specified
 diff --git a/tests/testsuite/build.rs b/tests/testsuite/build.rs
-index e9f5ce..6d12c5 100644
+index 730c19..e2c27d 100644
 --- a/tests/testsuite/build.rs
 +++ b/tests/testsuite/build.rs
-@@ -3032,6 +3032,64 @@ fn dotdir_root() {
-     assert_that(p.cargo("build"), execs());
+@@ -3602,6 +3602,64 @@ fn dotdir_root() {
+     assert_that(p.cargo("build"), execs().with_status(0));
  }
  
 +#[test]
@@ -122,12 +122,12 @@ index e9f5ce..6d12c5 100644
 +
  #[test]
  fn custom_target_dir_env() {
-     let p = project()
-diff --git a/tests/testsuite/support/mod.rs b/tests/testsuite/support/mod.rs
-index 602e4f..71817d 100644
---- a/tests/testsuite/support/mod.rs
-+++ b/tests/testsuite/support/mod.rs
-@@ -1355,6 +1355,7 @@ fn _process(t: &OsStr) -> cargo::util::ProcessBuilder {
+     let p = project("foo")
+diff --git a/tests/testsuite/cargotest/mod.rs b/tests/testsuite/cargotest/mod.rs
+index c2852e..c77009 100644
+--- a/tests/testsuite/cargotest/mod.rs
++++ b/tests/testsuite/cargotest/mod.rs
+@@ -69,6 +69,7 @@ fn _process(t: &OsStr) -> cargo::util::ProcessBuilder {
       .env_remove("GIT_AUTHOR_EMAIL")
       .env_remove("GIT_COMMITTER_NAME")
       .env_remove("GIT_COMMITTER_EMAIL")
@@ -136,5 +136,5 @@ index 602e4f..71817d 100644
       .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
      return p;
 -- 
-2.18.0
+2.16.4
 
