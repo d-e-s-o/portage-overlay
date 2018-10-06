@@ -1,0 +1,84 @@
+From 6a4d6f887c2f4e4213807b44024c4eeca6b9e533 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Fri, 11 Dec 2015 18:48:30 -0800
+Subject: [PATCH] Work around automatic window renaming
+
+When a root shell is started in tmux every command (even a single
+return) changes the window title back to the current working directory.
+This fact is very annoying because it means that properly named windows
+will always revert their name under such circumstances.
+This change introduces a patch that works around this issue.
+Essentially, once the user has changed the window's name, all automatic
+renaming is prohibited from taking place.
+
+Note that it is still unclear as to why only windows where a new shell
+is started indirectly (by means of the su command, for instance) seem to
+have this issue, and not all windows. The reason seems to be some shell
+interna but the exact details are unknown.
+---
+ cmd-new-window.c    | 4 ++++
+ cmd-rename-window.c | 1 +
+ input.c             | 2 ++
+ options-table.c     | 6 ++++++
+ 4 files changed, 13 insertions(+)
+
+diff --git a/cmd-new-window.c b/cmd-new-window.c
+index 4c9878..9e76a9 100644
+--- a/cmd-new-window.c
++++ b/cmd-new-window.c
+@@ -134,6 +134,10 @@ cmd_new_window_exec(struct cmd *self, struct cmdq_item *item)
+ 		free(cause);
+ 		goto error;
+ 	}
++
++	if (name != NULL)
++		options_set_number(wl->window->options, "user-renamed", 1);
++
+ 	if (!detached) {
+ 		session_select(s, wl->idx);
+ 		cmd_find_from_winlink(current, wl, 0);
+diff --git a/cmd-rename-window.c b/cmd-rename-window.c
+index 4d2ebb..463321 100644
+--- a/cmd-rename-window.c
++++ b/cmd-rename-window.c
+@@ -54,6 +54,7 @@ cmd_rename_window_exec(struct cmd *self, struct cmdq_item *item)
+ 	newname = format_single(item, args->argv[0], c, s, wl, NULL);
+ 	window_set_name(wl->window, newname);
+ 	options_set_number(wl->window->options, "automatic-rename", 0);
++	options_set_number(wl->window->options, "user-renamed", 1);
+ 
+ 	server_status_window(wl->window);
+ 	free(newname);
+diff --git a/input.c b/input.c
+index b53c39..59091d 100644
+--- a/input.c
++++ b/input.c
+@@ -2149,6 +2149,8 @@ input_exit_rename(struct input_ctx *ictx)
+ 		return;
+ 	if (!options_get_number(ictx->wp->window->options, "allow-rename"))
+ 		return;
++	if (options_get_number(ictx->wp->window->options, "user-renamed") != 0)
++		return;
+ 	log_debug("%s: \"%s\"", __func__, ictx->input_buf);
+ 
+ 	if (!utf8_isvalid(ictx->input_buf))
+diff --git a/options-table.c b/options-table.c
+index f611ba..6e75c3 100644
+--- a/options-table.c
++++ b/options-table.c
+@@ -764,6 +764,12 @@ const struct options_table_entry options_table[] = {
+ 	  .default_num = 0
+ 	},
+ 
++	{ .name = "user-renamed",
++	  .type = OPTIONS_TABLE_FLAG,
++	  .scope = OPTIONS_TABLE_WINDOW,
++	  .default_num = 0
++	},
++
+ 	{ .name = "window-active-style",
+ 	  .type = OPTIONS_TABLE_STYLE,
+ 	  .scope = OPTIONS_TABLE_WINDOW,
+-- 
+2.18.0
+
