@@ -1,0 +1,46 @@
+From e51f1e2ed7df60277b571ba78744721dfef30082 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Fri, 5 Oct 2018 18:30:47 -0700
+Subject: [PATCH 2/2] Remove unused function vf_index_is_selected
+
+---
+ src/view_file.h           |  1 -
+ src/view_file/view_file.c | 10 ----------
+ 2 files changed, 11 deletions(-)
+
+diff --git a/src/view_file.h b/src/view_file.h
+index 454f70..afb107 100644
+--- a/src/view_file.h
++++ b/src/view_file.h
+@@ -53,7 +53,6 @@ gint vf_index_by_fd(ViewFile *vf, FileData *in_fd);
+ guint vf_count(ViewFile *vf, gint64 *bytes);
+ GList *vf_get_list(ViewFile *vf);
+ 
+-gint vf_index_is_selected(ViewFile *vf, gint row);
+ guint vf_selection_count(ViewFile *vf, gint64 *bytes);
+ GList *vf_selection_get_list(ViewFile *vf);
+ GList *vf_selection_get_list_by_index(ViewFile *vf);
+diff --git a/src/view_file/view_file.c b/src/view_file/view_file.c
+index acda78..8bea6d 100644
+--- a/src/view_file/view_file.c
++++ b/src/view_file/view_file.c
+@@ -169,16 +169,6 @@ static gboolean vf_release_cb(GtkWidget *widget, GdkEventButton *bevent, gpointe
+  *-----------------------------------------------------------------------------
+  */
+ 
+-gboolean vf_index_is_selected(ViewFile *vf, gint row)
+-{
+-	switch (vf->type)
+-	{
+-	case FILEVIEW_LIST: return vflist_index_is_selected(vf, row);
+-	case FILEVIEW_ICON: return vficon_index_is_selected(vf, row);
+-	}
+-}
+-
+-
+ guint vf_selection_count(ViewFile *vf, gint64 *bytes)
+ {
+ 	switch (vf->type)
+-- 
+2.18.0
+
