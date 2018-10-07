@@ -1,0 +1,57 @@
+From 2d6f4ed7e68bf46d97c5df4d0ec4e0320d8b71d5 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Fri, 17 Nov 2017 07:59:33 -0800
+Subject: [PATCH 08/13] i3bar: Correctly focus output when handling a workspace
+ mouse click
+
+In a multi monitor setup, there are two problems when it comes to
+selecting a workspace through the i3bar via a mouse click. First,
+when the user selects a workspace on the i3bar on the output (i.e.,
+monitor) that does not contain the currently focused workspace, this
+workspace will not receive the focus if there is no application running
+on it.
+Second, in the same scenario a workspace switch can happen on the wrong
+output, provided the workspace's name does not uniquely identify a
+single object.
+This change addresses both problems by reworking the command that i3bar
+sends to switch workspaces. In particular, it prefixes the 'workspace
+<ws-name>' part with an 'focus output <output-name>' command, which
+takes care of focusing the correct output. By doing so, the subsequent
+'workspace' command will also find the correct workspace in case of
+duplicated workspace names because the search starts on the currently
+focused output.
+Note that both problems are not exposed on a vanilla i3. Only if i3 is
+slightly modified to allow empty workspaces and duplicated workspace
+names can this be an issue.
+---
+ i3bar/src/xcb.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+diff --git a/i3bar/src/xcb.c b/i3bar/src/xcb.c
+index 5bc11c..7fbbf5 100644
+--- a/i3bar/src/xcb.c
++++ b/i3bar/src/xcb.c
+@@ -602,11 +602,17 @@ void handle_button(xcb_button_press_event_t *event) {
+         namelen++;
+     }
+ 
+-    const size_t len = namelen + strlen("workspace \"\"") + 1;
++    const char cmd_workspace[] = "; workspace \"\"";
++    const char cmd_output[] = "focus output ";
++    const size_t walk_len = strlen(walk->name);
++    const size_t len = sizeof(cmd_output) - 1 + walk_len + namelen + sizeof(cmd_workspace);
+     char *buffer = scalloc(len + num_quotes, 1);
+-    strncpy(buffer, "workspace \"", strlen("workspace \""));
++
++    strcpy(buffer, cmd_output);
++    strcat(buffer, walk->name);
++    strcat(buffer, cmd_workspace);
+     size_t inpos, outpos;
+-    for (inpos = 0, outpos = strlen("workspace \"");
++    for (inpos = 0, outpos = len - (namelen + 2);
+          inpos < namelen;
+          inpos++, outpos++) {
+         if (utf8_name[inpos] == '"' || utf8_name[inpos] == '\\') {
+-- 
+2.18.0
+

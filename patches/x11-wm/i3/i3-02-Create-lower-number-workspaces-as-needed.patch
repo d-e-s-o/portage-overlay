@@ -1,0 +1,118 @@
+From 2ab6df0b9e0d457fc489636dd377fce464db1523 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Fri, 29 Sep 2017 21:16:48 -0700
+Subject: [PATCH 02/13] Create lower number workspaces as needed
+
+It is very annoying that when switching to a workspace that this
+workspace is created if it does not exist but not the ones with a lower
+number.
+This change adds a new function, workspace_select, that can be used
+instead of workspace_show_by_name, for example, to show a workspace,
+creating it and its lower number peers if necessary.
+---
+ include/workspace.h |  6 ++++++
+ src/commands.c      |  9 ++++++---
+ src/workspace.c     | 35 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 47 insertions(+), 3 deletions(-)
+
+diff --git a/include/workspace.h b/include/workspace.h
+index 8d109e..3cca73 100644
+--- a/include/workspace.h
++++ b/include/workspace.h
+@@ -194,3 +194,9 @@ Con *workspace_encapsulate(Con *ws);
+  *
+  */
+ bool workspace_move_to_output(Con *ws, const char *output);
++
++/**
++ * Select the workspace with the given number, automatically creating
++ * workspaces with lower numbers.
++ */
++Con *workspace_select(const char *num);
+diff --git a/src/commands.c b/src/commands.c
+index 899bbb..6e174d 100644
+--- a/src/commands.c
++++ b/src/commands.c
+@@ -362,7 +362,7 @@ void cmd_move_con_to_workspace_name(I3_CMD, const char *name, const char *_no_au
+ 
+     LOG("should move window to workspace %s\n", name);
+     /* get the workspace */
+-    Con *ws = workspace_get(name, NULL);
++    Con *ws = workspace_select(name);
+ 
+     if (!no_auto_back_and_forth)
+         ws = maybe_auto_back_and_forth_workspace(ws);
+@@ -925,7 +925,8 @@ void cmd_workspace_number(I3_CMD, const char *which, const char *_no_auto_back_a
+     if (!workspace) {
+         LOG("There is no workspace with number %ld, creating a new one.\n", parsed_num);
+         ysuccess(true);
+-        workspace_show_by_name(which);
++        workspace = workspace_select(which);
++        workspace_show(workspace);
+         cmd_output->needs_tree_render = true;
+         return;
+     }
+@@ -964,6 +965,7 @@ void cmd_workspace_back_and_forth(I3_CMD) {
+  */
+ void cmd_workspace_name(I3_CMD, const char *name, const char *_no_auto_back_and_forth) {
+     const bool no_auto_back_and_forth = (_no_auto_back_and_forth != NULL);
++    Con *workspace;
+ 
+     if (strncasecmp(name, "__", strlen("__")) == 0) {
+         LOG("You cannot switch to the i3-internal workspaces (\"%s\").\n", name);
+@@ -982,7 +984,8 @@ void cmd_workspace_name(I3_CMD, const char *name, const char *_no_auto_back_and_
+         ysuccess(true);
+         return;
+     }
+-    workspace_show_by_name(name);
++    workspace = workspace_select(name);
++    workspace_show(workspace);
+ 
+     cmd_output->needs_tree_render = true;
+     // XXX: default reply for now, make this a better reply
+diff --git a/src/workspace.c b/src/workspace.c
+index 335e05..17108d 100644
+--- a/src/workspace.c
++++ b/src/workspace.c
+@@ -983,3 +983,38 @@ bool workspace_move_to_output(Con *ws, const char *name) {
+ 
+     return true;
+ }
++
++Con *workspace_select(const char *num) {
++    bool created;
++    Con *workspace = workspace_get(num, &created);
++
++    /* If the workspace already exists we simply use it. */
++    if (!created) {
++        return workspace;
++    }
++
++    for (long num = workspace->num - 1; num >= 1 && created; num -= 1) {
++        int result;
++        /* 99 workspaces ought to be enough. */
++        char num_str[3];
++
++        /*
++         * It is very unfortunate that workspace_get works with string
++         * representations of numbers but that's what we have...
++         */
++        result = snprintf(num_str, sizeof(num_str), "%ld", num);
++        if (result >= sizeof(num_str)) {
++            ELOG("Workspace number too big: %ld\n", num);
++            /* Ups, that will make boom somewhere. */
++            return NULL;
++        }
++
++        /*
++         * Note that ideally we would batch create the workspaces here which
++         * would save us all those unnecessary calls to ewmh_update_*. But given
++         * the expected low frequency of those creations we should be fine.
++         */
++        (void)workspace_get(num_str, &created);
++    }
++    return workspace;
++}
+-- 
+2.18.0
+
