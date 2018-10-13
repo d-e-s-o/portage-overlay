@@ -1,5 +1,21 @@
-diff --git calendar/base/content/import-export.js calendar/base/content/import-export.js
-index c4bd1d5..eaa223 100644
+From 2928dcaab1bc1c293128c85fb5fc457889632159 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Fri, 12 Oct 2018 22:12:29 -0700
+Subject: [PATCH 1/2] Allow for importing of multiple .ics files at once
+
+When working with large numbers of .ics files at once, Thunderbird's
+one-file-at-a-time approach to importing them is limiting severely and
+simply unfeasible.
+Hence, with this change we adjust the import logic to allow for the
+selection of multiple files at once. We factor out a function for
+importing a single file and invoke this method for all files reported as
+being selected.
+---
+ calendar/base/content/import-export.js | 140 +++++++++++++------------
+ 1 file changed, 74 insertions(+), 66 deletions(-)
+
+diff --git a/calendar/base/content/import-export.js b/calendar/base/content/import-export.js
+index c4bd1d5..81d17a 100644
 --- a/calendar/base/content/import-export.js
 +++ b/calendar/base/content/import-export.js
 @@ -12,6 +12,73 @@ var MODE_WRONLY = 0x02;
@@ -167,3 +183,6 @@ index c4bd1d5..eaa223 100644
  /**
   * Put items into a certain calendar, catching errors and showing them to the
   * user.
+-- 
+2.18.0
+
