@@ -1,7 +1,7 @@
-From e696c2fdc0c180f7554cce29350e04c3894ebf40 Mon Sep 17 00:00:00 2001
+From c88c4c468acea43b2b8b4632127ebb6f90abd7ad Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 21 Oct 2018 12:58:56 -0700
-Subject: [PATCH 2/3] Use visual style for function signature formatting
+Subject: [PATCH 2/4] Use visual style for function signature formatting
 
 Most of the time rustfmt's "Block" indentation style does its job pretty
 well. However, function signatures look awkward in this formatting. On

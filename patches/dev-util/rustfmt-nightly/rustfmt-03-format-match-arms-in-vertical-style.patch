@@ -1,7 +1,7 @@
-From b2fcddea71a51a33261b7062eb0bb2f1e2e8a8cb Mon Sep 17 00:00:00 2001
+From 7cfed565e93809a0bf8bf0eb0542fec18f0f431c Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 21 Oct 2018 13:30:31 -0700
-Subject: [PATCH 3/3] Format match arms in vertical style
+Subject: [PATCH 3/4] Format match arms in vertical style
 
 By default rustfmt formats match arms in a way to prefer horizontal
 layout over vertical one. E.g.,
