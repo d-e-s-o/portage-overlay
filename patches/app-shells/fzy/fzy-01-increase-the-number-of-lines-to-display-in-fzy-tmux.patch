@@ -1,0 +1,36 @@
+From 77e016b779de7b35ff0c0363328ec388e4140030 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sat, 10 Nov 2018 12:55:41 -0800
+Subject: [PATCH] Increase the number of lines to display in fzy-tmux
+
+fzy-tmux splits out a tmux pane and runs fzy in it. The size of the
+resulting pane, however, cannot be known it advance due to tmux' dynamic
+layouting algorithm.
+Running fzy with only ten lines of visible results is unnecessarily
+limiting in the majority of cases, as the pane's height is likely
+bigger. Ideally fzy would support reading the current window size and
+adjust the number of output lines dynamically, but for lack of such a
+feature, this change just uses a higher number of lines by default.
+Under the assumption of a display covering 100 lines (which is probably
+an over estimate), a split would make 50 lines available to fzy, and so
+this is the value we pick.
+---
+ contrib/fzy-tmux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/contrib/fzy-tmux b/contrib/fzy-tmux
+index ba7c14..90f53e 100755
+--- a/contrib/fzy-tmux
++++ b/contrib/fzy-tmux
+@@ -29,7 +29,7 @@ main() {
+     eval "tmux \
+         set-window-option synchronize-panes off \\; \
+         set-window-option remain-on-exit off \\; \
+-        split-window \"fzy $* < '${PATH_FIFO_IN}' > '${PATH_FIFO_OUT}' 2>&1; echo $? > '${PATH_FIFO_RET}'\""
++        split-window \"fzy --lines 50 $* < '${PATH_FIFO_IN}' > '${PATH_FIFO_OUT}' 2>&1; echo $? > '${PATH_FIFO_RET}'\""
+ 
+     cat <&0 > "${PATH_FIFO_IN}" &
+     cat < "${PATH_FIFO_OUT}"
+-- 
+2.18.1
+
