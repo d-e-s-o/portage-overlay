@@ -1,0 +1,33 @@
+From aa56bceb7900a767c092b6b0b7ffea57787bf057 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Wed, 4 Jul 2018 17:10:01 -0700
+Subject: [PATCH] Do not use 'Deny' lint classifier
+
+We use clippy for linting the compilation of various crates, some of
+them being created by 3rd party. With recent versions clippy fails to
+build some of those crates due to lints being classified as 'Deny'. The
+code of those crates has not changed and is known to be working,
+indicating that a compilation error is too strong of a mechanism to
+signal a problem here.
+Hence, with this change we avoid using the 'Deny' classifier for lints
+that fall into the correctness category in favor of 'Warn'.
+---
+ src/tools/clippy/clippy_lints/src/lib.rs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
+index 288273..d4d0f7 100644
+--- a/src/tools/clippy/clippy_lints/src/lib.rs
++++ b/src/tools/clippy/clippy_lints/src/lib.rs
+@@ -40,7 +40,7 @@ macro_rules! declare_clippy_lint {
+         declare_lint! { pub $name, Warn, $description }
+     };
+     { pub $name:tt, correctness, $description:tt } => {
+-        declare_tool_lint! { pub clippy::$name, Deny, $description, report_in_external_macro: true }
++        declare_tool_lint! { pub clippy::$name, Warn, $description, report_in_external_macro: true }
+     };
+     { pub $name:tt, complexity, $description:tt } => {
+         declare_lint! { pub $name, Warn, $description }
+-- 
+2.16.4
+
