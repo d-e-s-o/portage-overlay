@@ -55,8 +55,8 @@ alias g='git'
 alias v='\$EDITOR'
 alias hexdump='hexdump --canonical'
 alias info='info --vi-keys'
-alias fd='fd --no-ignore'
-alias rg='rg --unrestricted --ignore-case'
+alias fd='fd --follow --no-ignore'
+alias rg='rg --follow --unrestricted --ignore-case'
 EOF
 
   insinto ${EROOT}etc/profile.d/
