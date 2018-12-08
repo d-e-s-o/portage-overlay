@@ -1,0 +1,15 @@
+--- a/gdb/python/lib/gdb/__init__.py	2018-12-08 07:06:55.053662947 -0800
++++ b/gdb/python/lib/gdb/__init__.py	2018-12-08 07:11:20.696651837 -0800
+@@ -163,3 +163,12 @@
+     # attributes
+     reload(__import__(__name__))
+     auto_load_packages()
++
++from os import listdir
++from os.path import isfile, join
++
++path = "/usr/share/gdb/"
++for f in listdir(path):
++  f = join(path, f)
++  if isfile(f):
++    _gdb.execute("source %s" % f)
