@@ -46,6 +46,7 @@ COMMON_DEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
 		net-libs/libssh2
 		net-libs/http-parser:=
 		net-misc/curl[ssl]
+		=dev-lang/rust-sources-${PV}
 		system-llvm? ( >=sys-devel/llvm-6:= )"
 DEPEND="${COMMON_DEPEND}
 	${PYTHON_DEPS}
@@ -247,6 +248,16 @@ src_install() {
 		CARGO_TARGET_DIR_PREFIX="/tmp/rust-build-artifacts/"
 	EOF
 	doenvd "${T}"/50${P}
+
+	# We want gdb to automatically find the correct Rust sources
+	# (provided by the dev-lang/rust-sources ebuild). Note that
+	# automatical sourcing of this file requires a patched gdb.
+	# TODO: We should be able to use rust-gdb's
+	#       GDB_PYTHON_MODULE_DIRECTORY instead! It's cleaner and does
+	#       not rely on a patched gdb.
+	cat <<-EOF > ${D}/usr/share/gdb/rust.gdb
+		set substitute-path ${S}/src/ /usr/src/rust
+	EOF
 
 	cat <<-EOF > "${T}/provider-${P}"
 		/usr/bin/rustdoc
