@@ -1,0 +1,36 @@
+From 47505ec47c3991a63cac0fd3b274cbf77da82d89 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sun, 25 Nov 2018 09:08:27 -0800
+Subject: [PATCH] Set correct working directory on startup
+
+When vifm is started it enters into an event loop, as part of which it
+changes the working directory to that of the current view's containing
+directory. Unfortunately that only happens after an event was received,
+i.e., after a key was pressed, for example. That can be a problem if the
+working directory is expected to be valid before that (which can be the
+case for example inside of a tmux session where a new shell is spawned
+in the same directory as the vifm instance).
+With this change we add an additional chdir just in front of the event
+loop and thereby fix this problem.
+---
+ src/event_loop.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/event_loop.c b/src/event_loop.c
+index 8ebf48..9dae81 100644
+--- a/src/event_loop.c
++++ b/src/event_loop.c
+@@ -103,6 +103,10 @@ event_loop(const int *quit)
+ 	curr_input_buf = &input_buf[0];
+ 	curr_input_buf_pos = &input_buf_pos;
+ 
++	/* Make sure to set the working directory once in order to have the
++	 * desired state even before any events are processed. */
++	(void)vifm_chdir(flist_get_dir(curr_view));
++
+ 	while(!*quit)
+ 	{
+ 		wint_t c;
+-- 
+2.19.2
+
