@@ -1,4 +1,4 @@
-From c4c7abe3aa3bbae4a03b7446920d63f162406f68 Mon Sep 17 00:00:00 2001
+From 41a5d97e318d95f8feab41d9911001280597132c Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 21 Oct 2018 13:30:31 -0700
 Subject: [PATCH 3/4] Format match arms in vertical style
@@ -26,10 +26,10 @@ style.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/rustfmt/src/expr.rs b/src/tools/rustfmt/src/expr.rs
-index 973c72..ad02c2 100644
+index 74639c..9a497c 100644
 --- a/src/tools/rustfmt/src/expr.rs
 +++ b/src/tools/rustfmt/src/expr.rs
-@@ -1209,7 +1209,7 @@ pub fn rewrite_multiple_patterns(
+@@ -1191,7 +1191,7 @@ pub fn rewrite_multiple_patterns(
      } else {
          definitive_tactic(
              &items,
@@ -39,5 +39,5 @@ index 973c72..ad02c2 100644
              shape.width,
          )
 -- 
-2.19.2
+2.18.1
 

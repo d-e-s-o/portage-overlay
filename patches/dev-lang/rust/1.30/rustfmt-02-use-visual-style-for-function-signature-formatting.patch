@@ -1,4 +1,4 @@
-From ae98983abfd26d98173ed3e9946758927d0a3bff Mon Sep 17 00:00:00 2001
+From 2f9020ae2b99843ac74770f9226cbdefb2a468aa Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 21 Oct 2018 12:58:56 -0700
 Subject: [PATCH 2/4] Use visual style for function signature formatting
@@ -16,10 +16,10 @@ formatted just as they were before.
  1 file changed, 4 insertions(+), 17 deletions(-)
 
 diff --git a/src/tools/rustfmt/src/items.rs b/src/tools/rustfmt/src/items.rs
-index a4800e..29c4ad 100644
+index ff6351..6aca83 100644
 --- a/src/tools/rustfmt/src/items.rs
 +++ b/src/tools/rustfmt/src/items.rs
-@@ -2059,7 +2059,6 @@ fn rewrite_fn_base(
+@@ -2024,7 +2024,6 @@ fn rewrite_fn_base(
      )?;
  
      let put_args_in_block = match context.config.indent_style() {
@@ -27,7 +27,7 @@ index a4800e..29c4ad 100644
          _ => false,
      } && !fd.inputs.is_empty();
  
-@@ -2092,10 +2091,8 @@ fn rewrite_fn_base(
+@@ -2059,10 +2058,8 @@ fn rewrite_fn_base(
      // Return type.
      if let ast::FunctionRetTy::Ty(..) = fd.output {
          let ret_should_indent = match context.config.indent_style() {
@@ -39,7 +39,7 @@ index a4800e..29c4ad 100644
              _ => {
                  // If the return type would push over the max width, then put the return type on
                  // a new line. With the +1 for the signature length an additional space between
-@@ -2362,17 +2359,10 @@ fn rewrite_args(
+@@ -2326,17 +2323,10 @@ fn rewrite_args(
          .map_or(false, |s| s.trim().starts_with("//"));
  
      let (indent, trailing_comma) = match context.config.indent_style() {
@@ -59,7 +59,7 @@ index a4800e..29c4ad 100644
      };
  
      let tactic = definitive_tactic(
-@@ -2444,10 +2434,7 @@ fn compute_budgets_for_args(
+@@ -2408,10 +2398,7 @@ fn compute_budgets_for_args(
          if one_line_budget > 0 {
              // 4 = "() {".len()
              let (indent, multi_line_budget) = match context.config.indent_style() {
@@ -72,5 +72,5 @@ index a4800e..29c4ad 100644
                      let indent = indent + result.len() + 1;
                      let multi_line_overhead = indent.width() + if newline_brace { 2 } else { 4 };
 -- 
-2.19.2
+2.18.1
 

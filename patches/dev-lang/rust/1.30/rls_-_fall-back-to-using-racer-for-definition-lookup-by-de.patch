@@ -1,4 +1,4 @@
-From 741a999088dc227b5a83e7e09bcf27b51a6c65db Mon Sep 17 00:00:00 2001
+From c0b4982144149bed0e3a463ff83ccb59d9ba4553 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 18 Nov 2018 18:41:16 -0800
 Subject: [PATCH] Fall back to using racer for definition lookup by default
@@ -13,12 +13,12 @@ definition lookups unless explicitly changed.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/rls/src/config.rs b/src/tools/rls/src/config.rs
-index d171ad..198eb4 100644
+index cd726f..9e4dd7 100644
 --- a/src/tools/rls/src/config.rs
 +++ b/src/tools/rls/src/config.rs
-@@ -177,7 +177,7 @@ impl Default for Config {
+@@ -181,7 +181,7 @@ impl Default for Config {
              unstable_features: false,
-             wait_to_build: None,
+             wait_to_build: DEFAULT_WAIT_TO_BUILD,
              show_warnings: true,
 -            goto_def_racer_fallback: false,
 +            goto_def_racer_fallback: true,
@@ -26,5 +26,5 @@ index d171ad..198eb4 100644
              build_on_save: false,
              use_crate_blacklist: true,
 -- 
-2.19.2
+2.18.1
 

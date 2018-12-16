@@ -1,4 +1,4 @@
-From bc09d39ebe3c9789a0d3f005d45f58fe1f54967e Mon Sep 17 00:00:00 2001
+From 03ca239cbab4262d84bdb6096abd2b41322f9c3d Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Mon, 22 Oct 2018 19:14:42 -0700
 Subject: [PATCH 4/4] Use Wide formatting style for separating type parameter
@@ -14,11 +14,11 @@ cases.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/rustfmt/src/types.rs b/src/tools/rustfmt/src/types.rs
-index 7b23cd..9e97e4 100644
+index dd7f60..de59f0 100644
 --- a/src/tools/rustfmt/src/types.rs
 +++ b/src/tools/rustfmt/src/types.rs
-@@ -756,7 +756,7 @@ fn join_bounds(
- 
+@@ -768,7 +768,7 @@ fn join_bounds(
+ ) -> Option<String> {
      // Try to join types in a single line
      let joiner = match context.config.type_punctuation_density() {
 -        TypeDensity::Compressed => "+",
@@ -27,5 +27,5 @@ index 7b23cd..9e97e4 100644
      };
      let type_strs = items
 -- 
-2.19.2
+2.18.1
 

@@ -1,4 +1,4 @@
-From e1f8874d98ded443e17122dd321cddc5e5a505f8 Mon Sep 17 00:00:00 2001
+From 565298d857a14e041f4e665739a8b4792bfc2e6f Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 20 May 2018 09:30:14 -0700
 Subject: [PATCH] Add support for CARGO_TARGET_DIR_PREFIX
@@ -11,14 +11,14 @@ This change addresses https://github.com/rust-lang/cargo/issues/5544.
 TODO: Definitely not finished. This patch needs more tests and may need
       additional config.toml support (?).
 ---
- src/tools/cargo/src/cargo/util/config.rs      | 20 +++++++
+ src/tools/cargo/src/cargo/util/config.rs      | 20 ++++++++
  .../src/reference/environment-variables.md    |  4 ++
  src/tools/cargo/tests/testsuite/build.rs      | 57 +++++++++++++++++++
  .../cargo/tests/testsuite/support/mod.rs      |  1 +
  4 files changed, 82 insertions(+)
 
 diff --git a/src/tools/cargo/src/cargo/util/config.rs b/src/tools/cargo/src/cargo/util/config.rs
-index cf5b22..4f64f5 100644
+index dd5464..e007cb 100644
 --- a/src/tools/cargo/src/cargo/util/config.rs
 +++ b/src/tools/cargo/src/cargo/util/config.rs
 @@ -28,6 +28,7 @@ use core::{CliUnstable, Shell, SourceId, Workspace};
@@ -29,7 +29,7 @@ index cf5b22..4f64f5 100644
  use util::paths;
  use util::toml as cargo_toml;
  use util::Filesystem;
-@@ -307,6 +308,25 @@ impl Config {
+@@ -290,6 +291,25 @@ impl Config {
              Ok(Some(dir.clone()))
          } else if let Some(dir) = env::var_os("CARGO_TARGET_DIR") {
              Ok(Some(Filesystem::new(self.cwd.join(dir))))
@@ -56,7 +56,7 @@ index cf5b22..4f64f5 100644
              let val = self.cwd.join(val.val);
              Ok(Some(Filesystem::new(val)))
 diff --git a/src/tools/cargo/src/doc/src/reference/environment-variables.md b/src/tools/cargo/src/doc/src/reference/environment-variables.md
-index 4062b9..3e8548 100644
+index 56b059..f61756 100644
 --- a/src/tools/cargo/src/doc/src/reference/environment-variables.md
 +++ b/src/tools/cargo/src/doc/src/reference/environment-variables.md
 @@ -13,6 +13,10 @@ system:
@@ -71,10 +71,10 @@ index 4062b9..3e8548 100644
    relative to the current working directory.
  * `RUSTC` — Instead of running `rustc`, Cargo will execute this specified
 diff --git a/src/tools/cargo/tests/testsuite/build.rs b/src/tools/cargo/tests/testsuite/build.rs
-index 928bdd..73b45f 100644
+index 77d127..c29d96 100644
 --- a/src/tools/cargo/tests/testsuite/build.rs
 +++ b/src/tools/cargo/tests/testsuite/build.rs
-@@ -3039,6 +3039,63 @@ fn explicit_color_config_is_propagated_to_rustc() {
+@@ -3006,6 +3006,63 @@ fn explicit_color_config_is_propagated_to_rustc() {
          ).run();
  }
  
@@ -139,10 +139,10 @@ index 928bdd..73b45f 100644
  fn compiler_json_error_format() {
      let p = project()
 diff --git a/src/tools/cargo/tests/testsuite/support/mod.rs b/src/tools/cargo/tests/testsuite/support/mod.rs
-index f9ddb5..8440e0 100644
+index b21752..12d64f 100644
 --- a/src/tools/cargo/tests/testsuite/support/mod.rs
 +++ b/src/tools/cargo/tests/testsuite/support/mod.rs
-@@ -1471,6 +1471,7 @@ fn _process(t: &OsStr) -> cargo::util::ProcessBuilder {
+@@ -1468,6 +1468,7 @@ fn _process(t: &OsStr) -> cargo::util::ProcessBuilder {
       .env_remove("GIT_AUTHOR_EMAIL")
       .env_remove("GIT_COMMITTER_NAME")
       .env_remove("GIT_COMMITTER_EMAIL")
@@ -151,5 +151,5 @@ index f9ddb5..8440e0 100644
       .env_remove("MSYSTEM"); // assume cmd.exe everywhere on windows
      p
 -- 
-2.19.2
+2.18.1
 
