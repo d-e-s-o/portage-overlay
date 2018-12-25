@@ -46,7 +46,6 @@ COMMON_DEPEND=">=app-eselect/eselect-rust-0.3_pre20150425
 		net-libs/libssh2
 		net-libs/http-parser:=
 		net-misc/curl[ssl]
-		=dev-lang/rust-sources-${PV}
 		system-llvm? ( >=sys-devel/llvm-6:= )"
 DEPEND="${COMMON_DEPEND}
 	${PYTHON_DEPS}
@@ -245,6 +244,7 @@ src_install() {
 	cat <<-EOF > "${T}"/50${P}
 		LDPATH="/usr/$(get_libdir)/${P}"
 		MANPATH="/usr/share/${P}/man"
+		RUST_SRC_PATH="/usr/lib64/rust-${PV}/rustlib/src/rust/src/"
 		CARGO_TARGET_DIR_PREFIX="/tmp/rust-build-artifacts/"
 	EOF
 	doenvd "${T}"/50${P}
