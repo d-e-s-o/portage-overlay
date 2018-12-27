@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2017-2018 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2018 Daniel Mueller (deso@posteo.net)                   *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -17,41 +17,40 @@
 
 EAPI=6
 
-DESCRIPTION="A command line application for interfacing with the Nitrokey Storage"
-LICENSE="GPL-3"
-SLOT="0"
-KEYWORDS="~amd64"
-IUSE=""
+CRATES="
+cc-1.0.25
+hid-0.4.1
+hidapi-sys-0.1.4
+libc-0.2.45
+nitrocli-0.1.3
+pkg-config-0.3.14
+"
 
 inherit cargo
 
+DESCRIPTION="A command line tool for interacting with the Nitrokey Storage device."
+HOMEPAGE="https://github.com/d-e-s-o/nitrocli"
+SRC_URI="$(cargo_crate_uris ${CRATES})"
+RESTRICT="mirror"
+LICENSE="GPL-3.0+"
+SLOT="0"
+KEYWORDS="amd64"
+IUSE=""
+
 # We require gnupg for /usr/bin/gpg-connect-agent.
 RDEPEND="
-  app-crypt/gnupg
-  dev-libs/hidapi
+	app-crypt/gnupg
+	dev-libs/hidapi
 "
 DEPEND="
-  >=dev-lang/rust-1.31
-  ${RDEPEND}
+	>=dev-lang/rust-1.31
+	${RDEPEND}
 "
 
-inherit git-r3
-
-EGIT_BRANCH="master"
-EGIT_REPO_URI="https://github.com/d-e-s-o/nitrocli.git"
-
-src_compile() {
-  cd nitrocli || die
-  # The repository contains a Makefile that is used for testing and that
-  # Portage happily executes, which we do not want here.
-  rm Makefile || die
-
-  cargo_src_compile
-}
-
 src_install() {
-  cd nitrocli || die
+	cargo install -j $(makeopts_jobs) --path=. --root="${D}/usr" $(usex debug --debug "") \
+		|| die "cargo install failed"
+	rm -f "${D}/usr/.crates.toml"
 
-  cargo install -j $(makeopts_jobs) --path=. --root="${D}/usr" $(usex debug --debug "") \
-    || die "cargo install failed"
+	doman "${S}/doc/nitrocli.1"
 }
