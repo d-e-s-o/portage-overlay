@@ -1,0 +1,33 @@
+diff --git src/main.rs src/main.rs
+index ba02b5..39ba0a 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -273,6 +273,20 @@ fn main() {
+     }
+ }
+ 
++fn rust_version() -> Result<String, Error> {
++    let out = Command::new("rustc")
++        .arg("--version")
++        .output()
++        .map_err(|_| Error::RustcFailed)?
++        .stdout;
++    let ver = String::from_utf8(out)
++        .unwrap()
++        .trim()
++        .replace("rustc", "rust")
++        .replace(' ', "-");
++    Ok(ver)
++}
++
+ fn stdlibs_dir(target_triple: &str) -> Result<path::PathBuf, Error> {
+     let output = Command::new("rustc")
+         .arg("--print=sysroot").output()
+@@ -285,6 +299,7 @@ fn stdlibs_dir(target_triple: &str) -> Result<path::PathBuf, Error> {
+     // /src/cargo/core/compiler/build_context/target_info.rs#L130..L133
+     let mut rustlib = path::PathBuf::from(stdout.trim());
+     rustlib.push("lib");
++    rustlib.push(rust_version()?);
+     rustlib.push("rustlib");
+     rustlib.push(target_triple);
+     rustlib.push("lib");
