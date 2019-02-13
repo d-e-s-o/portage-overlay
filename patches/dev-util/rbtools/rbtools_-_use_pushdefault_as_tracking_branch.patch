@@ -1,0 +1,16 @@
+--- a/rbtools/clients/git.py 2019-02-13 13:17:44.353443232 -0800
++++ b/rbtools/clients/git.py 2019-02-13 13:17:41.137442990 -0800
+@@ -39,6 +39,12 @@
+         # default.
+         self.git = 'git'
+
++        cmd = [self.git, 'config', '--get', 'remote.pushdefault']
++        tracking = execute(cmd, ignore_errors=True, none_on_ignored_error=True)
++        if tracking is not None:
++           tracking = tracking.strip().encode()
++        self.options.tracking = tracking
++
+         self._original_cwd = None
+
+     def _supports_git_config_flag(self):
+
