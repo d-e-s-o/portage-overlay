@@ -19,7 +19,7 @@
 
 # If we are in a virtual environment we deactivate it before executing
 # Python.
-if [ -n "${VIRTUAL_ENV}" ]; then
+if [ -n "${VIRTUAL_ENV:-}" ]; then
   deactivate
 fi
 
