@@ -1,0 +1,146 @@
+--- a/contrib/completion/git-completion.bash	2018-11-21 06:58:11.000000000 -0800
++++ b/contrib/completion/git-completion.bash	2019-02-18 12:31:32.559342343 -0800
+@@ -49,7 +49,7 @@
+ # variable.
+ __git_find_repo_path ()
+ {
+-	if [ -n "$__git_repo_path" ]; then
++	if [ -n "${__git_repo_path:-}" ]; then
+ 		# we already know where it is
+ 		return
+ 	fi
+@@ -238,7 +238,7 @@
+ 				((j--))
+ 			fi
+ 			first=
+-			words_[$j]=${words_[j]}${COMP_WORDS[i]}
++			words_[$j]=${words_[j]:-}${COMP_WORDS[i]}
+ 			if [ $i = $COMP_CWORD ]; then
+ 				cword_=$j
+ 			fi
+@@ -249,7 +249,7 @@
+ 				return
+ 			fi
+ 		done
+-		words_[$j]=${words_[j]}${COMP_WORDS[i]}
++		words_[$j]=${words_[j]:-}${COMP_WORDS[i]}
+ 		if [ $i = $COMP_CWORD ]; then
+ 			cword_=$j
+ 		fi
+@@ -769,7 +769,7 @@
+ 		shift
+ 	done
+ 
+-	__gitcomp_direct "$(__git_refs "$remote" "$track" "$pfx" "$cur_" "$sfx")"
++	__gitcomp_direct "$(__git_refs "${remote:-}" "${track:-}" "${pfx:-}" "${cur_:-}" "${sfx:-}")"
+ }
+ 
+ # __git_refs2 requires 1 argument (to pass to __git_refs)
+@@ -813,7 +813,7 @@
+ __git_remotes ()
+ {
+ 	__git_find_repo_path
+-	test -d "$__git_repo_path/remotes" && ls -1 "$__git_repo_path/remotes"
++	test -d "${__git_repo_path:-}/remotes" && ls -1 "${__git_repo_path:-}/remotes"
+ 	__git remote
+ }
+ 
+@@ -1174,7 +1174,7 @@
+ _git_am ()
+ {
+ 	__git_find_repo_path
+-	if [ -d "$__git_repo_path"/rebase-apply ]; then
++	if [ -d "${__git_repo_path:-}"/rebase-apply ]; then
+ 		__gitcomp "$__git_am_inprogress_options"
+ 		return
+ 	fi
+@@ -1249,7 +1249,7 @@
+ 	local subcommand="$(__git_find_on_cmdline "$subcommands")"
+ 	if [ -z "$subcommand" ]; then
+ 		__git_find_repo_path
+-		if [ -f "$__git_repo_path"/BISECT_START ]; then
++		if [ -f "${__git_repo_path:-}"/BISECT_START ]; then
+ 			__gitcomp "$subcommands"
+ 		else
+ 			__gitcomp "replay start"
+@@ -1331,7 +1331,7 @@
+ 		# check if --track, --no-track, or --no-guess was specified
+ 		# if so, disable DWIM mode
+ 		local flags="--track --no-track --no-guess" track_opt="--track"
+-		if [ "$GIT_COMPLETION_CHECKOUT_NO_GUESS" = "1" ] ||
++		if [ "${GIT_COMPLETION_CHECKOUT_NO_GUESS:-}" = "1" ] ||
+ 		   [ -n "$(__git_find_on_cmdline "$flags")" ]; then
+ 			track_opt=''
+ 		fi
+@@ -1345,7 +1345,7 @@
+ _git_cherry_pick ()
+ {
+ 	__git_find_repo_path
+-	if [ -f "$__git_repo_path"/CHERRY_PICK_HEAD ]; then
++	if [ -f "${__git_repo_path:-}"/CHERRY_PICK_HEAD ]; then
+ 		__gitcomp "$__git_cherry_pick_inprogress_options"
+ 		return
+ 	fi
+@@ -1721,7 +1721,7 @@
+ 	__git_find_repo_path
+ 
+ 	local merge=""
+-	if [ -f "$__git_repo_path/MERGE_HEAD" ]; then
++	if [ -f "${__git_repo_path:-}/MERGE_HEAD" ]; then
+ 		merge="--merge"
+ 	fi
+ 	case "$prev,$cur" in
+@@ -1982,11 +1982,11 @@
+ _git_rebase ()
+ {
+ 	__git_find_repo_path
+-	if [ -f "$__git_repo_path"/rebase-merge/interactive ]; then
++	if [ -f "${__git_repo_path:-}"/rebase-merge/interactive ]; then
+ 		__gitcomp "--continue --skip --abort --quit --edit-todo --show-current-patch"
+ 		return
+-	elif [ -d "$__git_repo_path"/rebase-apply ] || \
+-	     [ -d "$__git_repo_path"/rebase-merge ]; then
++	elif [ -d "${__git_repo_path:-}"/rebase-apply ] || \
++	     [ -d "${__git_repo_path:-}"/rebase-merge ]; then
+ 		__gitcomp "--continue --skip --abort --quit --show-current-patch"
+ 		return
+ 	fi
+@@ -2435,7 +2435,7 @@
+ _git_revert ()
+ {
+ 	__git_find_repo_path
+-	if [ -f "$__git_repo_path"/REVERT_HEAD ]; then
++	if [ -f "${__git_repo_path:-}"/REVERT_HEAD ]; then
+ 		__gitcomp "$__git_revert_inprogress_options"
+ 		return
+ 	fi
+@@ -2860,7 +2860,7 @@
+ 		((c++))
+ 	done
+ 
+-	if [ -z "$command" ]; then
++	if [ -z "${command:-}" ]; then
+ 		case "$prev" in
+ 		--git-dir|-C|--work-tree)
+ 			# these need a path argument, let's fall back to
+@@ -2891,9 +2891,9 @@
+ 			"
+ 			;;
+ 		*)
+-			if test -n "$GIT_TESTING_PORCELAIN_COMMAND_LIST"
++			if test -n "${GIT_TESTING_PORCELAIN_COMMAND_LIST:-}"
+ 			then
+-				__gitcomp "$GIT_TESTING_PORCELAIN_COMMAND_LIST"
++				__gitcomp "${GIT_TESTING_PORCELAIN_COMMAND_LIST:-}"
+ 			else
+ 				__gitcomp "$(git --list-cmds=list-mainporcelain,others,nohelpers,alias,list-complete,config)"
+ 			fi
+@@ -2919,7 +2919,7 @@
+ 	__git_find_repo_path
+ 
+ 	local merge=""
+-	if [ -f "$__git_repo_path/MERGE_HEAD" ]; then
++	if [ -f "${__git_repo_path:-}/MERGE_HEAD" ]; then
+ 		merge="--merge"
+ 	fi
+ 	case "$cur" in
