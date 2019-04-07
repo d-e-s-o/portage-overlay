@@ -1,0 +1,69 @@
+#!/sbin/openrc-run
+# Copyright 1999-2014 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: /var/cvsroot/gentoo-x86/media-sound/mpd/files/mpd2.init,v 1.1 2014/04/15 16:35:25 angelos Exp $
+
+depend() {
+	need localmount
+	use net netmount nfsmount alsasound esound pulseaudio
+}
+
+checkconfig() {
+	if ! [ -f /etc/mpd.conf ]; then
+		eerror "Configuration file /etc/mpd.conf does not exist."
+		return 1
+	fi
+
+	if ! grep -q ^pid_file /etc/mpd.conf; then
+		eerror "Invalid configuration: pid_file needs to be set."
+		return 1
+	fi
+
+	return 0
+}
+
+createdirectories() {
+	sed_value_regex='s![^"]\+"\([^"]\+\)".*!\1!'
+
+	# Find out the user under which to run mpd.
+	user=$(grep "^user\>" /etc/mpd.conf | sed "${sed_value_regex}")
+	# We assume we always run as group audio.
+	group=$(grep "^group\>" /etc/mpd.conf | sed "${sed_value_regex}")
+
+	# Loop over all options that would potentially specify a directory
+	# somewhere that has to be created first. This is most likely caused by
+	# placing the desination file on /tmp.
+	for option in "log_file" "pid_file" "state_file" "bind_to_address"; do
+		value=$(grep "^${option}\>" /etc/mpd.conf | sed "${sed_value_regex}")
+		if [ -n "${value}" ]; then
+			dir=$(dirname $(readlink --canonicalize-missing "${value}"))
+			if [ -n "${dir}" -a ! -d "${dir}" ]; then
+				ebegin "Creating directory ${dir}"
+				mkdir -p "${dir}" || (eend $?; continue)
+				if [ -n "${user}" ]; then
+					chown "${user}" "${dir}" || (eend $?; continue)
+				fi
+
+				if [ -n "${group}" ]; then
+					chgrp "${group}" "${dir}" || (eend $?; continue)
+				fi
+				eend $?
+			fi
+		fi
+	done
+}
+
+start() {
+	checkconfig || return 1
+	createdirectories
+
+	ebegin "Starting Music Player Daemon"
+	start-stop-daemon --start --quiet --exec /usr/bin/mpd -- /etc/mpd.conf 2>/dev/null
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping Music Player Daemon"
+	/usr/bin/mpd --kill
+	eend $?
+}
