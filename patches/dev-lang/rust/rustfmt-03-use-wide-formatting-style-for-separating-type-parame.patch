@@ -1,7 +1,7 @@
-From bc09d39ebe3c9789a0d3f005d45f58fe1f54967e Mon Sep 17 00:00:00 2001
+From e7235e5156f97614e0b798a2223bf1e1f7d80f09 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Mon, 22 Oct 2018 19:14:42 -0700
-Subject: [PATCH 4/4] Use Wide formatting style for separating type parameter
+Subject: [PATCH 3/4] Use Wide formatting style for separating type parameter
  constraints
 
 While the "Compressed" punctuation style is suitable for most occasions, the
@@ -27,5 +27,5 @@ index 7b23cd..9e97e4 100644
      };
      let type_strs = items
 -- 
-2.19.2
+2.21.0
 
