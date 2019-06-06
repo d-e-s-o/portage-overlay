@@ -27,6 +27,7 @@ src_prepare() {
 	epatch "${FILESDIR}"/${P}-asneeded.patch
 	epatch "${FILESDIR}"/${P}-eq-name.patch
 	epatch "${FILESDIR}"/${P}-fix-mixer-open-issue.patch
+	epatch "${FILESDIR}"/${P}-fix-lib-path.patch
 	multilib_copy_sources
 }
 
