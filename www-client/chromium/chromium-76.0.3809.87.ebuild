@@ -92,6 +92,8 @@ RDEPEND="${COMMON_DEPEND}
 DEPEND="${COMMON_DEPEND}
 "
 # dev-vcs/git - https://bugs.gentoo.org/593476
+# dev-lang/python-2 is required for building, and because script import
+# pyexpat we need it to be built with xml support.
 BDEPEND="
 	${PYTHON_DEPS}
 	>=app-arch/gzip-1.7
@@ -99,6 +101,7 @@ BDEPEND="
 		dev-lang/yasm
 	)
 	dev-lang/perl
+	=dev-lang/python-2*[xml]
 	=dev-lang/python-3*
 	<dev-util/gn-0.1583
 	dev-vcs/git
