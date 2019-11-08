@@ -1,4 +1,4 @@
-From d0b05a16d2e688be932494c7b2ea0b7629547e82 Mon Sep 17 00:00:00 2001
+From 4a23c6ab7aba51cbe72fadd7184fc2703945fa90 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 21 Oct 2018 13:30:31 -0700
 Subject: [PATCH 2/4] Format match arms in vertical style
@@ -22,22 +22,22 @@ example:
 This change adjusts rustfmt to format match arms in such a vertical
 style.
 ---
- src/tools/rustfmt/src/patterns.rs | 2 +-
+ src/tools/rustfmt/src/expr.rs | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/src/patterns.rs b/src/patterns.rs
-index baa39d..a6ab64 100644
---- a/src/tools/rustfmt/src/patterns.rs
-+++ b/src/tools/rustfmt/src/patterns.rs
-@@ -74,7 +74,7 @@ impl Rewrite for Pat {
-                 } else {
-                     definitive_tactic(
-                         &items,
--                        ListTactic::HorizontalVertical,
-+                        ListTactic::Vertical,
-                         Separator::VerticalBar,
-                         shape.width,
-                     )
+diff --git a/src/tools/rustfmt/src/expr.rs b/src/tools/rustfmt/src/expr.rs
+index 973c72..ad02c2 100644
+--- a/src/tools/rustfmt/src/expr.rs
++++ b/src/tools/rustfmt/src/expr.rs
+@@ -1209,7 +1209,7 @@ pub fn rewrite_multiple_patterns(
+     } else {
+         definitive_tactic(
+             &items,
+-            ListTactic::HorizontalVertical,
++            ListTactic::Vertical,
+             Separator::VerticalBar,
+             shape.width,
+         )
 -- 
-2.23.0
+2.21.0
 
