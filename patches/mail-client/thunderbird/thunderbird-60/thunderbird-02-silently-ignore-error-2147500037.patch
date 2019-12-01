@@ -1,7 +1,7 @@
-From c342ac98d73fed29a6ee9694d464be24a1ce6942 Mon Sep 17 00:00:00 2001
+From 9bd838341c63a41ebe22fc2fbf0047737e363cb0 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 12 Oct 2018 22:23:39 -0700
-Subject: [PATCH 2/3] Silently ignore error #2147500037
+Subject: [PATCH 2/2] Silently ignore error #2147500037
 
 When importing .ics files from certain sources we always get a pop up
 dialog about error 2147500037. It appears that this error may be related
@@ -17,18 +17,18 @@ for the user to confirm.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/comm/calendar/base/content/import-export.js b/comm/calendar/base/content/import-export.js
-index 210ac3..a47cf2 100644
+index 18468f..bf8c40 100644
 --- a/comm/calendar/base/content/import-export.js
 +++ b/comm/calendar/base/content/import-export.js
-@@ -176,7 +176,7 @@ function putItemsIntoCal(destCal, aItems, aFilePath) {
-             cal.l10n.getCalString("duplicateError", [duplicateCount, aFilePath]),
-             window
-           );
--        } else if (failedCount) {
-+        } else if (failedCount && lastError != 2147500037) {
-           cal.showError(
-             cal.l10n.getCalString("importItemsFailed", [failedCount, lastError.toString()]),
-             window
+@@ -181,7 +181,7 @@ function putItemsIntoCal(destCal, aItems, aFilePath) {
+                         cal.l10n.getCalString("duplicateError", [duplicateCount, aFilePath]),
+                         window
+                     );
+-                } else if (failedCount) {
++                } else if (failedCount && lastError != 2147500037) {
+                     cal.showError(
+                         cal.l10n.getCalString("importItemsFailed",
+                                               [failedCount, lastError.toString()]),
 -- 
-2.23.0
+2.18.1
 

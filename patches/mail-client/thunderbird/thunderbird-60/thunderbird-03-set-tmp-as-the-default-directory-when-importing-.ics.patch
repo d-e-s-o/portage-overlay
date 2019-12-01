@@ -1,8 +1,7 @@
-From d1732e0d673ddd721f31dbb2059c644fe2a3e621 Mon Sep 17 00:00:00 2001
+From e20bd64b75a98e1082a0fc1994580ccef1215cde Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sun, 25 Nov 2018 21:53:41 -0800
-Subject: [PATCH 3/3] Set /tmp/ as the default directory when importing .ics
- files
+Subject: [PATCH] Set /tmp/ as the default directory when importing .ics files
 
 While other file imports in Thunderbird remember the last directory the
 user navigated to, the .ics import code does not do so. That is very
@@ -16,19 +15,19 @@ the contents of this directory.
  1 file changed, 3 insertions(+)
 
 diff --git a/comm/calendar/base/content/import-export.js b/comm/calendar/base/content/import-export.js
-index a47cf2..219356 100644
+index bf8c40..8d7dfb 100644
 --- a/comm/calendar/base/content/import-export.js
 +++ b/comm/calendar/base/content/import-export.js
-@@ -23,6 +23,9 @@ var MODE_TRUNCATE = 0x20;
-  */
- function loadEventsFromFile(aCalendar) {
-   let picker = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
-+  let uri = Services.io.newURI("file:///tmp/");
-+  let dir = uri.QueryInterface(Components.interfaces.nsIFileURL).file;
-+  picker.displayDirectory = dir;
-   picker.init(window, cal.l10n.getCalString("filepickerTitleImport"), Ci.nsIFilePicker.modeOpenMultiple);
-   picker.defaultExtension = "ics";
+@@ -24,6 +24,9 @@ function loadEventsFromFile(aCalendar) {
  
+     let picker = Components.classes["@mozilla.org/filepicker;1"]
+                            .createInstance(nsIFilePicker);
++    let uri = Services.io.newURI("file:///tmp/");
++    let dir = uri.QueryInterface(Components.interfaces.nsIFileURL).file;
++    picker.displayDirectory = dir;
+     picker.init(window,
+                 cal.l10n.getCalString("filepickerTitleImport"),
+                 nsIFilePicker.modeOpenMultiple);
 -- 
-2.23.0
+2.18.1
 
