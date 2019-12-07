@@ -26,7 +26,7 @@ KEYWORDS="amd64 arm"
 IUSE=""
 
 RDEPEND="
-  net-misc/wget
+  net-misc/curl
   sys-apps/coreutils
   sys-apps/openrc
   sys-apps/sed
