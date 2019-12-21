@@ -1,4 +1,4 @@
-From b94267870fb89711efcc931e1f0ac6dfaf7becee Mon Sep 17 00:00:00 2001
+From b8d3fe3aa2b5db823bfbe4757f5ac51e09d34e1d Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Tue, 25 Dec 2018 14:10:36 -0800
 Subject: [PATCH] Add support for CARGO_TARGET_DIR_PREFIX
@@ -26,7 +26,7 @@ TODO: There is also the potential for a permission related problems.
 ---
  src/cargo/core/workspace.rs                   | 18 ++++--
  src/cargo/ops/cargo_install.rs                |  2 +-
- src/cargo/util/config/mod.rs                  | 17 +++++-
+ src/cargo/util/config.rs                      | 17 +++++-
  .../src/reference/environment-variables.md    |  4 ++
  tests/testsuite/build.rs                      | 57 +++++++++++++++++++
  5 files changed, 91 insertions(+), 7 deletions(-)
@@ -80,7 +80,7 @@ index 16e659..1eba49 100644
          ws.member_ids.insert(id);
          ws.default_members.push(ws.current_manifest.clone());
 diff --git a/src/cargo/ops/cargo_install.rs b/src/cargo/ops/cargo_install.rs
-index a5ebba..7c7be8 100644
+index 37adde..058298 100644
 --- a/src/tools/cargo/src/cargo/ops/cargo_install.rs
 +++ b/src/tools/cargo/src/cargo/ops/cargo_install.rs
 @@ -204,7 +204,7 @@ fn install_one(
@@ -92,17 +92,17 @@ index a5ebba..7c7be8 100644
          Some(dir)
      } else if let Ok(td) = TempFileBuilder::new().prefix("cargo-install").tempdir() {
          let p = td.path().to_owned();
-diff --git a/src/cargo/util/config/mod.rs b/src/cargo/util/config/mod.rs
-index 0a809a..caf813 100644
---- a/src/tools/cargo/src/cargo/util/config/mod.rs
-+++ b/src/tools/cargo/src/cargo/util/config/mod.rs
-@@ -339,11 +339,26 @@ impl Config {
+diff --git a/src/cargo/util/config.rs b/src/cargo/util/config.rs
+index 684873..e07f8b 100644
+--- a/src/tools/cargo/src/cargo/util/config.rs
++++ b/src/tools/cargo/src/cargo/util/config.rs
+@@ -322,11 +322,26 @@ impl Config {
          &self.cwd
      }
  
 -    pub fn target_dir(&self) -> CargoResult<Option<Filesystem>> {
 +    pub fn target_dir(&self, manifest: impl Into<PathBuf>) -> CargoResult<Option<Filesystem>> {
-         if let Some(dir) = &self.target_dir {
+         if let Some(ref dir) = self.target_dir {
              Ok(Some(dir.clone()))
          } else if let Some(dir) = env::var_os("CARGO_TARGET_DIR") {
              Ok(Some(Filesystem::new(self.cwd.join(dir))))
@@ -121,11 +121,11 @@ index 0a809a..caf813 100644
 +                //        to make a path relative there.
 +                Err(_) => failure::bail!("Current directory must be an absolute path"),
 +            }
-         } else if let Some(val) = &self.build_config()?.target_dir {
-             let val = val.resolve_path(self);
+         } else if let Some(val) = self.get_path("build.target-dir")? {
+             let val = self.cwd.join(val.val);
              Ok(Some(Filesystem::new(val)))
 diff --git a/src/doc/src/reference/environment-variables.md b/src/doc/src/reference/environment-variables.md
-index 285847..6584aa 100644
+index e32c52..5220c6 100644
 --- a/src/tools/cargo/src/doc/src/reference/environment-variables.md
 +++ b/src/tools/cargo/src/doc/src/reference/environment-variables.md
 @@ -14,6 +14,10 @@ system:
@@ -140,10 +140,10 @@ index 285847..6584aa 100644
    relative to the current working directory.
  * `RUSTC` — Instead of running `rustc`, Cargo will execute this specified
 diff --git a/tests/testsuite/build.rs b/tests/testsuite/build.rs
-index 6ed3a6..a79949 100644
+index aaa4cf..0008dc 100644
 --- a/src/tools/cargo/tests/testsuite/build.rs
 +++ b/src/tools/cargo/tests/testsuite/build.rs
-@@ -2997,6 +2997,63 @@ fn panic_abort_compiles_with_panic_abort() {
+@@ -3018,6 +3018,63 @@ fn explicit_color_config_is_propagated_to_rustc() {
          .run();
  }
  
@@ -208,5 +208,5 @@ index 6ed3a6..a79949 100644
  fn compiler_json_error_format() {
      let p = project()
 -- 
-2.24.1
+2.23.0
 
