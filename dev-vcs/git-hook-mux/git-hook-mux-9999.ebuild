@@ -38,7 +38,7 @@ DEPEND="${RDEPEND}"
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/git-hook-mux"
 
-inherit git-2
+inherit git-r3
 
 src_compile() {
   true

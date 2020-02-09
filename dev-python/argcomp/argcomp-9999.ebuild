@@ -36,7 +36,7 @@ DEPEND="
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/argcomp"
 
-inherit git-2
+inherit git-r3
 
 src_compile() {
   true

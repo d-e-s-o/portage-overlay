@@ -37,7 +37,7 @@ DEPEND="
 EGIT_BRANCH="devel"
 EGIT_REPO_URI="https://github.com/d-e-s-o/cleanup"
 
-inherit git-2
+inherit git-r3
 inherit distutils-r1
 
 python_prepare_all() {
