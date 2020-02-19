@@ -96,6 +96,7 @@ src_install() {
 	mv "${D}/opt/${P}/bin/rust-lldb" "${D}/opt/${P}/bin/${rustlldb}" || die
 
 	dosym "../../opt/${P}/bin/${rustc}" "/usr/bin/${rustc}"
+	dosym "../../opt/${P}/bin/${rustc}" "/usr/bin/rustc-bin"
 	dosym "../../opt/${P}/bin/${rustdoc}" "/usr/bin/${rustdoc}"
 	dosym "../../opt/${P}/bin/${rustgdb}" "/usr/bin/${rustgdb}"
 	dosym "../../opt/${P}/bin/${rustlldb}" "/usr/bin/${rustlldb}"
@@ -103,6 +104,7 @@ src_install() {
 	local cargo=cargo-bin-${PV}
 	mv "${D}/opt/${P}/bin/cargo" "${D}/opt/${P}/bin/${cargo}" || die
 	dosym "../../opt/${P}/bin/${cargo}" "/usr/bin/${cargo}"
+	dosym "../../opt/${P}/bin/${cargo}" "/usr/bin/cargo-bin"
 
 	if use clippy; then
 		local clippy_driver=clippy-driver-bin-${PV}
@@ -110,7 +112,9 @@ src_install() {
 		mv "${D}/opt/${P}/bin/clippy-driver" "${D}/opt/${P}/bin/${clippy_driver}" || die
 		mv "${D}/opt/${P}/bin/cargo-clippy" "${D}/opt/${P}/bin/${cargo_clippy}" || die
 		dosym "../../opt/${P}/bin/${clippy_driver}" "/usr/bin/${clippy_driver}"
+		dosym "../../opt/${P}/bin/${clippy_driver}" "/usr/bin/clippy-driver-bin"
 		dosym "../../opt/${P}/bin/${cargo_clippy}" "/usr/bin/${cargo_clippy}"
+		dosym "../../opt/${P}/bin/${cargo_clippy}" "/usr/bin/cargo-clippy-bin"
 	fi
 	if use rls; then
 		local rls=rls-bin-${PV}
@@ -123,7 +127,9 @@ src_install() {
 		mv "${D}/opt/${P}/bin/rustfmt" "${D}/opt/${P}/bin/${rustfmt}" || die
 		mv "${D}/opt/${P}/bin/cargo-fmt" "${D}/opt/${P}/bin/${cargo_fmt}" || die
 		dosym "../../opt/${P}/bin/${rustfmt}" "/usr/bin/${rustfmt}"
+		dosym "../../opt/${P}/bin/${rustfmt}" "/usr/bin/rustfmt-bin"
 		dosym "../../opt/${P}/bin/${cargo_fmt}" "/usr/bin/${cargo_fmt}"
+		dosym "../../opt/${P}/bin/${cargo_fmt}" "/usr/bin/cargo-fmt-bin"
 	fi
 
 	cat <<-EOF > "${T}"/50${P}
