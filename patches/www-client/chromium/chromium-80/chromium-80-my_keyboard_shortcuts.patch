@@ -1,22 +1,22 @@
 diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
-index 6f1d33..0f9899 100644
+index 385adb..f789d0 100644
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
-@@ -45,7 +45,8 @@
+@@ -46,7 +46,8 @@
  #define IDC_SELECT_TAB_5                34023
  #define IDC_SELECT_TAB_6                34024
  #define IDC_SELECT_TAB_7                34025
 -#define IDC_SELECT_LAST_TAB             34026
 +#define IDC_SELECT_TAB_8                34026
-+#define IDC_SELECT_LAST_TAB             34055
++#define IDC_SELECT_LAST_TAB             34054
  #define IDC_DUPLICATE_TAB               34027
  #define IDC_RESTORE_TAB                 34028
  #define IDC_SHOW_AS_TAB                 34029
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 240861..69a3c3 100644
+index 4c2d25..991545 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -439,6 +439,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
+@@ -438,6 +438,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
      case IDC_SELECT_TAB_5:
      case IDC_SELECT_TAB_6:
      case IDC_SELECT_TAB_7:
@@ -24,7 +24,7 @@ index 240861..69a3c3 100644
        base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
        SelectNumberedTab(browser_, id - IDC_SELECT_TAB_0,
                          {TabStripModel::GestureType::kKeyboard, time_stamp});
-@@ -1048,6 +1049,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1032,6 +1033,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, normal_window);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, normal_window);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, normal_window);
@@ -33,7 +33,7 @@ index 240861..69a3c3 100644
  
    // These are always enabled; the menu determines their menu item visibility.
 diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/views/accelerator_table.cc
-index ab0345..811562 100644
+index 53f1e6..f67050 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
 @@ -28,12 +28,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
@@ -128,9 +128,9 @@ index ab0345..811562 100644
  #endif  // !OS_CHROMEOS
  
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !defined(OS_MACOSX)
-@@ -172,33 +170,32 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -171,32 +169,31 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     // alternative mapping in the block above.
      {ui::VKEY_LEFT, ui::EF_ALT_DOWN, IDC_BACK},
-     {ui::VKEY_LEFT, ui::EF_ALTGR_DOWN, IDC_BACK},
  #if BUILDFLAG(ENABLE_PRINTING)
 -    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_BASIC_PRINT},
 +    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_BASIC_PRINT},
@@ -156,7 +156,6 @@ index ab0345..811562 100644
 +    {ui::VKEY_D, ui::EF_CONTROL_DOWN, IDC_FOCUS_SEARCH},
      {ui::VKEY_T, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_FOCUS_TOOLBAR},
      {ui::VKEY_RIGHT, ui::EF_ALT_DOWN, IDC_FORWARD},
-     {ui::VKEY_RIGHT, ui::EF_ALTGR_DOWN, IDC_FORWARD},
      {ui::VKEY_HOME, ui::EF_ALT_DOWN, IDC_HOME},
 -    {ui::VKEY_E, ui::EF_ALT_DOWN, IDC_SHOW_APP_MENU},
 +    {ui::VKEY_M, ui::EF_ALT_DOWN, IDC_SHOW_APP_MENU},
