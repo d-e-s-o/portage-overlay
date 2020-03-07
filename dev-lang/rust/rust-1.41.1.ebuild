@@ -314,20 +314,22 @@ src_install() {
 	dodoc COPYRIGHT
 
 	cat <<-EOF > "${T}"/50${P}
-		RUST_SRC_PATH="${ED}/usr/$(get_libdir)/rust-${PV}/rustlib/src/rust/src/"
+		RUST_SRC_PATH="/usr/lib/rustlib/src/rust/src/"
 		CARGO_TARGET_DIR_PREFIX="/tmp/rust-build-artifacts/"
 	EOF
 	doenvd "${T}"/50${P}
 
 	# We want gdb to automatically find the correct Rust sources
-	# (provided by the dev-lang/rust-sources ebuild). Note that
-	# automatical sourcing of this file requires a patched gdb.
+	# (as installed by this ebuild). Note that automatical sourcing of
+	# this file requires a patched gdb.
 	# TODO: We should be able to use rust-gdb's
 	#       GDB_PYTHON_MODULE_DIRECTORY instead! It's cleaner and does
 	#       not rely on a patched gdb.
-	cat <<-EOF > ${D}/usr/share/gdb/rust.gdb
-		set substitute-path ${S}/src/ /usr/src/rust
+	cat <<-EOF > "${T}/rust.gdb"
+		set substitute-path ${S}/src/ /usr/lib/rustlib/src/rust/src/
 	EOF
+	insinto /usr/share/gdb/
+	doins "${T}/rust.gdb"
 
 	# note: eselect-rust adds EROOT to all paths below
 	cat <<-EOF > "${T}/provider-${P}"
