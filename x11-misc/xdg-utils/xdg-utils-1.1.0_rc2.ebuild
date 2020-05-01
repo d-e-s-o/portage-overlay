@@ -21,6 +21,8 @@ RDEPEND="dev-util/desktop-file-utils
 	x11-apps/xprop
 	x11-apps/xset
 	perl? ( dev-perl/File-MimeInfo )"
+DEPEND="app-text/xmlto
+	|| ( www-client/links www-client/lynx virtual/w3m )"
 
 DOCS="README RELEASE_NOTES TODO" # ChangeLog is bogus, see git instead
 
