@@ -14,7 +14,7 @@ SRC_URI="mirror://sourceforge/project/slim.berlios/slim-1.2.3-themepack1a.tar.gz
 LICENSE="GPL-2"
 SLOT="0"
 KEYWORDS="amd64 arm ~mips ppc ppc64 sparc x86 ~x86-fbsd"
-IUSE=""
+IUSE="+uhd"
 
 RDEPEND="x11-misc/slim"
 DEPEND="
@@ -27,8 +27,13 @@ RESTRICT="strip binchecks"
 S="${WORKDIR}"
 
 src_prepare() {
-	epatch "${FILESDIR}/${PN}_-_adjustments.diff"
-	mogrify -resize '1920x' -crop '1920x1080+0+180' gentoo/background.png || die "mogrify failed"
+	if use uhd; then
+		epatch "${FILESDIR}/${PN}_-_adjustments_uhd.diff"
+		mogrify -resize '3840x' -crop '3840x2160+0+180' gentoo/background.png || die "mogrify failed"
+	else
+		epatch "${FILESDIR}/${PN}_-_adjustments.diff"
+		mogrify -resize '1920x' -crop '1920x1080+0+180' gentoo/background.png || die "mogrify failed"
+	fi
 }
 
 src_compile() {
