@@ -9,7 +9,7 @@ HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="amd64"
-IUSE=""
+IUSE="+uhd"
 
 BDEPEND=""
 DEPEND=""
@@ -22,9 +22,16 @@ inherit git-r3
 EGIT_BRANCH="master"
 EGIT_REPO_URI="https://github.com/d-e-s-o/conky-calendar.git"
 
+src_prepare() {
+	if use !uhd; then
+		eapply "${FILESDIR}/${PN}_-_adjustments_non_uhd.diff" || die
+	fi
+	eapply_user
+}
+
 src_install() {
 	insinto /etc/conky/
-	doins "${S}"/calendar.conky
+	doins "${S}"/calendar.conky || die
 }
 
 pkg_postinst() {
