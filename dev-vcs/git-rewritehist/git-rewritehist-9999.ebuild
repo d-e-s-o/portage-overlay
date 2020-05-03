@@ -15,10 +15,10 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+EAPI=7
 
-DESCRIPTION="A script to order git commit dates chronologically."
-HOMEPAGE="https://github.com/d-e-s-o/git-sorthist"
+DESCRIPTION="Utility functionality for rewriting history in a git repository."
+HOMEPAGE="https://github.com/d-e-s-o/git-rewritehist"
 
 LICENSE="GPL-3"
 SLOT="0"
@@ -29,16 +29,18 @@ RDEPEND="
   dev-vcs/git
   sys-apps/coreutils
   sys-apps/debianutils
+  sys-apps/gawk
   sys-apps/sed
 "
 DEPEND="${RDEPEND}"
 
-EGIT_BRANCH="devel"
-EGIT_REPO_URI="https://github.com/d-e-s-o/git-sorthist"
+EGIT_BRANCH="master"
+EGIT_REPO_URI="https://github.com/d-e-s-o/git-rewritehist"
 
 inherit git-r3
 
 src_install() {
   exeinto /usr/bin
   doexe git-sorthist
+  doexe git-reorderhist
 }
