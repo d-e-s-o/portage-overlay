@@ -24,7 +24,7 @@ LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-PYTHON_COMPAT=( python3_{3,4,5,6} )
+PYTHON_COMPAT=( python3_{3,4,5,6,7,8} )
 inherit python-single-r1
 
 RDEPEND="${PYTHON_DEPS}"
