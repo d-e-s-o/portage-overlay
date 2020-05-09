@@ -23,7 +23,7 @@ HOMEPAGE="https://github.com/quentinsf/icsv2ledger"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-PYTHON_COMPAT=( python3_{4,5,6} )
+PYTHON_COMPAT=( python3_{4,5,6,7,8} )
 inherit python-r1
 
 RDEPEND="${PYTHON_DEPS}"
