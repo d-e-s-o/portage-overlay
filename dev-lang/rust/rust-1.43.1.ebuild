@@ -365,6 +365,7 @@ src_install() {
 	cat <<-EOF > "${T}"/50${P}
 		RUST_SRC_PATH="/usr/lib/rustlib/src/rust/src/"
 		CARGO_TARGET_DIR_PREFIX="/tmp/rust-build-artifacts/"
+		CARGO_HOME="/tmp/cargo-home/"
 	EOF
 	doenvd "${T}"/50${P}
 
