@@ -183,7 +183,7 @@ src_configure() {
 	fi
 	rust_targets="${rust_targets#,}"
 
-	local tools="\"cargo\","
+	local tools="\"cargo\",\"src\","
 	if use clippy; then
 		tools="\"clippy\",$tools"
 	fi
@@ -191,7 +191,7 @@ src_configure() {
 		tools="\"miri\",$tools"
 	fi
 	if use rls; then
-		tools="\"rls\",\"analysis\",\"src\",$tools"
+		tools="\"rls\",\"analysis\",$tools"
 	fi
 	if use rustfmt; then
 		tools="\"rustfmt\",$tools"
