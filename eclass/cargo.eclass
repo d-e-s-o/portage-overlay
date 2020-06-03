@@ -1,4 +1,4 @@
-# Copyright 1999-2019 Gentoo Authors
+# Copyright 1999-2020 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # @ECLASS: cargo.eclass
@@ -41,7 +41,7 @@ unset CARGO_TARGET_DIR_PREFIX
 # @DESCRIPTION:
 # Generates the URIs to put in SRC_URI to help fetch dependencies.
 cargo_crate_uris() {
-	local -r regex='^(.*)-([0-9]+\.[0-9]+\.[0-9]+.*)$'
+	local -r regex='^([a-zA-Z0-9_\-]+)-([0-9]+\.[0-9]+\.[0-9]+.*)$'
 	local crate
 	for crate in "$@"; do
 		local name version url
