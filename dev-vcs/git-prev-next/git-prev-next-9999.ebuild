@@ -24,7 +24,7 @@ DEPEND="${RDEPEND}"
 
 EGIT_BRANCH="master"
 EGIT_REPO_URI="https://github.com/ridiculousfish/git-prev-next.git"
-EGIT_COMMIT="ce17839ebbf5bfb515e1a257a59223a39b27f093"
+EGIT_COMMIT="921fe26fef11cfafd5c022ab2d18a01e92dd3500"
 
 inherit git-r3
 
