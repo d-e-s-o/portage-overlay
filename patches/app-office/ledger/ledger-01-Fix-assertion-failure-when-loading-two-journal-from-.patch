@@ -1,0 +1,29 @@
+From ebe0cf13b0ab8b333fd09b6fafe41a4e5026fe69 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Thu, 6 Aug 2020 19:16:38 -0700
+Subject: [PATCH] Fix assertion failure when loading two journal from Python
+
+This change imports a patch proposed in issue #973 [0] that fixes an
+assertion failure encountered when loading a journal file twice from the
+Python wrapper.
+
+[0]: https://github.com/ledger/ledger/issues/973
+---
+ src/journal.cc | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/journal.cc b/src/journal.cc
+index cffab3..b3937d 100644
+--- a/src/journal.cc
++++ b/src/journal.cc
+@@ -452,6 +452,7 @@ bool journal_t::remove_xact(xact_t * xact)
+ 
+ std::size_t journal_t::read(parse_context_stack_t& context)
+ {
++  xacts.clear();
+   std::size_t count = 0;
+   try {
+     parse_context_t& current(context.get_current());
+-- 
+2.26.2
+
