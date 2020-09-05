@@ -1,4 +1,4 @@
-From f2d8fde818bf0679bd31a85651e5aee71920bbdf Mon Sep 17 00:00:00 2001
+From 9631e49164d50d03d64be192decc47fb22f926cc Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Thu, 12 Dec 2019 20:12:50 -0800
 Subject: [PATCH] Fix undefined variable references in bash completion script
@@ -7,11 +7,11 @@ When run in a 'set -u' enabled shell, various completion operations
 error out because they reference an undefined variable. This change
 adjusts those locations to assume empty values by default.
 ---
- contrib/completion/git-completion.bash | 36 +++++++++++++-------------
- 1 file changed, 18 insertions(+), 18 deletions(-)
+ contrib/completion/git-completion.bash | 38 +++++++++++++-------------
+ 1 file changed, 19 insertions(+), 19 deletions(-)
 
 diff --git a/contrib/completion/git-completion.bash b/contrib/completion/git-completion.bash
-index 00fbe6c..dc3bf2 100644
+index c21786..f0c4d8 100644
 --- a/contrib/completion/git-completion.bash
 +++ b/contrib/completion/git-completion.bash
 @@ -50,7 +50,7 @@ esac
@@ -59,7 +59,16 @@ index 00fbe6c..dc3bf2 100644
  	__git remote
  }
  
-@@ -1185,7 +1185,7 @@ __git_am_inprogress_options="--skip --continue --resolved --abort --quit --show-
+@@ -1090,7 +1090,7 @@ __git_find_on_cmdline ()
+ 	while [ $c -lt $cword ]; do
+ 		for word in $wordlist; do
+ 			if [ "$word" = "${words[c]}" ]; then
+-				if [ -n "$show_idx" ]; then
++				if [ -n "${show_idx:-}" ]; then
+ 					echo "$c $word"
+ 				else
+ 					echo "$word"
+@@ -1203,7 +1203,7 @@ __git_am_inprogress_options="--skip --continue --resolved --abort --quit --show-
  _git_am ()
  {
  	__git_find_repo_path
@@ -68,7 +77,7 @@ index 00fbe6c..dc3bf2 100644
  		__gitcomp "$__git_am_inprogress_options"
  		return
  	fi
-@@ -1265,7 +1265,7 @@ _git_bisect ()
+@@ -1287,7 +1287,7 @@ _git_bisect ()
  	local subcommand="$(__git_find_on_cmdline "$subcommands")"
  	if [ -z "$subcommand" ]; then
  		__git_find_repo_path
@@ -77,7 +86,7 @@ index 00fbe6c..dc3bf2 100644
  			__gitcomp "$subcommands"
  		else
  			__gitcomp "replay start"
-@@ -1349,7 +1349,7 @@ _git_checkout ()
+@@ -1371,7 +1371,7 @@ _git_checkout ()
  		# check if --track, --no-track, or --no-guess was specified
  		# if so, disable DWIM mode
  		local flags="--track --no-track --no-guess" track_opt="--track"
@@ -86,7 +95,7 @@ index 00fbe6c..dc3bf2 100644
  		   [ -n "$(__git_find_on_cmdline "$flags")" ]; then
  			track_opt=''
  		fi
-@@ -1365,7 +1365,7 @@ __git_cherry_pick_inprogress_options=$__git_sequencer_inprogress_options
+@@ -1387,7 +1387,7 @@ __git_cherry_pick_inprogress_options=$__git_sequencer_inprogress_options
  _git_cherry_pick ()
  {
  	__git_find_repo_path
@@ -95,7 +104,7 @@ index 00fbe6c..dc3bf2 100644
  		__gitcomp "$__git_cherry_pick_inprogress_options"
  		return
  	fi
-@@ -1758,7 +1758,7 @@ _git_log ()
+@@ -1795,7 +1795,7 @@ _git_log ()
  	__git_find_repo_path
  
  	local merge=""
@@ -104,7 +113,7 @@ index 00fbe6c..dc3bf2 100644
  		merge="--merge"
  	fi
  	case "$prev,$cur" in
-@@ -2029,11 +2029,11 @@ __git_rebase_interactive_inprogress_options="$__git_rebase_inprogress_options --
+@@ -2066,11 +2066,11 @@ __git_rebase_interactive_inprogress_options="$__git_rebase_inprogress_options --
  _git_rebase ()
  {
  	__git_find_repo_path
@@ -119,7 +128,7 @@ index 00fbe6c..dc3bf2 100644
  		__gitcomp "$__git_rebase_inprogress_options"
  		return
  	fi
-@@ -2629,7 +2629,7 @@ __git_revert_inprogress_options=$__git_sequencer_inprogress_options
+@@ -2670,7 +2670,7 @@ __git_revert_inprogress_options=$__git_sequencer_inprogress_options
  _git_revert ()
  {
  	__git_find_repo_path
@@ -128,7 +137,7 @@ index 00fbe6c..dc3bf2 100644
  		__gitcomp "$__git_revert_inprogress_options"
  		return
  	fi
-@@ -3062,7 +3062,7 @@ __git_main ()
+@@ -3175,7 +3175,7 @@ __git_main ()
  		((c++))
  	done
  
@@ -137,7 +146,7 @@ index 00fbe6c..dc3bf2 100644
  		case "$prev" in
  		--git-dir|-C|--work-tree)
  			# these need a path argument, let's fall back to
-@@ -3097,9 +3097,9 @@ __git_main ()
+@@ -3210,9 +3210,9 @@ __git_main ()
  			"
  			;;
  		*)
@@ -149,7 +158,7 @@ index 00fbe6c..dc3bf2 100644
  			else
  				__gitcomp "$(__git --list-cmds=list-mainporcelain,others,nohelpers,alias,list-complete,config)"
  			fi
-@@ -3125,7 +3125,7 @@ __gitk_main ()
+@@ -3238,7 +3238,7 @@ __gitk_main ()
  	__git_find_repo_path
  
  	local merge=""
@@ -159,5 +168,5 @@ index 00fbe6c..dc3bf2 100644
  	fi
  	case "$cur" in
 -- 
-2.23.0
+2.26.2
 
