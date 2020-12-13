@@ -25,7 +25,7 @@ inherit git-r3
 
 EGIT_BRANCH="master"
 EGIT_REPO_URI="https://github.com/rustwasm/wasm-bindgen.git"
-EGIT_COMMIT="0.2.68"
+EGIT_COMMIT="0.2.69"
 EGIT_MIN_CLONE_TYPE="shallow"
 
 src_unpack() {
