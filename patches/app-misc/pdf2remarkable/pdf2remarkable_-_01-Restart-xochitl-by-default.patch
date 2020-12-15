@@ -1,0 +1,32 @@
+From fad9bc318a0d8eeb95679417222080d8f157b7d2 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Thu, 10 Dec 2020 21:57:27 -0800
+Subject: [PATCH] Restart xochitl by default
+
+The tablet requires a restart of the xochitl service in order to
+discover newly copied PDF files. The pdf2remarkable script defaults to
+not doing such a restart, but accepting an environment variable for
+forcing one.
+With this change we change the default to performing a restart, as
+setting the environment variable is easy to forget (and its name hard to
+remember).
+---
+ pdf2remarkable.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pdf2remarkable.sh b/pdf2remarkable.sh
+index 343f5e..ddfd02 100755
+--- a/pdf2remarkable.sh
++++ b/pdf2remarkable.sh
+@@ -71,7 +71,7 @@ if [ $# -lt 1 ]; then
+     exit 1
+ fi
+ 
+-RESTART_XOCHITL_DEFAULT=${RESTART_XOCHITL_DEFAULT:-0}
++RESTART_XOCHITL_DEFAULT=${RESTART_XOCHITL_DEFAULT:-1}
+ RESTART_XOCHITL=${RESTART_XOCHITL_DEFAULT}
+ if [ "$1" == "-r" ] ; then
+     shift
+-- 
+2.26.2
+
