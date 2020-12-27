@@ -1,0 +1,27 @@
+From 4012dd5b2312ad8e88a135b201cf0e04a902384b Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sat, 26 Dec 2020 18:47:06 -0800
+Subject: [PATCH] MIME: Add application/wasm type
+
+.wasm files should be served with the application/wasm MIME type or some
+features such as streamed loading may not be used by browsers. This
+change adjusts the MIME type configuration to include such a setting.
+---
+ conf/mime.types | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/conf/mime.types b/conf/mime.types
+index 296125..b53f7f 100644
+--- a/conf/mime.types
++++ b/conf/mime.types
+@@ -51,6 +51,7 @@ types {
+     application/vnd.openxmlformats-officedocument.wordprocessingml.document
+                                                      docx;
+     application/vnd.wap.wmlc                         wmlc;
++    application/wasm                                 wasm;
+     application/x-7z-compressed                      7z;
+     application/x-cocoa                              cco;
+     application/x-java-archive-diff                  jardiff;
+-- 
+2.26.2
+
