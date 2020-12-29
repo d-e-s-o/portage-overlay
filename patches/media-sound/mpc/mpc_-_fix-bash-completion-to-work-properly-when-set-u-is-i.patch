@@ -1,0 +1,29 @@
+From 7499121ee4169d0ae0a2e314ac2a64362bca030c Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Wed, 30 Dec 2020 13:01:32 -0800
+Subject: [PATCH] Fix bash completion to work properly when set -u is in effect
+
+When set -u is in effect, i.e., expansion of undefined variables causes
+an exit of the current shell, the mpc completion script seizes to work.
+This change fixes the issue by guarding the access to the 'command'
+variable accordingly.
+---
+ contrib/mpc-completion.bash | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/contrib/mpc-completion.bash b/contrib/mpc-completion.bash
+index 6d0bb1..0a205a 100644
+--- a/contrib/mpc-completion.bash
++++ b/contrib/mpc-completion.bash
+@@ -93,7 +93,7 @@ _mpc ()
+ 	cur="${COMP_WORDS[COMP_CWORD]}"
+ 
+ 	# If there's no command, either complete options or commands
+-	if [ -z "$command" ]; then
++	if [ -z "${command:-}" ]; then
+ 		case "$cur" in
+ 			--*) _mpc_long_options ;;
+ 			-*) COMPREPLY=() ;;
+-- 
+2.26.2
+
