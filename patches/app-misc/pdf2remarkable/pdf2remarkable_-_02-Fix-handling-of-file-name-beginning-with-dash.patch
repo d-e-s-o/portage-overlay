@@ -1,0 +1,47 @@
+From f53112fb1498130f7e13f2a3532f69a01d33f5f2 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sun, 17 Jan 2021 13:43:13 -0800
+Subject: [PATCH] Fix handling of file name beginning with dash
+
+pdf2remarkable.sh cannot handle file names that begin with a dash '-'.
+Specifically, the `cp` and `basename` invocations fail, expecting an
+option to follow:
+```bash
+$ pdf2remarkable.sh -\ foobar.pdf
+cp: invalid option -- ' '
+Try 'cp --help' for more information.
+basename: invalid option -- ' '
+Try 'basename --help' for more information.
+...
+```
+This change fixes the issue by inserting a '--' separator to the two
+commands in question.
+---
+ pdf2remarkable.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/pdf2remarkable.sh b/pdf2remarkable.sh
+index 818e90..9008ff 100755
+--- a/pdf2remarkable.sh
++++ b/pdf2remarkable.sh
+@@ -95,7 +95,7 @@ for pdfname in "$@" ; do
+     uuid=$(uuidgen)
+ 
+     # Copy the PDF file itself
+-    cp "$pdfname" ${tmpdir}/${uuid}.pdf
++    cp -- "$pdfname" ${tmpdir}/${uuid}.pdf
+ 
+     # Add metadata
+     # The lastModified item appears to contain the date in milliseconds since Epoch
+@@ -110,7 +110,7 @@ for pdfname in "$@" ; do
+     "synced": false,
+     "type": "DocumentType",
+     "version": 1,
+-    "visibleName": "$(basename "$pdfname" .pdf)"
++    "visibleName": "$(basename -- "$pdfname" .pdf)"
+ }
+ EOF
+ 
+-- 
+2.26.2
+
