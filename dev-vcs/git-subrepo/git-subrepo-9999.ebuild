@@ -38,7 +38,7 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}"
 
-EGIT_BRANCH="devel"
+EGIT_BRANCH="master"
 EGIT_REPO_URI="https://github.com/d-e-s-o/git-subrepo"
 
 inherit git-r3
