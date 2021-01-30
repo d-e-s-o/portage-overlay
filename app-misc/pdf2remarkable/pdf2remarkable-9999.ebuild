@@ -18,7 +18,7 @@ RDEPEND="
 DEPEND="${RDEPEND}"
 
 EGIT_BRANCH="master"
-EGIT_COMMIT="a948ff5f884c3615175f707070e371371a323f22"
+EGIT_COMMIT="ab902841990c668bfe5a96400be431b234b84c11"
 EGIT_REPO_URI="https://github.com/adaerr/reMarkableScripts.git"
 
 inherit git-r3
