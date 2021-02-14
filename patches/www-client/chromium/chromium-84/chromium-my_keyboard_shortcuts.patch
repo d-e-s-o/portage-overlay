@@ -1,5 +1,5 @@
-diff --git app/chrome_command_ids.h app/chrome_command_ids.h
-index f0479d..0005af 100644
+diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
+index 40401f..0c2a1f 100644
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
 @@ -45,7 +45,8 @@
@@ -12,11 +12,11 @@ index f0479d..0005af 100644
  #define IDC_DUPLICATE_TAB               34027
  #define IDC_RESTORE_TAB                 34028
  #define IDC_SHOW_AS_TAB                 34029
-diff --git browser/ui/browser_command_controller.cc browser/ui/browser_command_controller.cc
-index b05794..955ecf 100644
+diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
+index 813c26..6c3c19 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -431,6 +431,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
+@@ -440,6 +440,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
      case IDC_SELECT_TAB_5:
      case IDC_SELECT_TAB_6:
      case IDC_SELECT_TAB_7:
@@ -24,7 +24,7 @@ index b05794..955ecf 100644
        base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
        SelectNumberedTab(browser_, id - IDC_SELECT_TAB_0,
                          {TabStripModel::GestureType::kKeyboard, time_stamp});
-@@ -1037,6 +1038,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1070,6 +1071,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, supports_tabs);
@@ -32,19 +32,19 @@ index b05794..955ecf 100644
    command_updater_.UpdateCommandEnabled(IDC_SELECT_LAST_TAB, supports_tabs);
  
    // These are always enabled; the menu determines their menu item visibility.
-diff --git browser/ui/views/accelerator_table.cc browser/ui/views/accelerator_table.cc
-index caa411..9d09f1 100644
+diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/views/accelerator_table.cc
+index ab0345..811562 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
-@@ -33,12 +33,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
- #if !defined(OS_CHROMEOS)
-     {ui::VKEY_F7, ui::EF_NONE, IDC_CARET_BROWSING_TOGGLE},
- #endif
+@@ -28,12 +28,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
+     //      modifier.
+     //   2) Update GetShortcutsNotPresentInMainMenu() in
+     //      global_keyboard_shortcuts_mac.mm.
 -    {ui::VKEY_F12, ui::EF_NONE, IDC_DEV_TOOLS_TOGGLE},
 +    {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_DEV_TOOLS_TOGGLE},
      {ui::VKEY_ESCAPE, ui::EF_NONE, IDC_CLOSE_FIND_OR_STOP},
  
- #if !defined(OS_MAC)
+ #if !defined(OS_MACOSX)
 -    {ui::VKEY_D, ui::EF_PLATFORM_ACCELERATOR, IDC_BOOKMARK_THIS_TAB},
 -    {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
 +    {ui::VKEY_M, ui::EF_PLATFORM_ACCELERATOR, IDC_BOOKMARK_THIS_TAB},
@@ -52,7 +52,7 @@ index caa411..9d09f1 100644
       IDC_BOOKMARK_ALL_TABS},
      {ui::VKEY_W, ui::EF_PLATFORM_ACCELERATOR, IDC_CLOSE_TAB},
      {ui::VKEY_W, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
-@@ -56,19 +56,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -49,19 +49,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_R, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
       IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_S, ui::EF_PLATFORM_ACCELERATOR, IDC_SAVE_PAGE},
@@ -77,7 +77,7 @@ index caa411..9d09f1 100644
      {ui::VKEY_TAB, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
       IDC_SELECT_PREVIOUS_TAB},
      {ui::VKEY_PRIOR, ui::EF_CONTROL_DOWN, IDC_SELECT_PREVIOUS_TAB},
-@@ -105,9 +102,9 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -98,9 +95,9 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_NUMPAD7, ui::EF_ALT_DOWN, IDC_SELECT_TAB_6},
      {ui::VKEY_8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
      {ui::VKEY_NUMPAD8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
@@ -89,7 +89,7 @@ index caa411..9d09f1 100644
       IDC_SHOW_BOOKMARK_BAR},
      {ui::VKEY_OEM_MINUS, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
      {ui::VKEY_SUBTRACT, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
-@@ -124,17 +121,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -117,17 +114,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_F5, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_F5, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_F5, ui::EF_SHIFT_DOWN, IDC_RELOAD_BYPASSING_CACHE},
@@ -104,7 +104,7 @@ index caa411..9d09f1 100644
       IDC_SHOW_AVATAR_MENU},
  
    // Platform-specific key maps.
- #if defined(OS_LINUX) || defined(OS_CHROMEOS)
+ #if defined(OS_LINUX)
 -    {ui::VKEY_BROWSER_BACK, ui::EF_NONE, IDC_BACK},
 -    {ui::VKEY_BROWSER_FORWARD, ui::EF_NONE, IDC_FORWARD},
 +    {ui::VKEY_H, ui::EF_PLATFORM_ACCELERATOR, IDC_BACK},
@@ -112,7 +112,7 @@ index caa411..9d09f1 100644
      {ui::VKEY_BROWSER_HOME, ui::EF_NONE, IDC_HOME},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
-@@ -153,13 +150,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -146,13 +143,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
      // On Chrome OS, Search + Esc is used to call out task manager.
      {ui::VKEY_ESCAPE, ui::EF_COMMAND_DOWN, IDC_TASK_MANAGER},
  #else  // !OS_CHROMEOS
@@ -127,8 +127,8 @@ index caa411..9d09f1 100644
 +    {ui::VKEY_Q, ui::EF_PLATFORM_ACCELERATOR, IDC_EXIT},
  #endif  // !OS_CHROMEOS
  
- #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !defined(OS_MAC)
-@@ -179,33 +177,32 @@ const AcceleratorMapping kAcceleratorMap[] = {
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !defined(OS_MACOSX)
+@@ -172,33 +170,32 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_LEFT, ui::EF_ALT_DOWN, IDC_BACK},
      {ui::VKEY_LEFT, ui::EF_ALTGR_DOWN, IDC_BACK},
  #if BUILDFLAG(ENABLE_PRINTING)
