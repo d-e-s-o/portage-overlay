@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2018 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2018-2021 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -17,7 +17,7 @@
 
 EAPI=6
 
-DESCRIPTION="Commonly used bash aliases."
+DESCRIPTION="Commonly used shell aliases."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 
 LICENSE="GPL-3"
