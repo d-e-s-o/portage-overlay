@@ -31,8 +31,8 @@ EOF
   fi
 
   start-stop-daemon --make-pidfile --pidfile "${PIDFILE}" --stdout "${STDOUT}" \
-    --user "${HTTPSRV_USER}" --start --background --exec httpsrv -- \
-    --address "${HTTPSRV_ADDRESS}" --directory "${HTTPSRV_DIRECTORY}"
+    --user "${HTTPSRV_USER:-nobody:nogroup}" --start --background --exec httpsrv -- \
+    --address "${HTTPSRV_ADDRESS:-}" --directory "${HTTPSRV_DIRECTORY}"
 }
 
 stop() {
