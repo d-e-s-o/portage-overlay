@@ -25,7 +25,7 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 IUSE="tests"
 
-PYTHON_COMPAT=( python3_{4,5,6,7,8} )
+PYTHON_COMPAT=( python3_{4..9} )
 inherit python-r1
 
 RDEPEND="${PYTHON_DEPS}"
