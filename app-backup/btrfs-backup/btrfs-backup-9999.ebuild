@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2015 Daniel Mueller (deso@posteo.net)                   *
+# *   Copyright (C) 2015,2021 Daniel Mueller (deso@posteo.net)              *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=5
+EAPI=7
 
 DESCRIPTION="A simple and fast btrfs-based backup tool."
 HOMEPAGE="https://github.com/d-e-s-o/btrfs-backup"
@@ -52,6 +52,8 @@ inherit git-r3
 inherit distutils-r1
 
 src_prepare() {
+  eapply_user
+
   features="FEATURES=\"-sandbox -usersandbox -userpriv test\""
 
   if has test $FEATURES; then
@@ -80,7 +82,7 @@ src_prepare() {
   fi
 
   if ! use tests; then
-    epatch "${FILESDIR}"/${PN}-remove-tests.patch
+    eapply "${FILESDIR}"/${PN}-remove-tests.patch
   fi
 }
 
