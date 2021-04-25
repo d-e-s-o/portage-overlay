@@ -1,0 +1,44 @@
+From 6b35e579bc2c1e9ed72d06ef5cd6b5520173dd70 Mon Sep 17 00:00:00 2001
+From: Johannes Altmanninger <aclopte@gmail.com>
+Date: Sun, 29 Mar 2020 18:34:08 +0200
+Subject: [PATCH 12/15] Add helper for pexpect tests to compute control
+ characters
+
+---
+ build_tools/pexpect_helper.py | 23 +++++++++++++++++++++++
+ 1 file changed, 23 insertions(+)
+
+diff --git a/build_tools/pexpect_helper.py b/build_tools/pexpect_helper.py
+index 55bb2c..3730fe 100644
+--- a/build_tools/pexpect_helper.py
++++ b/build_tools/pexpect_helper.py
+@@ -337,3 +337,26 @@ class SpawnedProc(object):
+             "LIGHTCYAN": ansic(96),
+             "WHITE": ansic(97),
+         }
++
++
++def control(char):
++    char = char.lower()
++    a = ord(char)
++    if 97 <= a <= 122:
++        a = a - ord("a") + 1
++        return chr(a)
++    control_characters = {
++        "@": 0,
++        "`": 0,
++        "[": 27,
++        "{": 27,
++        "\\": 28,
++        "|": 28,
++        "]": 29,
++        "}": 29,
++        "^": 30,
++        "~": 30,
++        "_": 31,
++        "?": 127,
++    }
++    return chr(control_characters[char])
+-- 
+2.26.3
+

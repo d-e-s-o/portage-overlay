@@ -1,0 +1,52 @@
+From 6a0d361b7c3ce39ab018885a0aa9e1c0fed5dcfd Mon Sep 17 00:00:00 2001
+From: Johannes Altmanninger <aclopte@gmail.com>
+Date: Sun, 9 Feb 2020 18:39:14 +0100
+Subject: [PATCH 04/15] Expose history search's current item index
+
+The reader caches history search matches.  However, when we allow editing
+the search string, an edit invalidates all matches.
+Since the history search's current item may be different from the reader's
+current item (because we allow moving around the cached matches), the
+reader needs to be able to reset the history search's index to the one
+that corresponds to the reader's item.
+---
+ src/history.cpp | 5 +++++
+ src/history.h   | 6 ++++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/src/history.cpp b/src/history.cpp
+index 044fd4..a2639a 100644
+--- a/src/history.cpp
++++ b/src/history.cpp
+@@ -696,6 +696,11 @@ maybe_t<size_t> history_search_t::modify_search_term(std::function<void(wcstring
+                                          preferred_match_offset);
+ }
+ 
++void history_search_t::set_current_index(size_t index) {
++    current_index_ = index;
++    current_item_ = history_->item_at_index(index);
++}
++
+ const history_item_t &history_search_t::current_item() const {
+     assert(current_item_ && "No current item");
+     return *current_item_;
+diff --git a/src/history.h b/src/history.h
+index bbfa80..a9ce7e 100644
+--- a/src/history.h
++++ b/src/history.h
+@@ -289,6 +289,12 @@ class history_search_t {
+     maybe_t<size_t> modify_search_term(std::function<void(wcstring &)> &&change,
+                                        maybe_t<size_t> preferred_match_offset);
+ 
++    // Get the current position in the history.
++    size_t current_index() const { return current_index_; }
++
++    // Update the position in the history as well as the current item.
++    void set_current_index(size_t index);
++
+     // Returns the current search result item. asserts if there is no current item.
+     const history_item_t &current_item() const;
+ 
+-- 
+2.26.3
+

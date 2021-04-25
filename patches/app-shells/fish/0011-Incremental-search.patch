@@ -1,0 +1,253 @@
+From 7974d4bd127de4c77f0c35370d2234ddb6127902 Mon Sep 17 00:00:00 2001
+From: Johannes Altmanninger <aclopte@gmail.com>
+Date: Wed, 11 Mar 2020 23:03:11 +0100
+Subject: [PATCH 11/15] Incremental search
+
+When pressing Control-R, fish will start a new incremental search,
+(if a search is already active it will be turned into an incremental one).
+
+Incremental search means that whenever you change the search term and it
+does not match the current history entry anymore, then fish will
+continue the search (in the same direction as the previous search command).
+
+Closes #602
+---
+ .../functions/fish_default_key_bindings.fish  |  4 +-
+ src/input.cpp                                 |  1 +
+ src/input_common.h                            |  1 +
+ src/reader.cpp                                | 83 ++++++++++++++++---
+ 4 files changed, 74 insertions(+), 15 deletions(-)
+
+diff --git a/share/functions/fish_default_key_bindings.fish b/share/functions/fish_default_key_bindings.fish
+index c24bfc..7c8ef3 100644
+--- a/share/functions/fish_default_key_bindings.fish
++++ b/share/functions/fish_default_key_bindings.fish
+@@ -76,6 +76,7 @@ function fish_default_key_bindings -d "Default (Emacs-like) key bindings for fis
+     bind --preset $argv \ch backward-delete-char
+     bind --preset $argv \cp up-or-search
+     bind --preset $argv \cn down-or-search
++    bind --preset $argv \cr incremental-search
+     bind --preset $argv \cf forward-char
+     bind --preset $argv \cb backward-char
+     bind --preset $argv \ct transpose-chars
+@@ -98,9 +99,6 @@ function fish_default_key_bindings -d "Default (Emacs-like) key bindings for fis
+ 
+     bind --preset $argv \ed kill-word
+ 
+-    # Let ctrl+r search history if there is something in the commandline.
+-    bind --preset $argv \cr 'commandline | string length -q; and commandline -f history-search-backward'
+-
+     # term-specific special bindings
+     switch "$TERM"
+         case 'rxvt*'
+diff --git a/src/input.cpp b/src/input.cpp
+index ccba67..b166a0 100644
+--- a/src/input.cpp
++++ b/src/input.cpp
+@@ -136,6 +136,7 @@ static constexpr const input_function_metadata_t input_function_metadata[] = {
+     {L"history-search-forward", readline_cmd_t::history_search_forward},
+     {L"history-token-search-backward", readline_cmd_t::history_token_search_backward},
+     {L"history-token-search-forward", readline_cmd_t::history_token_search_forward},
++    {L"incremental-search", readline_cmd_t::history_incremental_search_backward},
+     {L"insert-line-over", readline_cmd_t::insert_line_over},
+     {L"insert-line-under", readline_cmd_t::insert_line_under},
+     {L"kill-bigword", readline_cmd_t::kill_bigword},
+diff --git a/src/input_common.h b/src/input_common.h
+index 19e471..d64f2d 100644
+--- a/src/input_common.h
++++ b/src/input_common.h
+@@ -23,6 +23,7 @@ enum class readline_cmd_t {
+     history_search_forward,
+     history_prefix_search_backward,
+     history_prefix_search_forward,
++    history_incremental_search_backward,
+     delete_char,
+     backward_delete_char,
+     kill_line,
+diff --git a/src/reader.cpp b/src/reader.cpp
+index 0f1c5f..9bacc5 100644
+--- a/src/reader.cpp
++++ b/src/reader.cpp
+@@ -349,6 +349,14 @@ class reader_history_search_t {
+     /// The position of the last successful match, this is even valid when match_index_ is none.
+     maybe_t<size_t> last_match_offset;
+ 
++   public:
++    /// The direction of the last history search command.
++    history_search_direction_t last_direction;
++
++    /// Whether to do incremental search (search-as-you-type).
++    bool incremental = false;
++
++   private:
+     /// Move to an existing match.
+     void set_match_index(maybe_t<size_t> index) {
+         match_index_ = index;
+@@ -440,7 +448,8 @@ class reader_history_search_t {
+     }
+ 
+     /// Move the history search in the given direction \p dir.
+-    bool move_in_direction(history_search_direction_t dir) {
++    bool move_in_direction(history_search_direction_t dir, bool only_matching) {
++        last_direction = dir;
+         maybe_t<size_t> old_match_index = match_index_;
+         ssize_t increment = dir == history_search_direction_t::backward ? 1 : -1;
+         size_t last_index = dir == history_search_direction_t::backward ? matches_.size() - 1 : 0;
+@@ -464,6 +473,9 @@ class reader_history_search_t {
+                 return true;
+             }
+         }
++        if (only_matching) {
++            return false;
++        }
+         // If we did not find anything, reset the match index (as we set it to 0 above).
+         if (dir == history_search_direction_t::forward) {
+             // Go to the original commandline with search term.
+@@ -478,7 +490,7 @@ class reader_history_search_t {
+         return false;
+     }
+ 
+-    void modify_search_string(std::function<void(wcstring &)> &&change) {
++    bool modify_search_string(std::function<void(wcstring &)> &&change) {
+         assert(by_line() || by_prefix());
+         bool was_at_end = is_at_end();
+         maybe_t<match_t> current_match;
+@@ -493,13 +505,16 @@ class reader_history_search_t {
+         match_index_ = none_t();
+ 
+         if (was_at_end) {
+-            return;
++            return true;
+         }
+         if (match_offset) {
+             matches_.emplace_back(
+                 match_t{search_.current_item().str(), search_.current_index(), *match_offset});
+             set_match_index(0);
+             search_.set_current_index(matches_.at(*match_index_).index_in_history);
++            return false;
++        } else {
++            return true;
+         }
+     }
+ 
+@@ -567,6 +582,7 @@ class reader_history_search_t {
+         skips_.clear();
+         match_index_ = none_t();
+         last_match_offset = none_t();
++        incremental = false;
+         mode_ = inactive;
+         search_ = history_search_t();
+     }
+@@ -1631,7 +1647,7 @@ static size_t editing_search_string(const reader_data_t &data, const edit_t &edi
+     }
+     // If we searched for an empty string, then it always matches at offset 0.
+     // Disable editing here because it feels weird.
+-    if (search_string.empty() && edit.offset == 0) {
++    if (search_string.empty() && !data.history_search.incremental && edit.offset == 0) {
+         return false;
+     }
+     // Whether the edit stays within the bounds of the search string.
+@@ -1651,9 +1667,34 @@ void reader_data_t::push_edit(editable_line_t *el, edit_t &&edit) {
+         } else {
+             size_t match_position1 = history_search.match_position();
+             edit_t search_edit(edit.offset - match_position1, edit.length, edit.replacement);
+-            history_search.modify_search_string([&search_edit](wcstring &search_string) {
+-                apply_edit(&search_string, search_edit);
+-            });
++            bool failing_search =
++                history_search.is_at_end() && !history_search.search_string().empty();
++            bool keep_searching =
++                history_search.modify_search_string([&search_edit](wcstring &search_string) {
++                    apply_edit(&search_string, search_edit);
++                });
++            if (history_search.incremental) {
++                if (keep_searching) {
++                    if (!failing_search &&
++                        history_search.move_in_direction(history_search.last_direction,
++                                                         true /* only_matching */)) {
++                        update_command_line_from_history_search();
++                        return;
++                    }
++                } else {
++                    assert(!history_search.is_at_end());
++                    // It's a match! Move the cursor right after it search term for easy editing.
++                    // No need to edit the commandline, since the search string is a substring.
++                    edit.cursor_position_before_edit =
++                        el->position();  // see editable_line_t::push_edit
++                    size_t match_position2 = history_search.match_position();
++                    size_t cursor_pos =
++                        match_position2 - match_position1 + cursor_position_after_edit(edit);
++                    command_line.set_position(cursor_pos);
++                    update_buff_pos(&command_line);
++                    return;
++                }
++            }
+             command_line_has_transient_edit = false;
+             if (edit.length == 0 && want_to_coalesce_insertion_of(*el, edit.replacement)) {
+                 el->insert_coalesce(edit.replacement);
+@@ -2482,7 +2523,8 @@ void reader_data_t::update_command_line_from_history_search() {
+     // If we have a match of a non-empty string, we move the cursor just after the search term,
+     // so the user can easily edit it to refine the search.
+     if ((history_search.by_line() || history_search.by_prefix())  // TODO token search
+-        && !history_search.is_at_end() && !history_search.search_string().empty()) {
++        && !history_search.is_at_end() &&
++        (history_search.incremental || !history_search.search_string().empty())) {
+         // Unfortunately this cursor movement is not part of the edit,
+         // so the position will not be the same if you undo + redo.
+         size_t end_of_match =
+@@ -3500,6 +3542,7 @@ void reader_data_t::handle_readline_command(readline_cmd_t c, readline_loop_stat
+             break;
+         }
+ 
++        case rl::history_incremental_search_backward:
+         case rl::history_prefix_search_backward:
+         case rl::history_prefix_search_forward:
+         case rl::history_search_backward:
+@@ -3513,8 +3556,13 @@ void reader_data_t::handle_readline_command(readline_cmd_t c, readline_loop_stat
+                    c == rl::history_prefix_search_forward)
+                     ? reader_history_search_t::prefix
+                     : reader_history_search_t::line;
+-
+-            bool was_active_before = history_search.active();
++            bool already_incremental = false;
++            bool was_active = history_search.active();
++            if (c == rl::history_incremental_search_backward) {
++                mode = reader_history_search_t::line;
++                already_incremental = history_search.incremental;
++                history_search.incremental = true;
++            }
+ 
+             if (history_search.is_at_end()) {
+                 const editable_line_t *el = &command_line;
+@@ -3551,15 +3599,26 @@ void reader_data_t::handle_readline_command(readline_cmd_t c, readline_loop_stat
+                      c == rl::history_prefix_search_backward)
+                         ? history_search_direction_t::backward
+                         : history_search_direction_t::forward;
+-                bool found = history_search.move_in_direction(dir);
++                if (c == rl::history_incremental_search_backward) {
++                    if (was_active) {
++                        dir = history_search.last_direction;
++                    } else {
++                        dir = history_search_direction_t::backward;
++                        if (!history_search.is_at_end() && !already_incremental) {
++                            break;
++                        }
++                    }
++                }
++                bool found = history_search.move_in_direction(dir, false /* only_matching */);
+ 
+                 // Signal that we've found nothing
+                 if (!found) flash();
+ 
+-                if (!found && !was_active_before) {
++                if (!found && !was_active) {
+                     history_search.reset();
+                     break;
+                 }
++
+                 if (found ||
+                     (dir == history_search_direction_t::forward && history_search.is_at_end())) {
+                     update_command_line_from_history_search();
+-- 
+2.26.3
+
