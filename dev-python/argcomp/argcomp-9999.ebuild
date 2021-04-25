@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2016 deso (deso@posteo.net)                             *
+# *   Copyright (C) 2016,2021 deso (deso@posteo.net)                        *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=5
+EAPI=7
 
 DESCRIPTION="A Python package providing argument completion for programs using ArgumentParser."
 HOMEPAGE="https://github.com/d-e-s-o/argcomp"

@@ -1,5 +1,5 @@
 #/***************************************************************************
-# *   Copyright (C) 2017-2018 Daniel Mueller (deso@posteo.net)              *
+# *   Copyright (C) 2017-2018,2021 Daniel Mueller (deso@posteo.net)         *
 # *                                                                         *
 # *   This program is free software: you can redistribute it and/or modify  *
 # *   it under the terms of the GNU General Public License as published by  *
@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=5
+EAPI=7
 
 DESCRIPTION="A default Python venv scaffolding to be shared globally."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
@@ -35,6 +35,8 @@ src_unpack() {
 }
 
 src_prepare() {
+  eapply_user
+
   ${PYTHON} -m venv --without-pip --symlinks "${S}/pyvenv" || die
   pushd "${S}/pyvenv" > /dev/null || die
   rmdir include
