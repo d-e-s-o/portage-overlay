@@ -1,0 +1,153 @@
+From 8879a14d73fa27cc3a45ff006ee8208f8dc0ad63 Mon Sep 17 00:00:00 2001
+From: Johannes Altmanninger <aclopte@gmail.com>
+Date: Sun, 9 Feb 2020 18:39:14 +0100
+Subject: [PATCH 02/15] Teach history search to search forward in time
+
+Also make it return the offset of the match.
+---
+ src/fish_tests.cpp |  2 +-
+ src/history.cpp    | 30 +++++++++++++++++++++---------
+ src/history.h      |  7 +++++--
+ src/reader.cpp     |  7 +++----
+ 4 files changed, 30 insertions(+), 16 deletions(-)
+
+diff --git a/src/fish_tests.cpp b/src/fish_tests.cpp
+index 079ee2..7e3c06 100644
+--- a/src/fish_tests.cpp
++++ b/src/fish_tests.cpp
+@@ -3584,7 +3584,7 @@ static void test_autosuggestion_combining() {
+ static void test_history_matches(history_search_t &search, const wcstring_list_t &expected,
+                                  unsigned from_line) {
+     wcstring_list_t found;
+-    while (search.go_backwards()) {
++    while (search.go_to_next_match(history_search_direction_t::backward)) {
+         found.push_back(search.current_string());
+     }
+     do_test_from(expected == found, from_line);
+diff --git a/src/history.cpp b/src/history.cpp
+index 70691b..886628 100644
+--- a/src/history.cpp
++++ b/src/history.cpp
+@@ -637,23 +637,35 @@ void history_impl_t::load_old_if_needed() {
+     }
+ }
+ 
+-bool history_search_t::go_backwards() {
++maybe_t<size_t> history_search_t::go_to_next_match(history_search_direction_t direction) {
+     // Backwards means increasing our index.
+-    const auto max_index = static_cast<size_t>(-1);
++    size_t invalid_index;
++    ssize_t increment;
+ 
+-    if (current_index_ == max_index) return false;
++    if (direction == history_search_direction_t::backward) {
++        invalid_index = static_cast<size_t>(-1);
++        increment = 1;
++    } else {
++        assert(direction == history_search_direction_t::forward);
++        invalid_index = 0;
++        increment = -1;
++    }
++
++    if (current_index_ == invalid_index) return none_t();
+ 
+     size_t index = current_index_;
+-    while (++index < max_index) {
++    while ((index += increment) != invalid_index) {
+         history_item_t item = history_->item_at_index(index);
+ 
+         // We're done if it's empty or we cancelled.
+         if (item.empty()) {
+-            return false;
++            return none_t();
+         }
+ 
+         // Look for an item that matches and (if deduping) that we haven't seen before.
+-        if (!item.matches_search(canon_term_, search_type_, !ignores_case(), none_t())) {
++        auto match_offset =
++            item.matches_search(canon_term_, search_type_, !ignores_case(), none_t());
++        if (!match_offset) {
+             continue;
+         }
+ 
+@@ -665,9 +677,9 @@ bool history_search_t::go_backwards() {
+         // This is our new item.
+         current_item_ = std::move(item);
+         current_index_ = index;
+-        return true;
++        return match_offset;
+     }
+-    return false;
++    return none_t();
+ }
+ 
+ const history_item_t &history_search_t::current_item() const {
+@@ -1447,7 +1459,7 @@ static void do_1_history_search(history_t *hist, history_search_type_t search_ty
+                                 const cancel_checker_t &cancel_check) {
+     history_search_t searcher = history_search_t(hist, search_string, search_type,
+                                                  case_sensitive ? 0 : history_search_ignore_case);
+-    while (!cancel_check() && searcher.go_backwards()) {
++    while (!cancel_check() && searcher.go_to_next_match(history_search_direction_t::backward)) {
+         if (!func(searcher.current_item())) {
+             break;
+         }
+diff --git a/src/history.h b/src/history.h
+index b4bff6..d7b5e7 100644
+--- a/src/history.h
++++ b/src/history.h
+@@ -131,6 +131,8 @@ typedef std::deque<history_item_t> history_item_list_t;
+ class history_file_contents_t;
+ struct history_impl_t;
+ 
++enum class history_search_direction_t { forward, backward };
++
+ class history_t {
+     friend class history_tests_t;
+     struct impl_wrapper_t;
+@@ -278,8 +280,9 @@ class history_search_t {
+     // Gets the original search term.
+     const wcstring &original_term() const { return orig_term_; }
+ 
+-    // Finds the previous search result (backwards in time). Returns true if one was found.
+-    bool go_backwards();
++    // Finds the next search result; direction "backward" means go back in time.
++    // Returns the offset of the match within the commandline if found.
++    maybe_t<size_t> go_to_next_match(history_search_direction_t direction);
+ 
+     // Returns the current search result item. asserts if there is no current item.
+     const history_item_t &current_item() const;
+diff --git a/src/reader.cpp b/src/reader.cpp
+index b1167c..6bf2f2 100644
+--- a/src/reader.cpp
++++ b/src/reader.cpp
+@@ -118,8 +118,6 @@ static constexpr size_t READAHEAD_MAX = 256;
+ /// current contents of the kill buffer.
+ #define KILL_PREPEND 1
+ 
+-enum class history_search_direction_t { forward, backward };
+-
+ enum class jump_direction_t { forward, backward };
+ enum class jump_precision_t { till, to };
+ 
+@@ -394,7 +392,7 @@ class reader_history_search_t {
+         }
+ 
+         // Add more items from our search.
+-        while (search_.go_backwards()) {
++        while (search_.go_to_next_match(history_search_direction_t::backward)) {
+             if (append_matches_from_search()) {
+                 match_index_++;
+                 assert(match_index_ < matches_.size() && "Should have found more matches");
+@@ -1677,7 +1675,8 @@ static std::function<autosuggestion_t(void)> get_autosuggestion_performer(
+         // Search history for a matching item.
+         history_search_t searcher(history.get(), search_string, history_search_type_t::prefix,
+                                   history_search_flags_t{});
+-        while (!ctx.check_cancel() && searcher.go_backwards()) {
++        while (!ctx.check_cancel() &&
++               searcher.go_to_next_match(history_search_direction_t::backward)) {
+             const history_item_t &item = searcher.current_item();
+ 
+             // Skip items with newlines because they make terrible autosuggestions.
+-- 
+2.26.3
+

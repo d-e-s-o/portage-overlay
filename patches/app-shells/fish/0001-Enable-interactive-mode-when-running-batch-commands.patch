@@ -1,0 +1,60 @@
+From d637eb2679bbd9fd0843dec5a2f983a5042e8a37 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sat, 24 Apr 2021 18:29:46 -0700
+Subject: [PATCH] Enable interactive mode when running batch commands
+
+For a long time we have fought a subtle case of fish somehow not
+reporting/setting the expected working directory when opening a Vim
+session interactively vs. from command mode. It can be reproduced as
+follows:
+
+- Working:
+  fish
+  nvim
+  :cd $foodir
+  :!tmux display-message -p "\#{pane_current_path}"
+  > $foodir
+
+- Not working:
+  fish -c nvim
+  :cd $foodir
+  :!tmux display-message -p "\#{pane_current_path}"
+  > $HOME
+
+While the issue is openly not fully understood, the main difference
+between the working and the not working case is that one sets the
+interactivity flag. This in turn has implications for job control and
+process group handling, but it is not 100% clear which of these has what
+effect and why.
+With this change we try better to determine interactivity setting the
+interactivity flag on the path used when the -c option is provided to
+fix the issue.
+---
+ src/fish.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/fish.cpp b/src/fish.cpp
+index 719777..0a9095 100644
+--- a/src/fish.cpp
++++ b/src/fish.cpp
+@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA
+ #include <stdlib.h>
+ #include <sys/resource.h>
+ #include <sys/stat.h>
++#include <termios.h>
+ #include <unistd.h>
+ 
+ #include <cstring>
+@@ -515,6 +516,9 @@ int main(int argc, char **argv) {
+     }
+ 
+     if (!opts.batch_cmds.empty()) {
++        struct termios t;
++        bool interactive = isatty(STDIN_FILENO) || (tcgetattr(STDIN_FILENO, &t) == -1 && errno == EIO);
++        scoped_push<bool> int_{&parser.libdata().is_interactive, interactive};
+         // Run the commands specified as arguments, if any.
+         if (get_login()) {
+             // Do something nasty to support OpenSUSE assuming we're bash. This may modify cmds.
+-- 
+2.26.3
+
