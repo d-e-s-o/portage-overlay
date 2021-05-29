@@ -30,3 +30,7 @@ src_unpack() {
 	git-r3_src_unpack
 	cargo_live_src_unpack
 }
+
+src_install() {
+	cd crates/rust-analyzer && cargo_src_install --bin=rust-analyzer
+}
