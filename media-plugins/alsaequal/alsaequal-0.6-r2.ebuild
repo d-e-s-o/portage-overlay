@@ -24,10 +24,11 @@ S=${WORKDIR}/${PN}
 DOCS=( README )
 
 src_prepare() {
-	epatch "${FILESDIR}"/${P}-asneeded.patch
-	epatch "${FILESDIR}"/${P}-eq-name.patch
-	epatch "${FILESDIR}"/${P}-fix-mixer-open-issue.patch
-	epatch "${FILESDIR}"/${P}-fix-lib-path.patch
+	eapply_user
+	eapply "${FILESDIR}"/${P}-asneeded.patch
+	eapply "${FILESDIR}"/${P}-eq-name.patch
+	eapply "${FILESDIR}"/${P}-fix-mixer-open-issue.patch
+	eapply "${FILESDIR}"/${P}-fix-lib-path.patch
 	multilib_copy_sources
 }
 
