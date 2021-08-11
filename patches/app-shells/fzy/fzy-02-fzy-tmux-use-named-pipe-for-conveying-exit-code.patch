@@ -1,0 +1,38 @@
+From c907a2001619e9c695280b5f1cefa82571c6dcf6 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Mon, 6 Jul 2020 18:17:29 -0700
+Subject: [PATCH] fzy-tmux: Use named pipe for conveying exit code
+
+On a couple of occasions I've seen the following error being reported by
+the fzy-tmux script:
+> head: cannot open '/tmp/tmp.qUbDwrPLxQ/ret' for reading: No such file or directory
+> /usr/bin/fzy-tmux: line 41: exit: : numeric argument required
+
+The issue seems to be that PATH_FIFO_RET is not yet created but we
+already try to read from it, causing the read to fail. With this change
+we use a named pipe which we create before the actual tmux invocation,
+preventing this case from happening.
+
+Credit for the fix goes to @zsugabubus.
+
+Closes: #143
+---
+ contrib/fzy-tmux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/contrib/fzy-tmux b/contrib/fzy-tmux
+index ba7c14..3ddf57 100755
+--- a/contrib/fzy-tmux
++++ b/contrib/fzy-tmux
+@@ -23,7 +23,7 @@ main() {
+         fatal "Unable to create a temporary directory"
+     fi
+ 
+-    mkfifo "${PATH_FIFO_IN}" "${PATH_FIFO_OUT}"
++    mkfifo "${PATH_FIFO_IN}" "${PATH_FIFO_OUT}" "${PATH_FIFO_RET}"
+ 
+     export TMUX=$(_echo "${TMUX}" | cut -d , -f 1,2)
+     eval "tmux \
+-- 
+2.31.1
+
