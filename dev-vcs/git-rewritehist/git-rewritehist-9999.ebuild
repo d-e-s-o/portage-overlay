@@ -25,6 +25,7 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 
 RDEPEND="
+  =dev-lang/python-3*
   app-shells/bash
   dev-vcs/git
   sys-apps/coreutils
@@ -42,5 +43,6 @@ inherit git-r3
 src_install() {
   exeinto /usr/bin
   doexe git-sorthist
+  doexe git-redatehist
   doexe git-reorderhist
 }
