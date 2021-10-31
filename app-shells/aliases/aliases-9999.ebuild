@@ -23,10 +23,9 @@ HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux"
-IUSE="bash fish"
+IUSE="fish"
 
 RDEPEND="
-  bash? ( app-shells/bash )
   fish? ( app-shells/fish )
 "
 DEPEND="${RDEPEND}"
@@ -63,24 +62,9 @@ alias sub='sudo --login'
 alias passc='pass show --clip'
 EOF
 
-  if use bash; then
-    insinto ${EROOT}etc/profile.d/
-    insopts -m0755
-    newins ${PN}.sh ${PN}.sh
-  fi
-
   if use fish; then
     insinto ${EROOT}usr/share/fish/vendor_conf.d/
     insopts -m0755
     newins ${PN}.sh ${PN}.fish
-  fi
-}
-
-pkg_postinst() {
-  if use bash; then
-    ewarn
-    ewarn "After updating ${EROOT}etc/profile, please run"
-    ewarn "env-update && source /etc/profile"
-    ewarn
   fi
 }
