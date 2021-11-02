@@ -23,11 +23,9 @@ HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 LICENSE="GPL-3"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux"
-IUSE="fish"
+IUSE=""
 
-RDEPEND="
-  fish? ( app-shells/fish )
-"
+RDEPEND=""
 DEPEND="${RDEPEND}"
 
 src_unpack() {
@@ -35,7 +33,7 @@ src_unpack() {
 }
 
 src_install() {
-  cat <<EOF > aliases.sh
+  cat <<EOF > aliases.fish
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
@@ -62,9 +60,7 @@ alias sub='sudo --login'
 alias passc='pass show --clip'
 EOF
 
-  if use fish; then
-    insinto ${EROOT}usr/share/fish/vendor_conf.d/
-    insopts -m0755
-    newins ${PN}.sh ${PN}.fish
-  fi
+  insinto ${EROOT}usr/share/fish/vendor_conf.d/
+  insopts -m0755
+  newins ${PN}.fish ${PN}.fish
 }
