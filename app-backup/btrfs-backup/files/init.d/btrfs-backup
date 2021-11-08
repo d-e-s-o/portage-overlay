@@ -107,7 +107,7 @@ EOF
 
   local subvols=$(
       echo -e "${BTRFS_BACKUP_SUBVOLS}" |\
-      xargs --max-lines=1 --replace='{}' -- echo "--subvolume={}" |\
+      xargs -I'{}' -- echo "--subvolume={}" |\
       xargs
     )
   local args="backup ${options} ${subvols} ${src} ${dst}"
