@@ -135,8 +135,10 @@ src_install() {
 		mv "${D}/opt/${P}/bin/cargo-fmt" "${D}/opt/${P}/bin/${cargo_fmt}" || die
 		dosym "../../opt/${P}/bin/${rustfmt}" "/usr/bin/${rustfmt}"
 		dosym "../../opt/${P}/bin/${rustfmt}" "/usr/bin/rustfmt-bin"
+		dosym "../../opt/${P}/bin/${rustfmt}" "/usr/bin/rustfmt"
 		dosym "../../opt/${P}/bin/${cargo_fmt}" "/usr/bin/${cargo_fmt}"
 		dosym "../../opt/${P}/bin/${cargo_fmt}" "/usr/bin/cargo-fmt-bin"
+		dosym "../../opt/${P}/bin/${cargo_fmt}" "/usr/bin/cargo-fmt"
 	fi
 
 	cat <<-EOF > "${T}"/50${P}
