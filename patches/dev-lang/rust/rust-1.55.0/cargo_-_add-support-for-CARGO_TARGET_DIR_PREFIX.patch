@@ -1,4 +1,4 @@
-From 468240aa76f88f0384d77ba2e1098b0ed6b7b7ce Mon Sep 17 00:00:00 2001
+From 66406b8b8c91c9e4e0fe442d1fe8676645977f9c Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Tue, 25 Dec 2018 14:10:36 -0800
 Subject: [PATCH] Add support for CARGO_TARGET_DIR_PREFIX
@@ -29,14 +29,13 @@ TODO: There is also the potential for a permission related problems.
  src/cargo/util/config/mod.rs                  | 17 +++++-
  .../src/reference/environment-variables.md    |  4 ++
  tests/testsuite/build.rs                      | 57 +++++++++++++++++++
- tests/testsuite/config.rs                     |  2 +-
- 6 files changed, 94 insertions(+), 8 deletions(-)
+ 5 files changed, 93 insertions(+), 7 deletions(-)
 
 diff --git a/src/cargo/core/workspace.rs b/src/cargo/core/workspace.rs
-index 931f27..c099c7 100644
+index 9a2d59..665df5 100644
 --- a/src/tools/cargo/src/cargo/core/workspace.rs
 +++ b/src/tools/cargo/src/cargo/core/workspace.rs
-@@ -144,7 +144,6 @@ impl<'cfg> Workspace<'cfg> {
+@@ -150,7 +150,6 @@ impl<'cfg> Workspace<'cfg> {
      /// before returning it, so `Ok` is only returned for valid workspaces.
      pub fn new(manifest_path: &Path, config: &'cfg Config) -> CargoResult<Workspace<'cfg>> {
          let mut ws = Workspace::new_default(manifest_path.to_path_buf(), config);
@@ -44,7 +43,7 @@ index 931f27..c099c7 100644
  
          if manifest_path.is_relative() {
              bail!(
-@@ -155,6 +154,12 @@ impl<'cfg> Workspace<'cfg> {
+@@ -161,6 +160,12 @@ impl<'cfg> Workspace<'cfg> {
              ws.root_manifest = ws.find_root(manifest_path)?;
          }
  
@@ -57,7 +56,7 @@ index 931f27..c099c7 100644
          ws.custom_metadata = ws
              .load_workspace_config()?
              .and_then(|cfg| cfg.custom_metadata);
-@@ -194,7 +199,11 @@ impl<'cfg> Workspace<'cfg> {
+@@ -200,7 +205,11 @@ impl<'cfg> Workspace<'cfg> {
      ) -> CargoResult<Workspace<'cfg>> {
          let mut ws = Workspace::new_default(current_manifest, config);
          ws.root_manifest = Some(root_path.join("Cargo.toml"));
@@ -70,7 +69,7 @@ index 931f27..c099c7 100644
          ws.packages
              .packages
              .insert(root_path, MaybePackage::Virtual(manifest));
-@@ -225,13 +234,13 @@ impl<'cfg> Workspace<'cfg> {
+@@ -231,13 +240,13 @@ impl<'cfg> Workspace<'cfg> {
          ws.require_optional_deps = require_optional_deps;
          let key = ws.current_manifest.parent().unwrap();
          let id = package.package_id();
@@ -88,29 +87,31 @@ index 931f27..c099c7 100644
          ws.member_ids.insert(id);
          ws.default_members.push(ws.current_manifest.clone());
 diff --git a/src/cargo/ops/cargo_install.rs b/src/cargo/ops/cargo_install.rs
-index f90e01..afb273 100644
+index 1df7e5..c60b78 100644
 --- a/src/tools/cargo/src/cargo/ops/cargo_install.rs
 +++ b/src/tools/cargo/src/cargo/ops/cargo_install.rs
-@@ -275,12 +275,13 @@ impl<'cfg, 'a> InstallablePackage<'cfg, 'a> {
-     fn install_one(mut self) -> CargoResult<()> {
-         self.config.shell().status("Installing", &self.pkg)?;
+@@ -251,6 +251,7 @@ fn install_one(
+         }
+     };
  
-+        let manifest_path = self.pkg.manifest_path().to_path_buf();
-         let dst = self.root.join("bin").into_path_unlocked();
- 
-         let mut td_opt = None;
-         let mut needs_cleanup = false;
-         if !self.source_id.is_path() {
--            let target_dir = if let Some(dir) = self.config.target_dir()? {
-+            let target_dir = if let Some(dir) = self.config.target_dir(manifest_path)? {
-                 dir
-             } else if let Ok(td) = TempFileBuilder::new().prefix("cargo-install").tempdir() {
-                 let p = td.path().to_owned();
++    let manifest_path = pkg.manifest_path().to_path_buf();
+     let (mut ws, rustc, target) = make_ws_rustc_target(config, opts, &source_id, pkg.clone())?;
+     // If we're installing in --locked mode and there's no `Cargo.lock` published
+     // ie. the bin was published before https://github.com/rust-lang/cargo/pull/7026
+@@ -271,7 +272,7 @@ fn install_one(
+     let mut td_opt = None;
+     let mut needs_cleanup = false;
+     if !source_id.is_path() {
+-        let target_dir = if let Some(dir) = config.target_dir()? {
++        let target_dir = if let Some(dir) = config.target_dir(manifest_path)? {
+             dir
+         } else if let Ok(td) = TempFileBuilder::new().prefix("cargo-install").tempdir() {
+             let p = td.path().to_owned();
 diff --git a/src/cargo/util/config/mod.rs b/src/cargo/util/config/mod.rs
-index bc0d57..21b732 100644
+index b9921d..f3e49f 100644
 --- a/src/tools/cargo/src/cargo/util/config/mod.rs
 +++ b/src/tools/cargo/src/cargo/util/config/mod.rs
-@@ -484,7 +484,7 @@ impl Config {
+@@ -485,7 +485,7 @@ impl Config {
      /// Returns `None` if the user has not chosen an explicit directory.
      ///
      /// Callers should prefer `Workspace::target_dir` instead.
@@ -119,7 +120,7 @@ index bc0d57..21b732 100644
          if let Some(dir) = &self.target_dir {
              Ok(Some(dir.clone()))
          } else if let Some(dir) = self.env.get("CARGO_TARGET_DIR") {
-@@ -497,6 +497,21 @@ impl Config {
+@@ -498,6 +498,21 @@ impl Config {
              }
  
              Ok(Some(Filesystem::new(self.cwd.join(dir))))
@@ -142,7 +143,7 @@ index bc0d57..21b732 100644
              let path = val.resolve_path(self);
  
 diff --git a/src/doc/src/reference/environment-variables.md b/src/doc/src/reference/environment-variables.md
-index 72f035..d2f164 100644
+index 08eb16..eb1694 100644
 --- a/src/tools/cargo/src/doc/src/reference/environment-variables.md
 +++ b/src/tools/cargo/src/doc/src/reference/environment-variables.md
 @@ -15,6 +15,10 @@ system:
@@ -157,10 +158,10 @@ index 72f035..d2f164 100644
    relative to the current working directory. See [`build.target-dir`] to set
    via config.
 diff --git a/tests/testsuite/build.rs b/tests/testsuite/build.rs
-index 8aff41..65c7da 100644
+index 65aa90..825cbc 100644
 --- a/src/tools/cargo/tests/testsuite/build.rs
 +++ b/src/tools/cargo/tests/testsuite/build.rs
-@@ -3190,6 +3190,63 @@ fn panic_abort_compiles_with_panic_abort() {
+@@ -3110,6 +3110,63 @@ fn panic_abort_compiles_with_panic_abort() {
          .run();
  }
  
@@ -215,7 +216,7 @@ index 8aff41..65c7da 100644
 +                .is_file()
 +        );
 +        assert!(&p.root().join("target/debug").join(&exe_name).is_file())
-+    }
++    };
 +
 +    test(".");
 +    test("src");
@@ -224,19 +225,6 @@ index 8aff41..65c7da 100644
  #[cargo_test]
  fn compiler_json_error_format() {
      let p = project()
-diff --git a/tests/testsuite/config.rs b/tests/testsuite/config.rs
-index aa585c..d26073 100644
---- a/src/tools/cargo/tests/testsuite/config.rs
-+++ b/src/tools/cargo/tests/testsuite/config.rs
-@@ -1448,7 +1448,7 @@ target-dir = ''
-     let config = new_config();
- 
-     assert_error(
--        config.target_dir().unwrap_err(),
-+        config.target_dir("").unwrap_err(),
-         "the target directory is set to an empty string in [..]/.cargo/config",
-     );
- }
 -- 
-2.32.0
+2.31.1
 
