@@ -1,5 +1,5 @@
 diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
-index a3d571..873f12 100644
+index 2c53e1..1538a5 100644
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
 @@ -49,7 +49,8 @@
@@ -13,7 +13,7 @@ index a3d571..873f12 100644
  #define IDC_RESTORE_TAB                 34028
  #define IDC_SHOW_AS_TAB                 34029
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 93f3e5..a5dc4f 100644
+index cfefe1..f18f6e 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
 @@ -449,6 +449,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
@@ -24,7 +24,7 @@ index 93f3e5..a5dc4f 100644
        base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
        SelectNumberedTab(browser_, id - IDC_SELECT_TAB_0,
                          {TabStripModel::GestureType::kKeyboard, time_stamp});
-@@ -1128,6 +1129,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1097,6 +1098,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, supports_tabs);
@@ -33,7 +33,7 @@ index 93f3e5..a5dc4f 100644
    command_updater_.UpdateCommandEnabled(IDC_NEW_TAB_TO_RIGHT, supports_tabs);
  
 diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/views/accelerator_table.cc
-index bdb683..2b4f8a 100644
+index ad5675..8d2d2e 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
 @@ -35,12 +35,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
@@ -69,7 +69,7 @@ index bdb683..2b4f8a 100644
 +    {ui::VKEY_L, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_MOVE_TAB_NEXT},
 +    {ui::VKEY_H, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN,
       IDC_MOVE_TAB_PREVIOUS},
- #endif  // defined(OS_LINUX) || BUILDFLAG(IS_CHROMEOS_LACROS)
+ #endif
      // Control modifier is rarely used on Mac, so we allow it only in several
      // specific cases.
 -    {ui::VKEY_TAB, ui::EF_CONTROL_DOWN, IDC_SELECT_NEXT_TAB},
@@ -91,13 +91,12 @@ index bdb683..2b4f8a 100644
       IDC_SHOW_BOOKMARK_BAR},
      {ui::VKEY_OEM_MINUS, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
      {ui::VKEY_SUBTRACT, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
-@@ -130,18 +127,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -130,17 +127,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_F5, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_F5, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_F5, ui::EF_SHIFT_DOWN, IDC_RELOAD_BYPASSING_CACHE},
 -    {ui::VKEY_F6, ui::EF_NONE, IDC_FOCUS_NEXT_PANE},
 -    {ui::VKEY_F6, ui::EF_SHIFT_DOWN, IDC_FOCUS_PREVIOUS_PANE},
--    {ui::VKEY_F6, ui::EF_CONTROL_DOWN, IDC_FOCUS_WEB_CONTENTS_PANE},
 +    {ui::VKEY_J, ui::EF_PLATFORM_ACCELERATOR, IDC_FOCUS_NEXT_PANE},
 +    {ui::VKEY_K, ui::EF_PLATFORM_ACCELERATOR, IDC_FOCUS_PREVIOUS_PANE},
      {ui::VKEY_F10, ui::EF_NONE, IDC_FOCUS_MENU_BAR},
@@ -115,7 +114,7 @@ index bdb683..2b4f8a 100644
      {ui::VKEY_BROWSER_HOME, ui::EF_NONE, IDC_HOME},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
-@@ -167,13 +163,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -166,13 +163,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
      // On Chrome OS, Search + Esc is used to call out task manager.
      {ui::VKEY_ESCAPE, ui::EF_COMMAND_DOWN, IDC_TASK_MANAGER},
  #else  // !OS_CHROMEOS
@@ -131,7 +130,7 @@ index bdb683..2b4f8a 100644
  #endif  // !OS_CHROMEOS
  
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !defined(OS_MAC)
-@@ -193,29 +190,28 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -192,29 +190,28 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_LEFT, ui::EF_ALT_DOWN, IDC_BACK},
      {ui::VKEY_LEFT, ui::EF_ALTGR_DOWN, IDC_BACK},
  #if BUILDFLAG(ENABLE_PRINTING)
@@ -168,5 +167,5 @@ index bdb683..2b4f8a 100644
 +    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_DOWNLOADS},
 +    {ui::VKEY_V, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_HISTORY},
      {ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
-     {ui::VKEY_H, ui::EF_ALT_DOWN | ui::EF_SHIFT_DOWN, IDC_FOCUS_HELP_BUBBLE},
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
+     // On Chrome OS, these keys are assigned to change UI scale.
