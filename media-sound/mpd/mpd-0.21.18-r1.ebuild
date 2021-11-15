@@ -285,9 +285,6 @@ src_install() {
 	doman doc/mpd.conf.5
 
 	keepdir /var/lib/mpd
-	keepdir /var/lib/mpd/music
-	keepdir /var/lib/mpd/playlists
-
 }
 
 pkg_postinst() {
