@@ -7,7 +7,6 @@ inherit eutils multilib toolchain-funcs multilib-minimal
 
 DESCRIPTION="a real-time adjustable equalizer plugin for ALSA"
 HOMEPAGE="http://www.thedigitalmachine.net/alsaequal.html"
-SRC_URI="http://www.thedigitalmachine.net/tools/${P}.tar.bz2"
 
 LICENSE="LGPL-2.1"
 SLOT="0"
@@ -22,6 +21,10 @@ DEPEND="${RDEPEND}"
 
 S=${WORKDIR}/${PN}
 DOCS=( README )
+
+src_unpack() {
+	unpack "${FILESDIR}"/${P}.tar.bz2
+}
 
 src_prepare() {
 	eapply_user
