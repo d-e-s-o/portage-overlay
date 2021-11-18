@@ -23,8 +23,8 @@ KEYWORDS=""
 
 src_unpack() {
 	git-r3_src_unpack
-	unpack_set_extraversion
 	mv ${WORKDIR}/raspberrypi-sources-${PV} ${WORKDIR}/linux-${PV}-raspberrypi || die
+	unpack_set_extraversion
 	# There is probably a better way to exclude git meta data from being
 	# installed, but that's what we have...
 	rm -r ${WORKDIR}/linux-${PV}-raspberrypi/.git* || die
