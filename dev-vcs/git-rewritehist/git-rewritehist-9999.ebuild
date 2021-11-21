@@ -41,8 +41,7 @@ EGIT_REPO_URI="https://github.com/d-e-s-o/git-rewritehist"
 inherit git-r3
 
 src_install() {
-  exeinto /usr/bin
-  doexe git-sorthist
-  doexe git-redatehist
-  doexe git-reorderhist
+  dobin git-sorthist
+  dobin git-redatehist
+  dobin git-reorderhist
 }
