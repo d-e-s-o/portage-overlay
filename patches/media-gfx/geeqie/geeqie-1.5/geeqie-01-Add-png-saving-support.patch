@@ -1,4 +1,4 @@
-From 4ae841f30b56003cdecbe9595f20da0f0daa17d5 Mon Sep 17 00:00:00 2001
+From 9e121ded69b37a6518db1a8f3e2e1e6c293ca3fc Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 7 Nov 2015 15:16:41 -0800
 Subject: [PATCH] Add png saving support
@@ -18,17 +18,17 @@ This change adds support for directly exporting the image as displayed
 in geeqie as a png file.
 ---
  src/image.c               | 50 +++++++++++++++++++++++++++++++++++++++
- src/image.h               |  4 ++++
+ src/image.h               |  3 +++
  src/layout_image.c        | 14 +++++++++++
- src/layout_util.c         | 14 +++++++++++
+ src/layout_util.c         | 15 ++++++++++++
  src/view_file/view_file.c | 39 ++++++++++++++++++++++++++++++
  5 files changed, 121 insertions(+)
 
 diff --git a/src/image.c b/src/image.c
-index 03db39..939ce1 100644
+index 57670a..73191b 100644
 --- a/src/image.c
 +++ b/src/image.c
-@@ -37,6 +37,7 @@
+@@ -36,6 +36,7 @@
  #include "pixbuf-renderer.h"
  #include "pixbuf_util.h"
  #include "ui_fileops.h"
@@ -36,7 +36,7 @@ index 03db39..939ce1 100644
  
  #include "filedata.h"
  #include "filecache.h"
-@@ -2261,4 +2262,53 @@ void image_get_rectangle(gint *x1, gint *y1, gint *x2, gint *y2)
+@@ -2199,4 +2200,53 @@ void image_get_rectangle(gint *x1, gint *y1, gint *x2, gint *y2)
  	*y2 = rect_y2;
  }
  
@@ -91,24 +91,23 @@ index 03db39..939ce1 100644
 +}
  /* vim: set shiftwidth=8 softtabstop=0 cindent cinoptions={1s: */
 diff --git a/src/image.h b/src/image.h
-index be9631..669ede 100644
+index f3c48c..acf0df 100644
 --- a/src/image.h
 +++ b/src/image.h
-@@ -155,5 +155,9 @@ void image_options_sync(void);
+@@ -152,5 +152,8 @@ void image_options_sync(void);
  
  void image_get_rectangle(gint *x1, gint *y1, gint *x2, gint *y2);
- void image_update_title(ImageWindow *imd);
-+
+ 
 +/* export to png */
 +void image_save_as_png(ImageWindow *imd);
 +
  #endif
  /* vim: set shiftwidth=8 softtabstop=0 cindent cinoptions={1s: */
 diff --git a/src/layout_image.c b/src/layout_image.c
-index cc61fe..600822 100644
+index 570f77..37b531 100644
 --- a/src/layout_image.c
 +++ b/src/layout_image.c
-@@ -516,6 +516,18 @@ static void li_pop_menu_edit_cb(GtkWidget *widget, gpointer data)
+@@ -459,6 +459,18 @@ static void li_pop_menu_edit_cb(GtkWidget *widget, gpointer data)
  	file_util_start_editor_from_file(key, layout_image_get_fd(lw), lw->window);
  }
  
@@ -124,10 +123,10 @@ index cc61fe..600822 100644
 +	image_save_as_png(imd);
 +}
 +
- #if !GTK_CHECK_VERSION(3,0,0)
  static void li_pop_menu_wallpaper_cb(GtkWidget *widget, gpointer data)
  {
-@@ -765,6 +777,8 @@ static GtkWidget *layout_image_pop_menu(LayoutWindow *lw)
+ 	LayoutWindow *lw = data;
+@@ -706,6 +718,8 @@ static GtkWidget *layout_image_pop_menu(LayoutWindow *lw)
  
  	menu_item_add_divider(menu);
  
@@ -137,10 +136,18 @@ index cc61fe..600822 100644
  	if (!path) gtk_widget_set_sensitive(item, FALSE);
  	item = menu_item_add(menu, _("_Move..."), G_CALLBACK(li_pop_menu_move_cb), lw);
 diff --git a/src/layout_util.c b/src/layout_util.c
-index b24f6e..201bcb 100644
+index 5fd058..9cafe9 100644
 --- a/src/layout_util.c
 +++ b/src/layout_util.c
-@@ -332,6 +332,18 @@ static void layout_menu_dir_cb(GtkAction *action, gpointer data)
+@@ -35,6 +35,7 @@
+ #include "editors.h"
+ #include "filedata.h"
+ #include "history_list.h"
++#include "image.h"
+ #include "image-overlay.h"
+ #include "histogram.h"
+ #include "img-view.h"
+@@ -333,6 +334,18 @@ static void layout_menu_dir_cb(GtkAction *action, gpointer data)
  	if (lw->vd) vd_new_folder(lw->vd, lw->dir_fd);
  }
  
@@ -159,7 +166,7 @@ index b24f6e..201bcb 100644
  static void layout_menu_copy_cb(GtkAction *action, gpointer data)
  {
  	LayoutWindow *lw = data;
-@@ -2478,6 +2490,7 @@ static GtkActionEntry menu_entries[] = {
+@@ -1898,6 +1911,7 @@ static GtkActionEntry menu_entries[] = {
    { "PanView",	PIXBUF_INLINE_ICON_PANORAMA,	N_("Pa_n view"),			"<control>J",		N_("Pan view"),				CB(layout_menu_pan_cb) },
    { "Print",		GTK_STOCK_PRINT,	N_("_Print..."),			"<shift>P",		N_("Print..."),				CB(layout_menu_print_cb) },
    { "NewFolder",	GTK_STOCK_DIRECTORY,	N_("N_ew folder..."),			"<control>F",		N_("New folder..."),			CB(layout_menu_dir_cb) },
@@ -167,7 +174,7 @@ index b24f6e..201bcb 100644
    { "Copy",		GTK_STOCK_COPY,		N_("_Copy..."),				"<control>C",		N_("Copy..."),				CB(layout_menu_copy_cb) },
    { "Move",	PIXBUF_INLINE_ICON_MOVE,			N_("_Move..."),				"<control>M",		N_("Move..."),				CB(layout_menu_move_cb) },
    { "Rename",	PIXBUF_INLINE_ICON_RENAME,	N_("_Rename..."),			"<control>R",		N_("Rename..."),			CB(layout_menu_rename_cb) },
-@@ -2671,6 +2684,7 @@ static const gchar *menu_ui_description =
+@@ -2088,6 +2102,7 @@ static const gchar *menu_ui_description =
  "      <placeholder name='PrintSection'/>"
  "      <separator/>"
  "      <menuitem action='NewFolder'/>"
@@ -176,7 +183,7 @@ index b24f6e..201bcb 100644
  "      <menuitem action='Move'/>"
  "      <menuitem action='Rename'/>"
 diff --git a/src/view_file/view_file.c b/src/view_file/view_file.c
-index e07670..5d6ff6 100644
+index 7d9ac9..c56493 100644
 --- a/src/view_file/view_file.c
 +++ b/src/view_file/view_file.c
 @@ -26,7 +26,9 @@
@@ -225,7 +232,7 @@ index e07670..5d6ff6 100644
  static void vf_pop_menu_copy_cb(GtkWidget *widget, gpointer data)
  {
  	ViewFile *vf = data;
-@@ -535,6 +566,7 @@ GtkWidget *vf_pop_menu(ViewFile *vf)
+@@ -552,6 +583,7 @@ GtkWidget *vf_pop_menu(ViewFile *vf)
  	GtkWidget *item;
  	GtkWidget *submenu;
  	gboolean active = FALSE;
@@ -233,7 +240,7 @@ index e07670..5d6ff6 100644
  
  	switch (vf->type)
  	{
-@@ -607,6 +639,13 @@ GtkWidget *vf_pop_menu(ViewFile *vf)
+@@ -624,6 +656,13 @@ GtkWidget *vf_pop_menu(ViewFile *vf)
  				      G_CALLBACK(vf_pop_menu_view_cb), vf);
  
  	menu_item_add_divider(menu);
@@ -248,5 +255,5 @@ index e07670..5d6ff6 100644
  				      G_CALLBACK(vf_pop_menu_copy_cb), vf);
  	menu_item_add_sensitive(menu, _("_Move..."), active,
 -- 
-2.32.0
+2.23.0
 
