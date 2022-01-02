@@ -1,0 +1,22 @@
+diff --git a/g10/sign.c b/g10/sign.c
+index 2f48a7..c156d4 100644
+--- a/g10/sign.c
++++ b/g10/sign.c
+@@ -852,8 +852,15 @@ write_signature_packets (ctrl_t ctrl,
+       sig->pubkey_algo = pk->pubkey_algo;
+       if (timestamp)
+         sig->timestamp = timestamp;
+-      else
+-        sig->timestamp = make_timestamp();
++      else {
++        const char* sig_date;
++        sig_date = getenv("GPG_SIGNATURE_TIMESTAMP");
++        if (sig_date != NULL) {
++          sig->timestamp = atol(sig_date);
++        } else {
++          sig->timestamp = make_timestamp();
++        }
++      }
+       if (duration)
+         sig->expiredate = sig->timestamp + duration;
+       sig->sig_class = sigclass;
