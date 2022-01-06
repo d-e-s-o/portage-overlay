@@ -1,4 +1,4 @@
-From 6f67eb0c81ee85b1c40f38bd547ac5a829a50575 Mon Sep 17 00:00:00 2001
+From 059512b7c8e95f6b4e5bde6dca62523b769f8cd7 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Mon, 30 Nov 2020 08:42:25 -0800
 Subject: [PATCH] Add "own" crate back to list of dependent crates
@@ -13,7 +13,7 @@ This change reverts said commit to preserve the desired behavior.
  1 file changed, 1 insertion(+), 5 deletions(-)
 
 diff --git a/src/lib.rs b/src/lib.rs
-index b6243b..881050 100644
+index 637846..0b1ec4 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
 @@ -108,11 +108,7 @@ pub fn gen_ebuild_data(manifest_path: Option<PathBuf>) -> Result<EbuildConfig> {
@@ -22,13 +22,13 @@ index b6243b..881050 100644
      for pkg in lockfile.packages {
 -        if let Some(src) = pkg.source {
 -            if src.is_default_registry() {
--                crates.push(format!("{}-{}\n", pkg.name, pkg.version));
+-                crates.push(format!("\t{}-{}\n", pkg.name, pkg.version));
 -            }
 -        }
-+        crates.push(format!("{}-{}\n", pkg.name, pkg.version));
++        crates.push(format!("\t{}-{}\n", pkg.name, pkg.version));
      }
  
      Ok(EbuildConfig::from_package(root_pkg, crates, licenses))
 -- 
-2.26.2
+2.32.0
 

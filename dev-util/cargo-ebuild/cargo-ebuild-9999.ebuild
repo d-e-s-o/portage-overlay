@@ -22,7 +22,7 @@ inherit git-r3
 
 EGIT_BRANCH="master"
 EGIT_REPO_URI="https://github.com/cardoe/cargo-ebuild.git"
-EGIT_COMMIT="ca7dca9ff92304627dcb5b682b090789cfda95f4"
+EGIT_COMMIT="214594d15b23120f13e02b8be4471dc97ed04bd2"
 EGIT_MIN_CLONE_TYPE="shallow"
 
 src_unpack() {
