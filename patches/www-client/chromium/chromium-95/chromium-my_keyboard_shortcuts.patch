@@ -1,5 +1,5 @@
 diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
-index f29b26..24ea4c 100644
+index a3d571..873f12 100644
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
 @@ -49,7 +49,8 @@
@@ -13,10 +13,10 @@ index f29b26..24ea4c 100644
  #define IDC_RESTORE_TAB                 34028
  #define IDC_SHOW_AS_TAB                 34029
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 579da6..1328f8 100644
+index 93f3e5..a5dc4f 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -467,6 +467,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
+@@ -449,6 +449,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
      case IDC_SELECT_TAB_5:
      case IDC_SELECT_TAB_6:
      case IDC_SELECT_TAB_7:
@@ -24,7 +24,7 @@ index 579da6..1328f8 100644
        base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
        SelectNumberedTab(browser_, id - IDC_SELECT_TAB_0,
                          {TabStripModel::GestureType::kKeyboard, time_stamp});
-@@ -1141,6 +1142,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1128,6 +1129,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, supports_tabs);
@@ -33,7 +33,7 @@ index 579da6..1328f8 100644
    command_updater_.UpdateCommandEnabled(IDC_NEW_TAB_TO_RIGHT, supports_tabs);
  
 diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/views/accelerator_table.cc
-index b037a0..14d8c4 100644
+index bdb683..2b4f8a 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
 @@ -35,12 +35,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
@@ -131,7 +131,7 @@ index b037a0..14d8c4 100644
  #endif  // !OS_CHROMEOS
  
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !defined(OS_MAC)
-@@ -193,29 +190,28 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -193,31 +190,29 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_LEFT, ui::EF_ALT_DOWN, IDC_BACK},
      {ui::VKEY_LEFT, ui::EF_ALTGR_DOWN, IDC_BACK},
  #if BUILDFLAG(ENABLE_PRINTING)
@@ -168,5 +168,7 @@ index b037a0..14d8c4 100644
 +    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_DOWNLOADS},
 +    {ui::VKEY_V, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_HISTORY},
      {ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
+-    {ui::VKEY_H, ui::EF_ALT_DOWN | ui::EF_SHIFT_DOWN, IDC_FOCUS_HELP_BUBBLE},
  #if !BUILDFLAG(IS_CHROMEOS_ASH)
      // On Chrome OS, these keys are assigned to change UI scale.
+     {ui::VKEY_OEM_MINUS, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
