@@ -1,0 +1,40 @@
+From 1084218db9833fba39070801dc60eda961f6f793 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Sat, 26 Feb 2022 14:11:06 -0800
+Subject: [PATCH] Stop removing empty workspaces when an output is disabled
+
+If an output is disabled, i3 gets rid of empty workspaces on it, while
+migrating all others to a different output. This behavior is kind of
+what one would want, at least in a multi-monitor setup. In a single
+monitor setup, however, that causes workspaces to be rearranged every
+time the last output is disabled (and eventually re-enabled), which is
+not a great experience.
+Unfortunately, it is not always possible to distinguish between single
+and multi monitor setups. A monitor may be recognized even if a physical
+output is merely used for digital audio.
+To cater better to the single monitor case, with this change we adjust
+the logic to stop removing empty workspaces altogether.
+---
+ src/randr.c | 6 ------
+ 1 file changed, 6 deletions(-)
+
+diff --git a/src/randr.c b/src/randr.c
+index f66f2f..69ca90 100644
+--- a/src/randr.c
++++ b/src/randr.c
+@@ -967,12 +967,6 @@ void randr_disable_output(Output *output) {
+         Con *old_content = output_get_content(output->con);
+         while (!TAILQ_EMPTY(&(old_content->nodes_head))) {
+             current = TAILQ_FIRST(&(old_content->nodes_head));
+-            if (current != next && TAILQ_EMPTY(&(current->focus_head))) {
+-                /* the workspace is empty and not focused, get rid of it */
+-                DLOG("Getting rid of current = %p / %s (empty, unfocused)\n", current, current->name);
+-                tree_close_internal(current, DONT_KILL_WINDOW, false, false);
+-                continue;
+-            }
+             DLOG("Detaching current = %p / %s\n", current, current->name);
+             con_detach(current);
+             DLOG("Re-attaching current = %p / %s\n", current, current->name);
+-- 
+2.32.0
+
