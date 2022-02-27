@@ -56,7 +56,7 @@ alias hexdump='hexdump --canonical'
 alias info='info --vi-keys'
 alias fd='fd --follow --no-ignore'
 alias rg='rg --follow --unrestricted --ignore-case'
-alias sub='sudo --login'
+alias sub='sudo --login fish'
 alias passc='pass show --clip'
 EOF
 
