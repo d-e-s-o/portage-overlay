@@ -11,7 +11,7 @@ index 2f48a7..c156d4 100644
 +      else {
 +        const char* sig_date;
 +        sig_date = getenv("GPG_SIGNATURE_TIMESTAMP");
-+        if (sig_date != NULL) {
++        if (sig_date != NULL && *sig_date != '\0') {
 +          sig->timestamp = atol(sig_date);
 +        } else {
 +          sig->timestamp = make_timestamp();
