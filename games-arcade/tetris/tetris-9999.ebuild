@@ -45,8 +45,13 @@ src_install() {
 	mkdir -p temporary
 	cat <<EOF > temporary/tetris
 #!/bin/sh
-exec /usr/libexec/tetris --use-config=/etc/tetris.cfg $*
+vblank_mode=0 exec /usr/libexec/tetris --use-config=/etc/tetris.cfg "\$@"
 EOF
 	dobin temporary/tetris
-}
 
+	cat <<EOF > temporary/tetris-vsync
+#!/bin/sh
+exec /usr/libexec/tetris --use-config=/etc/tetris.cfg "\$@"
+EOF
+	dobin temporary/tetris-vsync
+}
