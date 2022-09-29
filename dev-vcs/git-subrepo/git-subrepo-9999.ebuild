@@ -25,8 +25,7 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 IUSE="+doc +module"
 
-PYTHON_COMPAT=( python3_{4..9} )
-inherit python-r1 bash-completion-r1
+inherit python-any-no-clowntown bash-completion-r1
 
 RDEPEND="
   ${PYTHON_DEPS}

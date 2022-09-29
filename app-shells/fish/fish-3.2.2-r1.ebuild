@@ -3,9 +3,7 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{7..9} )
-
-inherit cmake python-any-r1 readme.gentoo-r1
+inherit cmake python-any-no-clowntown readme.gentoo-r1
 
 DESCRIPTION="Friendly Interactive SHell"
 HOMEPAGE="http://fishshell.com/"
