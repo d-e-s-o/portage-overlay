@@ -1,0 +1,122 @@
+From 68b08c5963427b9a9ce1e7c8d9a7c2d12f638c7d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sat, 22 Oct 2022 21:00:28 -0700
+Subject: [PATCH] Add support for optional slaves to multi device
+
+The "multi" ALSA device requires all defined slaves to be present.
+That's typically fine for hardware devices that do not vanish when
+turned off, such as sound cards. However, for Bluetooth devices, for
+example, that is not the case. Those will fail to open and, hence, cause
+the entire multi device to fail. That in turn stops any sound from being
+emitted.
+With this change we enhance said multi devices with support for optional
+slaves. This optionality has to be opted in explicitly by clients, by
+setting the "comment" field of the slave to "optional":
+
+  > type multi
+  > ...
+  > slaves.c.pcm "bluetooth"
+  > slaves.c.channels 2;
+  > slaves.c.comment "optional";
+  > bindings.6.slave c;
+  > bindings.6.channel 0;
+  > ...
+
+If that is done, a failure to open such a slave that is caused by the
+device not being found will no longer lead to overall failure of the
+open operation. Instead, it will simply be ignored and the remaining
+slaves be used.
+---
+ src/pcm/pcm_multi.c | 63 +++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 61 insertions(+), 2 deletions(-)
+
+diff --git a/src/pcm/pcm_multi.c b/src/pcm/pcm_multi.c
+index bec6d0..1817ce 100644
+--- a/src/pcm/pcm_multi.c
++++ b/src/pcm/pcm_multi.c
+@@ -1226,6 +1226,8 @@ pcm.quad2 {
+ 
+ */
+ 
++int snd_pcm_null_open(snd_pcm_t **pcmp, const char *name, snd_pcm_stream_t stream, int mode);
++
+ /**
+  * \brief Creates a new Multi PCM
+  * \param pcmp Returns created PCM handle
+@@ -1421,14 +1423,71 @@ int _snd_pcm_multi_open(snd_pcm_t **pcmp, const char *name,
+ 		channels_schannel[cchannel] = schannel;
+ 	}
+ 	
+-	for (idx = 0; idx < slaves_count; ++idx) {
++	idx = 0;
++	snd_config_for_each(i, inext, slaves) {
++		snd_config_t *n = snd_config_iterator_entry(i);
++		const char *id;
++		const char *str;
++		int optional = 0;
++
++		if (snd_config_get_id(n, &id) < 0)
++			continue;
++
++		if (snd_config_get_string(n, &str) >= 0) {
++			err = snd_config_search_definition(root, "pcm_slave", str, &n);
++			if (err < 0) {
++				SNDERR("Invalid slave definition");
++				err = -EINVAL;
++				goto _free;
++			}
++		}
++
++		if (snd_config_get_type(n) != SND_CONFIG_TYPE_COMPOUND) {
++			SNDERR("Invalid slave definition");
++			err = -EINVAL;
++			goto _free;
++		}
++
++		snd_config_for_each(j, jnext, n) {
++			snd_config_t *m = snd_config_iterator_entry(j);
++			const char *idm;
++			const char *str;
++
++			if (snd_config_get_id(m, &idm) < 0)
++				continue;
++
++			if (strcmp(idm, "comment") == 0) {
++				err = snd_config_get_string(m, &str);
++				if (err < 0) {
++					SNDERR("Comment field is not a string");
++					goto _free;
++				}
++				if (strcmp(str, "optional") != 0) {
++					SNDERR("Comment field has unrecognized value: %s", str);
++					goto _free;
++				}
++
++				optional = 1;
++			}
++		}
++
+ 		err = snd_pcm_open_slave(&slaves_pcm[idx], root,
+ 					 slaves_conf[idx], stream, mode,
+ 					 conf);
+-		if (err < 0)
++		if (err == -ENODEV && optional != 0) {
++			err = snd_pcm_null_open(&slaves_pcm[idx], NULL, stream, mode);
++			if (err < 0) {
++				SNDERR("Failed to open null PCM for non-present optional slave");
++				goto _free;
++			}
++			SNDERR("Optional slave '%s' not found; continuing...", id);
++			idx += 1;
++			continue;
++		} else if (err < 0)
+ 			goto _free;
+ 		snd_config_delete(slaves_conf[idx]);
+ 		slaves_conf[idx] = NULL;
++		idx += 1;
+ 	}
+ 	err = snd_pcm_multi_open(pcmp, name, slaves_count, master_slave,
+ 				 slaves_pcm, slaves_channels,
+-- 
+2.37.4
+
