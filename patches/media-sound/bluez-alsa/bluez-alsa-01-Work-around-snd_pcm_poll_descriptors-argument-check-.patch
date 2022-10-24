@@ -1,0 +1,50 @@
+From 79e12b4c1aa46b94ed725d7c5ea9a8011e8708fb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sat, 22 Oct 2022 22:19:18 -0700
+Subject: [PATCH] Work around snd_pcm_poll_descriptors argument check issue
+
+MPD does not work properly with bluez-alsa driven Bluetooth devices, at
+least not in certain configurations. In those it emits the following
+error:
+
+  > output: Failed to play on "XXX" (alsa): snd_pcm_poll_descriptors() failed: Invalid argument
+  > exception: Failed to open audio output
+
+The reason seems to be that MPD makes certain assumptions about some
+poll file descriptor array that bluez-alsa receives (though ALSA
+callbacks) but disagrees with. The alsa-lib API supposedly has the
+contract under specified.
+
+If you feel like having a bit more life juice drained out of you, you
+are encouraged to read up on the circus here:
+https://github.com/Arkq/bluez-alsa/issues/174
+https://github.com/MusicPlayerDaemon/MPD/issues/432
+https://github.com/MusicPlayerDaemon/MPD/issues/548
+https://github.com/MusicPlayerDaemon/MPD/issues/1037
+https://github.com/MusicPlayerDaemon/MPD/issues/1204
+
+This change works around the issue by ignoring the return value of
+the call to bluealsa_dbus_connection_poll_fds from within
+bluealsa_poll_descriptors, which is the PCM devices poll_descriptors
+handler. Better than no sound...
+---
+ src/asound/bluealsa-pcm.c | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/src/asound/bluealsa-pcm.c b/src/asound/bluealsa-pcm.c
+index 751ffe..e28fc6 100644
+--- a/src/asound/bluealsa-pcm.c
++++ b/src/asound/bluealsa-pcm.c
+@@ -842,8 +842,7 @@ static int bluealsa_poll_descriptors(snd_pcm_ioplug_t *io, struct pollfd *pfd,
+ 	struct bluealsa_pcm *pcm = io->private_data;
+ 
+ 	nfds_t dbus_nfds = nfds - 1;
+-	if (!bluealsa_dbus_connection_poll_fds(&pcm->dbus_ctx, &pfd[1], &dbus_nfds))
+-		return -EINVAL;
++	(void)bluealsa_dbus_connection_poll_fds(&pcm->dbus_ctx, &pfd[1], &dbus_nfds);
+ 
+ 	/* PCM plug-in relies on our internal event file descriptor. */
+ 	pfd[0].fd = pcm->event_fd;
+-- 
+2.37.4
+
