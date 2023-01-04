@@ -34,7 +34,7 @@ RESTRICT="userpriv network-sandbox"
 inherit git-r3
 
 EGIT_BRANCH="main"
-EGIT_COMMIT="30efe472911693470cca4a8491ac3abea73ac423"
+EGIT_COMMIT="7e531da0c6ae171eb018ee77155daf6bc7484674"
 EGIT_REPO_URI="https://github.com/taiki-e/cargo-llvm-cov.git"
 
 src_unpack() {
