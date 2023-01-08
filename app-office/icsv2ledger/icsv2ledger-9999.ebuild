@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+EAPI=8
 
 DESCRIPTION="Interactive importing of CSV files to Ledger."
 HOMEPAGE="https://github.com/quentinsf/icsv2ledger"

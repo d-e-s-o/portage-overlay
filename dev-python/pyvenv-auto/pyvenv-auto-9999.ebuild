@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+EAPI=8
 
 DESCRIPTION="Automatic pyvenv detection and activation."
 HOMEPAGE="https://github.com/d-e-s-o/pyvenv-auto"

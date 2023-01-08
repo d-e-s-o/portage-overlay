@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="Cargo subcommand to easily use LLVM source-based code coverage (-Z instrument-coverage)."
 
@@ -26,7 +26,7 @@ IUSE=""
 
 inherit cargo
 
-RDEPEND=""
+RDEPEND="dev-lang/rust[profiler]"
 DEPEND="${RDEPEND}"
 
 RESTRICT="userpriv network-sandbox"

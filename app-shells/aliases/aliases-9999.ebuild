@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+EAPI=8
 
 DESCRIPTION="Commonly used shell aliases."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"

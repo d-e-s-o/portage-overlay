@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+EAPI=8
 
 DESCRIPTION="A script for deploying chroot environments."
 HOMEPAGE="https://github.com/d-e-s-o/chroot-deploy"

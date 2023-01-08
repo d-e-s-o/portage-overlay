@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=6
+EAPI=8
 
 DESCRIPTION="A pre-commit hook for handling copyright headers hook in git(1)."
 HOMEPAGE="https://github.com/d-e-s-o/git-hook-copyright"
