@@ -11,9 +11,13 @@ SLOT="0"
 KEYWORDS="amd64"
 IUSE=""
 
+# app-text/ghostscript-gpl seems to be an (undisclosed?) dependency of
+# media-gfx/imagemagick, actually. Specifically, convert seems to
+# require gs.
 RDEPEND="
-	sys-apps/util-linux
+	app-text/ghostscript-gpl
 	media-gfx/imagemagick
+	sys-apps/util-linux
 "
 DEPEND="${RDEPEND}"
 
