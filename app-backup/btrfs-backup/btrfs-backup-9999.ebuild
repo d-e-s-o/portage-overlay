@@ -44,7 +44,7 @@ REQUIRED_USE="
   test? ( tests )
 "
 
-EGIT_BRANCH="master"
+EGIT_BRANCH="main"
 EGIT_REPO_URI="https://github.com/d-e-s-o/btrfs-backup"
 
 inherit git-r3
