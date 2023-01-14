@@ -39,21 +39,14 @@ EGIT_REPO_URI="https://github.com/d-e-s-o/cleanup"
 inherit git-r3
 inherit distutils-r1
 
-python_prepare_all() {
-  if ! use tests; then
-    epatch "${FILESDIR}"/${PN}-remove-tests.patch
-  fi
-  distutils-r1_python_prepare_all
+src_compile() {
+  true
 }
 
-python_compile() {
-  pushd "${S}"/cleanup > /dev/null || die
-  distutils-r1_python_compile
-  popd > /dev/null || die
-}
-
-python_install() {
-  pushd "${S}"/cleanup > /dev/null || die
-  distutils-r1_python_install
-  popd > /dev/null || die
+src_install() {
+  installation() {
+    python_moduleinto deso/cleanup
+    python_domodule cleanup/src/deso/cleanup/*.py
+  }
+  python_foreach_impl installation
 }
