@@ -1,16 +1,16 @@
 diff --git a/lib/portage/util/env_update.py b/lib/portage/util/env_update.py
-index 0e5e34..1ff569 100644
+index d76042..d32474 100644
 --- a/lib/portage/util/env_update.py
 +++ b/lib/portage/util/env_update.py
 @@ -395,9 +395,9 @@ def _env_update(makelinks, target_root, prev_mtimes, contents, env, writemsg_lev
          for k in env_keys:
              v = env[k]
              if v.startswith("$") and not v.startswith("${"):
--                outfile.write("export {}=$'{}'\n".format(k, v[1:]))
-+                outfile.write("export {}=$\"{}\"\n".format(k, v[1:]))
+-                outfile.write(f"export {k}=$'{v[1:]}'\n")
++                outfile.write(f"export {k}=$\"{v[1:]}\"\n")
              else:
--                outfile.write("export {}='{}'\n".format(k, v))
-+                outfile.write("export {}=\"{}\"\n".format(k, v))
+-                outfile.write(f"export {k}='{v}'\n")
++                outfile.write(f"export {k}=\"{v}\"\n")
  
      # Create the systemd user environment configuration file
      # /etc/environment.d/10-gentoo-env.conf with the
