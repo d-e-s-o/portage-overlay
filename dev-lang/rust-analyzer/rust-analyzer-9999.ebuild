@@ -22,8 +22,10 @@ RDEPEND="${DEPEND}"
 
 inherit git-r3
 
+RESTRICT="userpriv"
+
 EGIT_BRANCH="master"
-EGIT_COMMIT="21e61bee8b74e93f14205f4a6c316db08f811e38"
+EGIT_COMMIT="4e29820f6d9880606a403e7bec6e91312e7f0575"
 EGIT_REPO_URI="https://github.com/rust-analyzer/rust-analyzer.git"
 EGIT_MIN_CLONE_TYPE="shallow"
 
