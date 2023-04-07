@@ -25,7 +25,7 @@ inherit git-r3
 RESTRICT="userpriv"
 
 EGIT_BRANCH="master"
-EGIT_COMMIT="4e29820f6d9880606a403e7bec6e91312e7f0575"
+EGIT_COMMIT="236576227a299fd19ba836b1834ab50c948af994"
 EGIT_REPO_URI="https://github.com/rust-analyzer/rust-analyzer.git"
 EGIT_MIN_CLONE_TYPE="shallow"
 
