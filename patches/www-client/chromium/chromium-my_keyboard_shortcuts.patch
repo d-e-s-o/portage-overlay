@@ -16,7 +16,7 @@ diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui
 index 6eece6..d64c1e 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -484,6 +484,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
+@@ -491,6 +491,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
      case IDC_SELECT_TAB_5:
      case IDC_SELECT_TAB_6:
      case IDC_SELECT_TAB_7:
@@ -24,7 +24,7 @@ index 6eece6..d64c1e 100644
        base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
        SelectNumberedTab(
            browser_, id - IDC_SELECT_TAB_0,
-@@ -1203,6 +1204,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1208,6 +1209,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, supports_tabs);
@@ -36,7 +36,7 @@ diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/vi
 index 6afe56..610997 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
-@@ -36,12 +36,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -40,12 +40,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
  #if !BUILDFLAG(IS_CHROMEOS)
      {ui::VKEY_F7, ui::EF_NONE, IDC_CARET_BROWSING_TOGGLE},
  #endif
@@ -52,7 +52,7 @@ index 6afe56..610997 100644
       IDC_BOOKMARK_ALL_TABS},
      {ui::VKEY_W, ui::EF_PLATFORM_ACCELERATOR, IDC_CLOSE_TAB},
      {ui::VKEY_W, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
-@@ -59,21 +59,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -63,21 +63,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_R, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
       IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_S, ui::EF_PLATFORM_ACCELERATOR, IDC_SAVE_PAGE},
@@ -79,7 +79,7 @@ index 6afe56..610997 100644
      {ui::VKEY_TAB, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
       IDC_SELECT_PREVIOUS_TAB},
      {ui::VKEY_PRIOR, ui::EF_CONTROL_DOWN, IDC_SELECT_PREVIOUS_TAB},
-@@ -110,9 +105,9 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -114,9 +109,9 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_NUMPAD7, ui::EF_ALT_DOWN, IDC_SELECT_TAB_6},
      {ui::VKEY_8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
      {ui::VKEY_NUMPAD8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
@@ -91,7 +91,7 @@ index 6afe56..610997 100644
       IDC_SHOW_BOOKMARK_BAR},
      {ui::VKEY_OEM_MINUS, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
      {ui::VKEY_SUBTRACT, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
-@@ -129,18 +124,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -133,18 +128,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_F5, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_F5, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_F5, ui::EF_SHIFT_DOWN, IDC_RELOAD_BYPASSING_CACHE},
@@ -107,7 +107,7 @@ index 6afe56..610997 100644
       IDC_SHOW_AVATAR_MENU},
  
  // Platform-specific key maps.
- #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS)
+ #if BUILDFLAG(IS_LINUX) || BUILDFLAG(IS_CHROMEOS) || BUILDFLAG(IS_FUCHSIA)
 -    {ui::VKEY_BROWSER_BACK, ui::EF_NONE, IDC_BACK},
 -    {ui::VKEY_BROWSER_FORWARD, ui::EF_NONE, IDC_FORWARD},
 +    {ui::VKEY_H, ui::EF_PLATFORM_ACCELERATOR, IDC_BACK},
@@ -115,9 +115,9 @@ index 6afe56..610997 100644
      {ui::VKEY_BROWSER_HOME, ui::EF_NONE, IDC_HOME},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
-@@ -175,13 +169,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
-     // On Chrome OS, Search + Esc is used to call out task manager.
+@@ -181,13 +175,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_ESCAPE, ui::EF_COMMAND_DOWN, IDC_TASK_MANAGER},
+     {ui::VKEY_Z, ui::EF_COMMAND_DOWN, IDC_TOGGLE_MULTITASK_MENU},
  #else   // BUILDFLAG(IS_CHROMEOS)
 -    {ui::VKEY_ESCAPE, ui::EF_SHIFT_DOWN, IDC_TASK_MANAGER},
 +    {ui::VKEY_DELETE, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_TASK_MANAGER},
@@ -131,7 +131,7 @@ index 6afe56..610997 100644
  #endif  // BUILDFLAG(IS_CHROMEOS)
  
  #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !BUILDFLAG(IS_MAC)
-@@ -201,29 +196,28 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -207,29 +202,28 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_LEFT, ui::EF_ALT_DOWN, IDC_BACK},
      {ui::VKEY_LEFT, ui::EF_ALTGR_DOWN, IDC_BACK},
  #if BUILDFLAG(ENABLE_PRINTING)
