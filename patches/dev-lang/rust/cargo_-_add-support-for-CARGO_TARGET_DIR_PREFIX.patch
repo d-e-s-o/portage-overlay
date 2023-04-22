@@ -1,4 +1,4 @@
-From acf88adc1b87c33bb2b8dda0520f07c1c048387a Mon Sep 17 00:00:00 2001
+From 50fa9ea39afe36ad1491e6b6304c3b4912cf2195 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Tue, 25 Dec 2018 14:10:36 -0800
 Subject: [PATCH] Add support for CARGO_TARGET_DIR_PREFIX
@@ -32,10 +32,10 @@ TODO: There is also the potential for a permission related problems.
  5 files changed, 93 insertions(+), 7 deletions(-)
 
 diff --git a/src/cargo/core/workspace.rs b/src/cargo/core/workspace.rs
-index 0d07da..7f32cb 100644
+index 12b78a..6c297e 100644
 --- a/src/tools/cargo/src/cargo/core/workspace.rs
 +++ b/src/tools/cargo/src/cargo/core/workspace.rs
-@@ -186,7 +186,6 @@ impl<'cfg> Workspace<'cfg> {
+@@ -185,7 +185,6 @@ impl<'cfg> Workspace<'cfg> {
      /// before returning it, so `Ok` is only returned for valid workspaces.
      pub fn new(manifest_path: &Path, config: &'cfg Config) -> CargoResult<Workspace<'cfg>> {
          let mut ws = Workspace::new_default(manifest_path.to_path_buf(), config);
@@ -43,7 +43,7 @@ index 0d07da..7f32cb 100644
  
          if manifest_path.is_relative() {
              bail!(
-@@ -197,6 +196,12 @@ impl<'cfg> Workspace<'cfg> {
+@@ -196,6 +195,12 @@ impl<'cfg> Workspace<'cfg> {
              ws.root_manifest = ws.find_root(manifest_path)?;
          }
  
@@ -56,7 +56,7 @@ index 0d07da..7f32cb 100644
          ws.custom_metadata = ws
              .load_workspace_config()?
              .and_then(|cfg| cfg.custom_metadata);
-@@ -236,7 +241,11 @@ impl<'cfg> Workspace<'cfg> {
+@@ -235,7 +240,11 @@ impl<'cfg> Workspace<'cfg> {
      ) -> CargoResult<Workspace<'cfg>> {
          let mut ws = Workspace::new_default(current_manifest, config);
          ws.root_manifest = Some(root_path.join("Cargo.toml"));
@@ -69,7 +69,7 @@ index 0d07da..7f32cb 100644
          ws.packages
              .packages
              .insert(root_path, MaybePackage::Virtual(manifest));
-@@ -267,13 +276,13 @@ impl<'cfg> Workspace<'cfg> {
+@@ -266,13 +275,13 @@ impl<'cfg> Workspace<'cfg> {
          ws.require_optional_deps = require_optional_deps;
          let key = ws.current_manifest.parent().unwrap();
          let id = package.package_id();
@@ -87,10 +87,10 @@ index 0d07da..7f32cb 100644
          ws.member_ids.insert(id);
          ws.default_members.push(ws.current_manifest.clone());
 diff --git a/src/cargo/ops/cargo_install.rs b/src/cargo/ops/cargo_install.rs
-index dd22cc..300592 100644
+index 53c3e7..c4d2c8 100644
 --- a/src/tools/cargo/src/cargo/ops/cargo_install.rs
 +++ b/src/tools/cargo/src/cargo/ops/cargo_install.rs
-@@ -281,7 +281,8 @@ impl<'cfg, 'a> InstallablePackage<'cfg, 'a> {
+@@ -289,7 +289,8 @@ impl<'cfg, 'a> InstallablePackage<'cfg, 'a> {
          let mut td_opt = None;
          let mut needs_cleanup = false;
          if !self.source_id.is_path() {
@@ -101,10 +101,10 @@ index dd22cc..300592 100644
              } else if let Ok(td) = TempFileBuilder::new().prefix("cargo-install").tempdir() {
                  let p = td.path().to_owned();
 diff --git a/src/cargo/util/config/mod.rs b/src/cargo/util/config/mod.rs
-index dd3f6a..8a8be4 100644
+index 229159..16be9a 100644
 --- a/src/tools/cargo/src/cargo/util/config/mod.rs
 +++ b/src/tools/cargo/src/cargo/util/config/mod.rs
-@@ -493,7 +493,7 @@ impl Config {
+@@ -551,7 +551,7 @@ impl Config {
      /// Returns `None` if the user has not chosen an explicit directory.
      ///
      /// Callers should prefer `Workspace::target_dir` instead.
@@ -112,8 +112,8 @@ index dd3f6a..8a8be4 100644
 +    pub fn target_dir(&self, manifest: impl Into<PathBuf>) -> CargoResult<Option<Filesystem>> {
          if let Some(dir) = &self.target_dir {
              Ok(Some(dir.clone()))
-         } else if let Some(dir) = self.env.get("CARGO_TARGET_DIR") {
-@@ -506,6 +506,21 @@ impl Config {
+         } else if let Some(dir) = self.get_env_os("CARGO_TARGET_DIR") {
+@@ -564,6 +564,21 @@ impl Config {
              }
  
              Ok(Some(Filesystem::new(self.cwd.join(dir))))
@@ -136,10 +136,10 @@ index dd3f6a..8a8be4 100644
              let path = val.resolve_path(self);
  
 diff --git a/src/doc/src/reference/environment-variables.md b/src/doc/src/reference/environment-variables.md
-index b1a5db..5047d7 100644
+index 2ed986..192825 100644
 --- a/src/tools/cargo/src/doc/src/reference/environment-variables.md
 +++ b/src/tools/cargo/src/doc/src/reference/environment-variables.md
-@@ -15,6 +15,10 @@ system:
+@@ -20,6 +20,10 @@ system:
    location of this directory. Once a crate is cached it is not removed by the
    clean command.
    For more details refer to the [guide](../guide/cargo-home.md).
@@ -147,14 +147,14 @@ index b1a5db..5047d7 100644
 +  generated artifacts. The current working directory will be appended to this
 +  prefix to form the final path for generated artifacts. Note that
 +  `CARGO_TARGET_DIR`, if set, takes precedence over this variable.
- * `CARGO_TARGET_DIR` — Location of where to place all generated artifacts,
+ * `CARGO_TARGET_DIR` --- Location of where to place all generated artifacts,
    relative to the current working directory. See [`build.target-dir`] to set
    via config.
 diff --git a/tests/testsuite/build.rs b/tests/testsuite/build.rs
-index ace734..a783cf 100644
+index 56130c..71f405 100644
 --- a/src/tools/cargo/tests/testsuite/build.rs
 +++ b/src/tools/cargo/tests/testsuite/build.rs
-@@ -3737,6 +3737,63 @@ fn panic_abort_compiles_with_panic_abort() {
+@@ -3837,6 +3837,63 @@ fn panic_abort_compiles_with_panic_abort() {
          .run();
  }
  
@@ -219,5 +219,5 @@ index ace734..a783cf 100644
  fn compiler_json_error_format() {
      let p = project()
 -- 
-2.35.1
+2.39.2
 
