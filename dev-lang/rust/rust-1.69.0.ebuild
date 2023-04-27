@@ -312,7 +312,7 @@ src_configure() {
 	fi
 	rust_targets="${rust_targets#,}"
 
-	local tools='"cargo"'
+	local tools='"cargo","rustdoc"'
 	use clippy && tools+=',"clippy"'
 	use miri && tools+=',"miri"'
 	use profiler && tools+=',"rust-demangler"'
