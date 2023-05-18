@@ -1,0 +1,19 @@
+--- a/rust.eselect.in	2021-07-03 00:48:56.000000000 -0700
++++ b/rust.eselect.in	2023-05-18 07:35:34.627232993 -0700
+@@ -139,6 +139,7 @@
+ 
+ # remove symlink if exists
+ remove_symlink() {
++	return
+ 	local symlink=$1
+ 
+ 	if [[ -L ${symlink} ]]; then
+@@ -159,7 +160,7 @@
+ 
+ 	if [[ -e ${dest%/*}/${source} ]]; then
+ 		mkdir -p "$(dirname ${dest})" || die -q "directory creation failed for $(dirname ${dest})"
+-		ln -s "${source}" "${dest}" || die -q "${dest} symlink setting failed"
++		ln -fs "${source}" "${dest}" || die -q "${dest} symlink setting failed"
+ 	else
+ 		false
+ 	fi
