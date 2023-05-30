@@ -1,12 +1,12 @@
-diff --git app.cpp app.cpp
-index eb7e05..00cd99 100644
---- app.cpp
-+++ app.cpp
-@@ -329,6 +329,7 @@ void App::Run() {
+diff --git a/app.cpp b/app.cpp
+index 237477..eb191a 100644
+--- a/app.cpp
++++ b/app.cpp
+@@ -445,6 +445,7 @@ void App::Run()
+ 			try {
+ 				pam.check_acct();
  #endif
- 		firstlogin = false;
- 		if (autologin) {
-+			setBackground(themedir);
++			LoginPanel->setBackground();
  			Login();
- 		}
- 	}
+ #ifdef USE_PAM
+ 			}
