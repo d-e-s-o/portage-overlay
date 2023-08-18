@@ -1,0 +1,41 @@
+From 93bd20836433e0a8f97da48d6edf9b5ed43d61c6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Fri, 18 Aug 2023 10:27:16 -0700
+Subject: [PATCH] Fix exit code propagation in fzy-tmux
+
+Exit code propagation in fzy-tmux is seemingly subtly broken. fzy itself
+exits with exit code 1 when quit with Esc (see fzy(1)).
+
+That works fine and in the following example we correctly see /tmp
+printed:
+  $ echo test | fzy || echo /tmp
+  > /tmp
+
+However, once we do the same exercise with fzy-tmux, we no longer see
+this printout:
+  > echo test | fzy-tmux || echo /tmp
+  >
+
+Apparently, for some non-obvious reason, the 'echo $?' already reports a
+zero exit code. Use proper shell conditional to try and propagate the
+exit code with more success.
+---
+ contrib/fzy-tmux | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/contrib/fzy-tmux b/contrib/fzy-tmux
+index 783c9f..1f5d5f 100755
+--- a/contrib/fzy-tmux
++++ b/contrib/fzy-tmux
+@@ -29,7 +29,7 @@ main() {
+     eval "tmux \
+         set-window-option synchronize-panes off \\; \
+         set-window-option remain-on-exit off \\; \
+-        split-window \"fzy --lines 50 $* < '${PATH_FIFO_IN}' > '${PATH_FIFO_OUT}' 2>&1; echo $? > '${PATH_FIFO_RET}'\""
++        split-window \"fzy --lines 50 $* < '${PATH_FIFO_IN}' > '${PATH_FIFO_OUT}' 2>&1 && echo 0 > '${PATH_FIFO_RET}' || echo 1 > '${PATH_FIFO_RET}'\""
+ 
+     cat <&0 > "${PATH_FIFO_IN}" &
+     cat < "${PATH_FIFO_OUT}"
+-- 
+2.41.0
+
