@@ -3,7 +3,7 @@
 
 EAPI=7
 
-inherit autotools eutils libtool
+inherit autotools libtool
 
 DESCRIPTION="An advanced, highly configurable system monitor for X"
 HOMEPAGE="http://conky.sourceforge.net/"
@@ -58,7 +58,7 @@ DEPEND="
 	"
 
 src_prepare() {
-	epatch \
+	eapply \
 		"${FILESDIR}/${PN}-1.8.1-utf8-scroll.patch" \
 		"${FILESDIR}/${P}-ncurses.patch" \
 		"${FILESDIR}/${P}-lines-fix.patch" \
@@ -67,7 +67,8 @@ src_prepare() {
 		"${FILESDIR}/${P}-default-graph-size.patch" \
 		"${FILESDIR}/${P}-diskio-dmmajor.patch" \
 		"${FILESDIR}/${P}-tinfo.patch" \
-		"${FILESDIR}/${P}-update-noaa-metar-uri.patch"
+		"${FILESDIR}/${P}-update-noaa-metar-uri.patch" \
+		"${FILESDIR}/${P}-fix-their-shitty-build.patch"
 
 	eapply_user
 
@@ -113,8 +114,6 @@ src_configure() {
 
 src_install() {
 	default
-
-	dohtml doc/*.html
 
 	if use vim-syntax; then
 		insinto /usr/share/vim/vimfiles/ftdetect

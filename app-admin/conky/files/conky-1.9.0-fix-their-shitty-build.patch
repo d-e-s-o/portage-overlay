@@ -1,0 +1,36 @@
+diff --git a/src/conky.c b/src/conky.c
+index 969274..4ca1d5 100644
+--- a/src/conky.c
++++ b/src/conky.c
+@@ -147,6 +147,8 @@ char *get_apm_battery_time(void);
+ //#define SIGNAL_BLOCKING
+ #undef SIGNAL_BLOCKING
+ 
++enum IFUP_SHIT ifup_strictness;
++
+ /* debugging level, used by logging.h */
+ int global_debug_level = 0;
+ 
+@@ -417,9 +419,6 @@ unsigned int text_buffer_size = DEFAULT_TEXT_BUFFER_SIZE;
+ /* UTF-8 */
+ int utf8_mode = 0;
+ 
+-/* no buffers in used memory? */
+-int no_buffers;
+-
+ /* pad percentages to decimals? */
+ static int pad_percents = 0;
+ 
+diff --git a/src/conky.h b/src/conky.h
+index 30e73a..af3fb2 100644
+--- a/src/conky.h
++++ b/src/conky.h
+@@ -206,7 +206,7 @@ enum {
+ 
+ /* if_up strictness selector
+  * needed by conky.c and linux.c (and potentially others) */
+-enum {
++extern enum IFUP_SHIT {
+ 	IFUP_UP,
+ 	IFUP_LINK,
+ 	IFUP_ADDR

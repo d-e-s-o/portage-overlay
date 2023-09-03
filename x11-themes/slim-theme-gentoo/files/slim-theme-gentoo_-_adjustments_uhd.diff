@@ -1,5 +1,5 @@
---- gentoo/slim.theme
-+++ gentoo/slim.theme
+--- a/gentoo/slim.theme
++++ b/gentoo/slim.theme
 @@ -10,7 +10,7 @@
  msg_shadow_color   #aaaaaa
  
