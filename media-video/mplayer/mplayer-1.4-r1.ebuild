@@ -63,6 +63,7 @@ RDEPEND+="
 	app-arch/bzip2
 	sys-libs/zlib
 	>=media-video/ffmpeg-4.0:0=[vdpau?]
+	<media-video/ffmpeg-6.0:0
 	a52? ( media-libs/a52dec )
 	aalib? ( media-libs/aalib )
 	alsa? ( media-libs/alsa-lib )

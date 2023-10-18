@@ -1,0 +1,17 @@
+diff --git a/av_helpers.c b/av_helpers.c
+index a4e245..6b86f3 100644
+--- a/av_helpers.c
++++ b/av_helpers.c
+@@ -51,10 +51,10 @@ static void mp_msp_av_log_callback(void *ptr, int level, const char *fmt,
+             AVCodecContext *s= ptr;
+             if(s->codec){
+                 if(s->codec->type == AVMEDIA_TYPE_AUDIO){
+-                    if(s->codec->decode)
++                    if(1)
+                         type= MSGT_DECAUDIO;
+                 }else if(s->codec->type == AVMEDIA_TYPE_VIDEO){
+-                    if(s->codec->decode)
++                    if(1)
+                         type= MSGT_DECVIDEO;
+                 }
+                 //FIXME subtitles, encoders (what msgt for them? there is no appropriate ...)
