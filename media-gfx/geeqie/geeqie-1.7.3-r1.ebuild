@@ -28,8 +28,8 @@ RDEPEND="
 	map? ( media-libs/libchamplain:0.12 )
 	pdf? ( >=app-text/poppler-0.62[cairo] )
 	tiff? ( media-libs/tiff:= )
-	xmp? ( >=media-gfx/exiv2-0.17:=[xmp] )
-	!xmp? ( exif? ( >=media-gfx/exiv2-0.17:= ) )"
+	xmp? ( >=media-gfx/exiv2-0.27:=[xmp] )
+	!xmp? ( exif? ( >=media-gfx/exiv2-0.27:= ) )"
 DEPEND="${RDEPEND}"
 BDEPEND="
 	dev-util/glib-utils
