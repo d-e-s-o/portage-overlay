@@ -20,7 +20,7 @@ EAPI=7
 DESCRIPTION="A script to perform commands on multiple git repositories."
 HOMEPAGE="https://github.com/d-e-s-o/git-foreach"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 

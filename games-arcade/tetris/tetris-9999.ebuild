@@ -5,7 +5,7 @@ EAPI=7
 
 DESCRIPTION="A tetris game."
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64"
 IUSE=""

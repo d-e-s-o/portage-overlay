@@ -20,7 +20,7 @@ EAPI=8
 DESCRIPTION="A script for deploying chroot environments."
 HOMEPAGE="https://github.com/d-e-s-o/chroot-deploy"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64"
 IUSE=""

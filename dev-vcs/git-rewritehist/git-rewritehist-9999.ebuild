@@ -20,7 +20,7 @@ EAPI=7
 DESCRIPTION="Utility functionality for rewriting history in a git repository."
 HOMEPAGE="https://github.com/d-e-s-o/git-rewritehist"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 

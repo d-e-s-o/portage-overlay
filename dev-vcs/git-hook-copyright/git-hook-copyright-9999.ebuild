@@ -20,7 +20,7 @@ EAPI=8
 DESCRIPTION="A pre-commit hook for handling copyright headers hook in git(1)."
 HOMEPAGE="https://github.com/d-e-s-o/git-hook-copyright"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 

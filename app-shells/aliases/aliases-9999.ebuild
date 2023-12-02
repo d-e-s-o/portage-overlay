@@ -20,7 +20,7 @@ EAPI=8
 DESCRIPTION="Commonly used shell aliases."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux"
 IUSE=""

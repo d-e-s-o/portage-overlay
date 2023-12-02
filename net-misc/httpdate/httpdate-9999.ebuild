@@ -20,7 +20,7 @@ EAPI=8
 DESCRIPTION="An init script to update the system time over HTTP."
 HOMEPAGE="https://github.com/d-e-s-o/httpdate-openrc"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64 arm"
 IUSE=""

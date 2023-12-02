@@ -20,7 +20,7 @@ EAPI=7
 DESCRIPTION="A Python package providing argument completion for programs using ArgumentParser."
 HOMEPAGE="https://github.com/d-e-s-o/argcomp"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 

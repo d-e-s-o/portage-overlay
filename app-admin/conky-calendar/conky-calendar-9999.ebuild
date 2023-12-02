@@ -1,12 +1,12 @@
-# Copyright 1999-2019 Gentoo Authors
-# Distributed under the terms of the GNU General Public License v2
+# Copyright (C) 2023 Daniel Mueller <deso@posteo.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 EAPI=7
 
 DESCRIPTION="A calendar widget for Conky"
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64"
 IUSE="+uhd"

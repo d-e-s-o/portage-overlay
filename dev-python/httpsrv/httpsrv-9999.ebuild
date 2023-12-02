@@ -6,7 +6,7 @@ EAPI=7
 DESCRIPTION="A simple Python HTTP server and module."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 

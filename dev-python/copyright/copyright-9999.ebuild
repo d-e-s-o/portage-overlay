@@ -20,7 +20,7 @@ EAPI=7
 DESCRIPTION="A Python module for handling of copyright file headers."
 HOMEPAGE="https://github.com/d-e-s-o/copyright"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 

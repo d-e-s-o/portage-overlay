@@ -20,7 +20,7 @@ EAPI=7
 DESCRIPTION="A default Python venv scaffolding to be shared globally."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 

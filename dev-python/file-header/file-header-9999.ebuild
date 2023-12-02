@@ -20,7 +20,7 @@ EAPI=8
 DESCRIPTION="A program for checking headers in files."
 HOMEPAGE="https://github.com/d-e-s-o/file-header"
 
-LICENSE="GPL-3"
+LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64"
 

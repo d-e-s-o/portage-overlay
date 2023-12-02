@@ -19,7 +19,7 @@ EAPI=8
 
 DESCRIPTION="Cargo subcommand to easily use LLVM source-based code coverage (-Z instrument-coverage)."
 
-LICENSE="GPL-3"
+LICENSE="Apache-2.0 MIT"
 SLOT="0"
 KEYWORDS="amd64"
 IUSE=""
