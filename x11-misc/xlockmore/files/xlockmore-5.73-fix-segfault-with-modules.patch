@@ -1,0 +1,32 @@
+From 88ae839ffaa62efde60ec8119ced8cf226aec207 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sun, 22 Oct 2023 14:34:38 -0700
+Subject: [PATCH] Fix segfault
+
+---
+ xlock/mode.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/xlock/mode.c b/xlock/mode.c
+index 34baf9..4d77ef 100644
+--- a/xlock/mode.c
++++ b/xlock/mode.c
+@@ -1133,6 +1133,7 @@ LoadModules(char *path)
+ 					}
+ 				} else
+ 					newstack->lock->unused_hook = NULL;*/
++				newstack->lock->free_hook = NULL;
+ 				newstack->lock->msopt = desc->msopt;
+ 				newstack->lock->def_delay = desc->def_delay;
+ 				newstack->lock->def_count = desc->def_count;
+@@ -1144,6 +1145,7 @@ LoadModules(char *path)
+ 				newstack->lock->desc = (char *) desc->desc;
+ 				newstack->lock->flags = desc->flags;
+ 				newstack->lock->userdata = desc->userdata;
++				newstack->lock->state_array = NULL;
+ 
+ 				newstack->next = head;
+ 				head = newstack;
+-- 
+2.41.0
+
