@@ -16,7 +16,7 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}"
 
-EGIT_BRANCH="master"
+EGIT_BRANCH="main"
 EGIT_REPO_URI="https://github.com/d-e-s-o/git-split.git"
 
 inherit git-r3
