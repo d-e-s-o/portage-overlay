@@ -1,0 +1,16 @@
+diff --git a/modes/Makefile.in b/modes/Makefile.in
+index dc8f0c..1151e6 100644
+--- a/modes/Makefile.in
++++ b/modes/Makefile.in
+@@ -635,9 +635,8 @@ install : install-program install-man install-ad install-sound
+ install-program : xlock
+ 	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(bindir)
+ 	$(INSTALL_PROGRAM) $(INSTPGMFLAGS) $(UTILOBJDIR)xlock$(E) $(DESTDIR)$(bindir)
+-	@MODULES@mkdir -p $(DESTDIR)$(DEF_MODULEPATH)
+-	@MODULES@cp *.xlk $(DESTDIR)$(DEF_MODULEPATH)
+-	@MODULES@cp glx/*.xlk $(DESTDIR)$(DEF_MODULEPATH)
++	@MODULES@mkdir -p $(DEF_MODULEPATH)
++	@MODULES@cp blank.xlk $(DEF_MODULEPATH)
+ 
+ install-man :
+ 	$(top_srcdir)/mkinstalldirs $(DESTDIR)$(mandir)

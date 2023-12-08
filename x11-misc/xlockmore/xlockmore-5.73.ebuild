@@ -16,7 +16,7 @@ S="${WORKDIR}/${P/_alpha/ALPHA}"
 LICENSE="BSD GPL-2"
 SLOT="0"
 KEYWORDS="~alpha amd64 ~arm ~hppa ppc ppc64 ~riscv sparc x86"
-IUSE="crypt debug gtk imagemagick motif nas opengl pam truetype xinerama xlockrc vtlock"
+IUSE="+modules crypt debug gtk imagemagick motif nas opengl pam truetype xinerama xlockrc vtlock"
 
 REQUIRED_USE="
 	|| ( crypt pam )
@@ -56,6 +56,7 @@ PATCHES=(
 	#"${FILESDIR}"/${PN}-5.64_alpha0-LDFLAGS.patch
 	"${FILESDIR}"/${PN}-5.71-fix-build-for-clang16.patch
 	"${FILESDIR}"/${PN}-5.73-fix-segfault-with-modules.patch
+	"${FILESDIR}"/${PN}-5.73-fix-module-installation.patch
 )
 
 src_prepare() {
@@ -85,6 +86,7 @@ src_configure() {
 	fi
 
 	myconf+=(
+		$(use_enable modules)
 		$(use_enable pam)
 		$(use_enable xlockrc)
 		$(use_enable vtlock)
