@@ -1,0 +1,12 @@
+diff --git a/chrome/common/webui_url_constants.cc b/chrome/common/webui_url_constants.cc
+index e2ebaa..d92451 100644
+--- a/chrome/common/webui_url_constants.cc
++++ b/chrome/common/webui_url_constants.cc
+@@ -831,6 +831,7 @@ const char* const kChromeInternalsPathURLs[] = {
+ #if BUILDFLAG(ENABLE_SESSION_SERVICE)
+     kChromeUISessionServiceInternalsPath,
+ #endif
++    kChromeUIAboutURL,
+ };
+ const size_t kNumberOfChromeInternalsPathURLs =
+     std::size(kChromeInternalsPathURLs);

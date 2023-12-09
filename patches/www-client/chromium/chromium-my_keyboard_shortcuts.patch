@@ -1,5 +1,5 @@
 diff --git a/chrome/app/chrome_command_ids.h b/chrome/app/chrome_command_ids.h
-index afdf24..ede156 100644
+index f78d75..d9bac9 100644
 --- a/chrome/app/chrome_command_ids.h
 +++ b/chrome/app/chrome_command_ids.h
 @@ -50,7 +50,8 @@
@@ -13,10 +13,10 @@ index afdf24..ede156 100644
  #define IDC_RESTORE_TAB                 34028
  #define IDC_SHOW_AS_TAB                 34029
 diff --git a/chrome/browser/ui/browser_command_controller.cc b/chrome/browser/ui/browser_command_controller.cc
-index 6eece6..d64c1e 100644
+index 405c0a..ba02e8 100644
 --- a/chrome/browser/ui/browser_command_controller.cc
 +++ b/chrome/browser/ui/browser_command_controller.cc
-@@ -491,6 +491,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
+@@ -502,6 +502,7 @@ bool BrowserCommandController::ExecuteCommandWithDisposition(
      case IDC_SELECT_TAB_5:
      case IDC_SELECT_TAB_6:
      case IDC_SELECT_TAB_7:
@@ -24,7 +24,7 @@ index 6eece6..d64c1e 100644
        base::RecordAction(base::UserMetricsAction("Accel_SelectNumberedTab"));
        SelectNumberedTab(
            browser_, id - IDC_SELECT_TAB_0,
-@@ -1208,6 +1209,7 @@ void BrowserCommandController::InitCommandState() {
+@@ -1341,6 +1342,7 @@ void BrowserCommandController::InitCommandState() {
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_5, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_6, supports_tabs);
    command_updater_.UpdateCommandEnabled(IDC_SELECT_TAB_7, supports_tabs);
@@ -33,15 +33,10 @@ index 6eece6..d64c1e 100644
    command_updater_.UpdateCommandEnabled(IDC_NEW_TAB_TO_RIGHT, supports_tabs);
  
 diff --git a/chrome/browser/ui/views/accelerator_table.cc b/chrome/browser/ui/views/accelerator_table.cc
-index 6afe56..610997 100644
+index 097442..f4140c 100644
 --- a/chrome/browser/ui/views/accelerator_table.cc
 +++ b/chrome/browser/ui/views/accelerator_table.cc
-@@ -40,12 +40,12 @@ const AcceleratorMapping kAcceleratorMap[] = {
- #if !BUILDFLAG(IS_CHROMEOS)
-     {ui::VKEY_F7, ui::EF_NONE, IDC_CARET_BROWSING_TOGGLE},
- #endif
--    {ui::VKEY_F12, ui::EF_NONE, IDC_DEV_TOOLS_TOGGLE},
-+    {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_DEV_TOOLS_TOGGLE},
+@@ -51,8 +51,8 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_ESCAPE, ui::EF_NONE, IDC_CLOSE_FIND_OR_STOP},
  
  #if !BUILDFLAG(IS_MAC)
@@ -52,7 +47,7 @@ index 6afe56..610997 100644
       IDC_BOOKMARK_ALL_TABS},
      {ui::VKEY_W, ui::EF_PLATFORM_ACCELERATOR, IDC_CLOSE_TAB},
      {ui::VKEY_W, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
-@@ -63,21 +63,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -70,21 +70,16 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_R, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
       IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_S, ui::EF_PLATFORM_ACCELERATOR, IDC_SAVE_PAGE},
@@ -79,19 +74,19 @@ index 6afe56..610997 100644
      {ui::VKEY_TAB, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
       IDC_SELECT_PREVIOUS_TAB},
      {ui::VKEY_PRIOR, ui::EF_CONTROL_DOWN, IDC_SELECT_PREVIOUS_TAB},
-@@ -114,9 +109,9 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -121,9 +116,10 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_NUMPAD7, ui::EF_ALT_DOWN, IDC_SELECT_TAB_6},
      {ui::VKEY_8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
      {ui::VKEY_NUMPAD8, ui::EF_ALT_DOWN, IDC_SELECT_TAB_7},
--    {ui::VKEY_BROWSER_FAVORITES, ui::EF_NONE, IDC_SHOW_BOOKMARK_BAR},
 +    {ui::VKEY_9, ui::EF_ALT_DOWN, IDC_SELECT_TAB_8},
- #endif  // BUILDFLAG(IS_LINUX) && !BUILDFLAG(IS_CHROMEOS)
+     {ui::VKEY_BROWSER_FAVORITES, ui::EF_NONE, IDC_SHOW_BOOKMARK_BAR},
+ #endif  // BUILDFLAG(IS_LINUX)
 -    {ui::VKEY_B, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
 +    {ui::VKEY_B, ui::EF_PLATFORM_ACCELERATOR,
       IDC_SHOW_BOOKMARK_BAR},
      {ui::VKEY_OEM_MINUS, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
      {ui::VKEY_SUBTRACT, ui::EF_PLATFORM_ACCELERATOR, IDC_ZOOM_MINUS},
-@@ -133,18 +128,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -140,18 +136,17 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_F5, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_F5, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
      {ui::VKEY_F5, ui::EF_SHIFT_DOWN, IDC_RELOAD_BYPASSING_CACHE},
@@ -115,7 +110,7 @@ index 6afe56..610997 100644
      {ui::VKEY_BROWSER_HOME, ui::EF_NONE, IDC_HOME},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_NONE, IDC_RELOAD},
      {ui::VKEY_BROWSER_REFRESH, ui::EF_CONTROL_DOWN, IDC_RELOAD_BYPASSING_CACHE},
-@@ -181,13 +175,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
+@@ -188,13 +183,14 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_ESCAPE, ui::EF_COMMAND_DOWN, IDC_TASK_MANAGER},
      {ui::VKEY_Z, ui::EF_COMMAND_DOWN, IDC_TOGGLE_MULTITASK_MENU},
  #else   // BUILDFLAG(IS_CHROMEOS)
@@ -130,21 +125,14 @@ index 6afe56..610997 100644
 +    {ui::VKEY_Q, ui::EF_PLATFORM_ACCELERATOR, IDC_EXIT},
  #endif  // BUILDFLAG(IS_CHROMEOS)
  
- #if BUILDFLAG(GOOGLE_CHROME_BRANDING) && !BUILDFLAG(IS_MAC)
-@@ -207,29 +202,28 @@ const AcceleratorMapping kAcceleratorMap[] = {
+ #if BUILDFLAG(GOOGLE_CHROME_BRANDING)
+@@ -214,24 +210,23 @@ const AcceleratorMapping kAcceleratorMap[] = {
      {ui::VKEY_LEFT, ui::EF_ALT_DOWN, IDC_BACK},
      {ui::VKEY_LEFT, ui::EF_ALTGR_DOWN, IDC_BACK},
  #if BUILDFLAG(ENABLE_PRINTING)
 -    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_BASIC_PRINT},
 +    {ui::VKEY_P, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_BASIC_PRINT},
  #endif  // ENABLE_PRINTING
-     {ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_DEV_TOOLS},
--    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
-+    {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
-      IDC_DEV_TOOLS_CONSOLE},
--    {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
-+    {ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR,
-      IDC_DEV_TOOLS_INSPECT},
      {ui::VKEY_B, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN, IDC_FOCUS_BOOKMARKS},
      {ui::VKEY_A, ui::EF_SHIFT_DOWN | ui::EF_ALT_DOWN,
       IDC_FOCUS_INACTIVE_POPUP_FOR_ACCESSIBILITY},
@@ -167,6 +155,22 @@ index 6afe56..610997 100644
 -    {ui::VKEY_H, ui::EF_CONTROL_DOWN, IDC_SHOW_HISTORY},
 +    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_DOWNLOADS},
 +    {ui::VKEY_V, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_SHOW_HISTORY},
-     {ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
  #if !BUILDFLAG(IS_CHROMEOS)
      // On Chrome OS, these keys are assigned to change UI scale.
+     {ui::VKEY_OEM_MINUS, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
+@@ -251,12 +246,11 @@ const AcceleratorMapping kAcceleratorMap[] = {
+ };
+ 
+ const AcceleratorMapping kDevToolsAcceleratorMap[] = {
+-    {ui::VKEY_F12, ui::EF_NONE, IDC_DEV_TOOLS_TOGGLE},
++    {ui::VKEY_D, ui::EF_SHIFT_DOWN | ui::EF_PLATFORM_ACCELERATOR, IDC_DEV_TOOLS_TOGGLE},
+ #if !BUILDFLAG(IS_MAC)
+-    {ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN, IDC_DEV_TOOLS},
+-    {ui::VKEY_J, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
+-     IDC_DEV_TOOLS_CONSOLE},
+     {ui::VKEY_C, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
++     IDC_DEV_TOOLS_CONSOLE},
++    {ui::VKEY_I, ui::EF_SHIFT_DOWN | ui::EF_CONTROL_DOWN,
+      IDC_DEV_TOOLS_INSPECT},
+     {ui::VKEY_U, ui::EF_CONTROL_DOWN, IDC_VIEW_SOURCE},
+ #endif  // !BUILDFLAG(IS_MAC)
