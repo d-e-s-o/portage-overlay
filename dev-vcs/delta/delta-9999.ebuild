@@ -20,7 +20,7 @@ RDEPEND="${DEPEND}"
 
 inherit git-r3
 
-EGIT_BRANCH="master"
+EGIT_BRANCH="main"
 EGIT_REPO_URI="https://github.com/dandavison/delta.git"
 EGIT_MIN_CLONE_TYPE="shallow"
 
