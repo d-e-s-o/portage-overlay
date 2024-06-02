@@ -4,8 +4,8 @@
 EAPI=8
 
 DISTUTILS_USE_PEP517=setuptools
-PYTHON_COMPAT=( python3_{9..11} )
 
+inherit python-any-no-clowntown
 inherit distutils-r1
 
 DESCRIPTION="CalDAV (RFC4791) client library for Python"
