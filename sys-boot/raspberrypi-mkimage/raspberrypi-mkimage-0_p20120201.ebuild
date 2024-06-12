@@ -3,9 +3,9 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( python3_{6,7,8,9,10,11} )
 DISTUTILS_IN_SOURCE_BUILD=1
 
+inherit python-any-no-clowntown
 inherit distutils-r1
 
 DESCRIPTION="Raspberry Pi kernel mangling tool mkimage/imagetool-uncompressed.py"
