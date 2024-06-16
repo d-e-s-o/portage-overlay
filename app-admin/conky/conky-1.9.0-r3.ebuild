@@ -1,13 +1,13 @@
 # Copyright 1999-2017 Gentoo Foundation
 # Distributed under the terms of the GNU General Public License v2
 
-EAPI=7
+EAPI=8
 
 inherit autotools libtool
 
 DESCRIPTION="An advanced, highly configurable system monitor for X"
 HOMEPAGE="http://conky.sourceforge.net/"
-SRC_URI="mirror://sourceforge/${PN}/${P}.tar.bz2"
+SRC_URI="https://github.com/brndnmtthws/${PN}/archive/refs/tags/${PV}.tar.gz -> ${P}.tar.gz"
 
 LICENSE="GPL-3 BSD LGPL-2.1 MIT"
 SLOT="0"
@@ -58,6 +58,9 @@ DEPEND="
 	"
 
 src_prepare() {
+	mv "${S}"/configure.ac.in "${S}"/configure.ac
+	cp "${FILESDIR}"/conky.1 "${S}"/doc/
+
 	eapply \
 		"${FILESDIR}/${PN}-1.8.1-utf8-scroll.patch" \
 		"${FILESDIR}/${P}-ncurses.patch" \
