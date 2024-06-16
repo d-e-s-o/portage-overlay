@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="A default Python venv scaffolding to be shared globally."
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"

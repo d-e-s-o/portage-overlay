@@ -1,7 +1,7 @@
 # Copyright (C) 2021 Daniel Mueller <deso@posteo.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="Scripts for URL encoding and decoding."
 HOMEPAGE="https://github.com/d-e-s-o/urlencode"

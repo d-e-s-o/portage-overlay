@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="A script for decreasing the nice values of processes."
 HOMEPAGE="https://github.com/d-e-s-o/decrease-nice"

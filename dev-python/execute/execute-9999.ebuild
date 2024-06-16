@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="A Python module for program execution."
 HOMEPAGE="https://github.com/d-e-s-o/execute"

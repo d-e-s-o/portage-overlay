@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="XXX"
 
@@ -41,19 +41,3 @@ src_unpack() {
 	git-r3_src_unpack
 	cargo_live_src_unpack
 }
-
-#src_compile() {
-#	cargo build --release --verbose || die
-#}
-
-#src_install() {
-#	dobin target/release/apcaledge
-#
-#	cat <<EOF > ${PN}.fish
-#alias apledge='/usr/bin/apcapass /usr/bin/apcaledge /home/deso/documents/ledger/registry.json'
-#EOF
-#
-#	insinto /usr/share/fish/vendor_conf.d/
-#	insopts -m0755
-#	newins ${PN}.fish ${PN}.fish
-#}

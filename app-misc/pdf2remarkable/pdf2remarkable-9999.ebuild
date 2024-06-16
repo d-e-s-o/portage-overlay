@@ -1,7 +1,7 @@
 # Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="A script to transfer PDF files to the reMarkable tablet."
 HOMEPAGE="https://github.com/adaerr/reMarkableScripts"

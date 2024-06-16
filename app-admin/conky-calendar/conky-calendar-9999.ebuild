@@ -1,7 +1,7 @@
 # Copyright (C) 2023 Daniel Mueller <deso@posteo.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="A calendar widget for Conky"
 HOMEPAGE="https://wiki.gentoo.org/wiki/No_homepage"

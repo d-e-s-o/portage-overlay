@@ -15,7 +15,7 @@
 # *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 # ***************************************************************************/
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="A script to perform commands on multiple git repositories."
 HOMEPAGE="https://github.com/d-e-s-o/git-foreach"

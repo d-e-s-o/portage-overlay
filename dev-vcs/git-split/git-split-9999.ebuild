@@ -1,7 +1,7 @@
 # Copyright (C) 2020 Daniel Mueller <deso@posteo.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-EAPI=7
+EAPI=8
 
 DESCRIPTION="Simple way to edit in a git commit history."
 HOMEPAGE="https://github.com/d-e-s-o/git-split"
