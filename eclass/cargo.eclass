@@ -1,4 +1,4 @@
-# Copyright 1999-2023 Gentoo Authors
+# Copyright 1999-2024 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
 # @ECLASS: cargo.eclass
@@ -7,11 +7,11 @@
 # @AUTHOR:
 # Doug Goldstein <cardoe@gentoo.org>
 # Georgy Yakovlev <gyakovlev@gentoo.org>
-# @SUPPORTED_EAPIS: 7 8
+# @SUPPORTED_EAPIS: 8
 # @BLURB: common functions and variables for cargo builds
 
 case ${EAPI} in
-	7|8) ;;
+	8) ;;
 	*) die "${ECLASS}: EAPI ${EAPI:-0} not supported" ;;
 esac
 
@@ -23,10 +23,6 @@ _CARGO_ECLASS=1
 RUST_DEPEND="virtual/rust"
 
 case ${EAPI} in
-	7)
-		# 1.37 added 'cargo vendor' subcommand and net.offline config knob
-		RUST_DEPEND=">=virtual/rust-1.37.0"
-		;;
 	8)
 		# 1.39 added --workspace
 		# 1.46 added --target dir
@@ -35,15 +31,10 @@ case ${EAPI} in
 		# 1.52 may need setting RUSTC_BOOTSTRAP envvar for some crates
 		# 1.53 added cargo update --offline, can be used to update vulnerable crates from pre-fetched registry without editing toml
 		RUST_DEPEND=">=virtual/rust-1.53"
-
-		if [[ -z ${CRATES} && "${PV}" != *9999* ]]; then
-			eerror "undefined CRATES variable in non-live EAPI=8 ebuild"
-			die "CRATES variable not defined"
-		fi
 		;;
 esac
 
-inherit flag-o-matic multiprocessing toolchain-funcs
+inherit flag-o-matic multiprocessing rust-toolchain toolchain-funcs
 
 [[ ! ${CARGO_OPTIONAL} ]] && BDEPEND="${RUST_DEPEND}"
 
@@ -201,6 +192,11 @@ _cargo_set_crate_uris() {
 		fi
 		url="https://crates.io/api/v1/crates/${name}/${version}/download -> ${name}-${version}.crate"
 		CARGO_CRATE_URIS+="${url} "
+
+		# when invoked by pkgbump, avoid fetching all the crates
+		# we just output the first one, to avoid creating empty groups
+		# in SRC_URI
+		[[ ${PKGBUMPING} == ${PVR} ]] && return
 	done
 
 	if declare -p GIT_CRATES &>/dev/null; then
@@ -332,36 +328,49 @@ _cargo_gen_git_config() {
 cargo_src_unpack() {
 	debug-print-function ${FUNCNAME} "$@"
 
-	mkdir -p "${ECARGO_VENDOR}" || die
-	mkdir -p "${S}" || die
+	mkdir -p "${ECARGO_VENDOR}" "${S}" || die
 
 	local archive shasum pkg
+	local crates=()
 	for archive in ${A}; do
 		case "${archive}" in
 			*.crate)
-				ebegin "Loading ${archive} into Cargo registry"
-				tar -xf "${DISTDIR}"/${archive} -C "${ECARGO_VENDOR}/" || die
-				# generate sha256sum of the crate itself as cargo needs this
-				shasum=$(sha256sum "${DISTDIR}"/${archive} | cut -d ' ' -f 1)
-				pkg=$(basename ${archive} .crate)
-				cat <<- EOF > ${ECARGO_VENDOR}/${pkg}/.cargo-checksum.json
-				{
-					"package": "${shasum}",
-					"files": {}
-				}
-				EOF
-				# if this is our target package we need it in ${WORKDIR} too
-				# to make ${S} (and handle any revisions too)
-				if [[ ${P} == ${pkg}* ]]; then
-					tar -xf "${DISTDIR}"/${archive} -C "${WORKDIR}" || die
-				fi
-				eend $?
+				crates+=( "${archive}" )
 				;;
 			*)
-				unpack ${archive}
+				unpack "${archive}"
 				;;
 		esac
 	done
+
+	if [[ ${PKGBUMPING} != ${PVR} && ${crates[@]} ]]; then
+		pushd "${DISTDIR}" >/dev/null || die
+
+		ebegin "Unpacking crates"
+		printf '%s\0' "${crates[@]}" |
+			xargs -0 -P "$(makeopts_jobs)" -n 1 -t -- \
+				tar -x -C "${ECARGO_VENDOR}" -f
+		assert
+		eend $?
+
+		while read -d '' -r shasum archive; do
+			pkg=${archive%.crate}
+			cat <<- EOF > ${ECARGO_VENDOR}/${pkg}/.cargo-checksum.json || die
+			{
+				"package": "${shasum}",
+				"files": {}
+			}
+			EOF
+
+			# if this is our target package we need it in ${WORKDIR} too
+			# to make ${S} (and handle any revisions too)
+			if [[ ${P} == ${pkg}* ]]; then
+				tar -xf "${archive}" -C "${WORKDIR}" || die
+			fi
+		done < <(sha256sum -z "${crates[@]}" || die)
+
+		popd >/dev/null || die
+	fi
 
 	cargo_gen_config
 }
@@ -519,6 +528,21 @@ cargo_src_compile() {
 	filter-lto
 	tc-export AR CC CXX PKG_CONFIG
 
+	if tc-is-cross-compiler; then
+		export CARGO_BUILD_TARGET=$(rust_abi)
+		local TRIPLE=${CARGO_BUILD_TARGET//-/_}
+		export CARGO_TARGET_"${TRIPLE^^}"_LINKER=$(tc-getCC)
+
+		# Set vars for cc-rs crate.
+		tc-export_build_env
+		export \
+			HOST_AR=$(tc-getBUILD_AR)
+			HOST_CC=$(tc-getBUILD_CC)
+			HOST_CXX=$(tc-getBUILD_CXX)
+			HOST_CFLAGS=${BUILD_CFLAGS}
+			HOST_CXXFLAGS=${BUILD_CXXFLAGS}
+	fi
+
 	set -- cargo build $(usex debug "" --release) ${ECARGO_ARGS[@]} "$@"
 	einfo "${@}"
 	"${@}" || die "cargo build failed"
@@ -546,17 +570,6 @@ cargo_src_install() {
 
 	rm -f "${ED}/usr/.crates.toml" || die
 	rm -f "${ED}/usr/.crates2.json" || die
-
-	# it turned out to be non-standard dir, so get rid of it future EAPI
-	# and only run for EAPI=7
-	# https://bugs.gentoo.org/715890
-	case ${EAPI:-0} in
-		7)
-		if [ -d "${S}/man" ]; then
-			doman "${S}/man" || return 0
-		fi
-		;;
-	esac
 }
 
 # @FUNCTION: cargo_src_test
