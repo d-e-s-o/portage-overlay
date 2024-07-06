@@ -1,0 +1,70 @@
+From fae3cc2f4b5ec6ade356f265489ca524654dc367 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Fri, 5 Jul 2024 18:06:10 -0700
+Subject: [PATCH] Introduce :search command
+
+Introduce the :search command, allowing user to effectively hook into
+the same code paths as used by '/', which does not seem possible
+otherwise.
+We want this functionality for something as simple as searching for the
+currently selected file, which seems to be utterly impossible without
+such a dance. An intuitive way would be to define a user command such
+as:
+  > command search /^%a$
+
+and invoke that, alas, search behavior there seems to be special cased
+in that it does not add the search pattern to the search history. Good.
+Lord.
+---
+ src/cmd_handlers.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/src/cmd_handlers.c b/src/cmd_handlers.c
+index 17ef0a..fa0dd6 100644
+--- a/src/cmd_handlers.c
++++ b/src/cmd_handlers.c
+@@ -253,6 +253,7 @@ static int munmap_cmd(const cmd_info_t *cmd_info);
+ static int nmap_cmd(const cmd_info_t *cmd_info);
+ static int nnoremap_cmd(const cmd_info_t *cmd_info);
+ static int nohlsearch_cmd(const cmd_info_t *cmd_info);
++static int search_cmd(const cmd_info_t *cmd_info);
+ static int noremap_cmd(const cmd_info_t *cmd_info);
+ static int map_or_remap(const cmd_info_t *cmd_info, int no_remap);
+ static int normal_cmd(const cmd_info_t *cmd_info);
+@@ -703,6 +704,10 @@ const cmd_add_t cmds_list[] = {
+ 	  .descr = "reset highlighting of search matches",
+ 	  .flags = HAS_COMMENT,
+ 	  .handler = &nohlsearch_cmd,  .min_args = 0,   .max_args = 0, },
++	{ .name = "search",            .abbr = NULL,    .id = -1,
++	  .descr = "search for matches and highlight them",
++	  .flags = HAS_MACROS_FOR_CMD,
++	  .handler = &search_cmd,  .min_args = 1,   .max_args = 1, },
+ 	{ .name = "noremap",           .abbr = "no",    .id = COM_NOREMAP,
+ 	  .descr = "noremap keys in normal and visual modes",
+ 	  .flags = HAS_EMARK | HAS_RAW_ARGS,
+@@ -3918,6 +3923,22 @@ nohlsearch_cmd(const cmd_info_t *cmd_info)
+ 	return 0;
+ }
+ 
++/* Search for a file and select it. */
++static int
++search_cmd(const cmd_info_t *cmd_info)
++{
++	int result;
++	if(cmd_info->argc != 1) {
++		ui_sb_err("Search expects a single argument.");
++		return 1;
++	}
++
++	hists_search_save(cmd_info->args);
++	modnorm_set_search_attrs(/*count=*/1, /*last_search_backward=*/0);
++	cmds_preserve_selection();
++	return cmds_dispatch1(cmd_info->args, curr_view, CIT_FSEARCH_PATTERN);
++}
++
+ static int
+ noremap_cmd(const cmd_info_t *cmd_info)
+ {
+-- 
+2.44.2
+
