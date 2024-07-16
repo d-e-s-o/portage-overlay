@@ -1,0 +1,30 @@
+From 34cc6d244d1949122b7d2d811c65065e6a5da8bb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Mon, 15 Jul 2024 20:17:32 -0700
+Subject: [PATCH] Replace all percentage signs in template
+
+The choose-buffer command, among others, accepts a template argument
+containing a %% sequence that is replace with the chosen buffer.
+However, only the first occurrence is actually replaced. This is brain
+dead behavior. There is no apparent reason why not to replace all
+occurrences. Adjust the code accordingly.
+---
+ cmd.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmd.c b/cmd.c
+index 32c00b..4f9e8d 100644
+--- a/cmd.c
++++ b/cmd.c
+@@ -850,7 +850,7 @@ cmd_template_replace(const char *template, const char *s, int idx)
+ 			if (*ptr < '1' || *ptr > '9' || *ptr - '0' != idx) {
+ 				if (*ptr != '%' || replaced)
+ 					break;
+-				replaced = 1;
++				replaced = 0;
+ 			}
+ 			ptr++;
+ 
+-- 
+2.44.2
+
