@@ -437,6 +437,7 @@ src_prepare() {
 		"${FILESDIR}/chromium-111-InkDropHost-crash.patch"
 		"${FILESDIR}/chromium-117-system-zstd.patch"
 		"${FILESDIR}/chromium-119-minizip-cast.patch"
+		"${FILESDIR}/chromium-121-fix-fucking-beautiful-nonsense.patch"
 	)
 
 	if use system-toolchain; then
