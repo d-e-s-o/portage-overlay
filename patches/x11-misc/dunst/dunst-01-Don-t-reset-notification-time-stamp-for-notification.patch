@@ -1,0 +1,33 @@
+From ec033c48c77a09f2606ad813d237709ad9531176 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Wed, 28 Feb 2024 22:34:03 -0800
+Subject: [PATCH] Don't reset notification time stamp for notifications with
+ same ID
+
+When a notification is sent with the same ID as an earlier one, the idea
+is that this new notification more or less transparently replaces the
+old one. However, when dunst has already started showing the "age" of
+the old notification, the notification's timestamp will be reset, which
+causes the age to be reset as well.
+With this change we adjust this behavior, making sure that we keep the
+original time stamp for what effectively is meant to be the same
+notification, and, thus, stop resetting the age display.
+---
+ src/queues.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/queues.c b/src/queues.c
+index 4afd8e..f9e7fa 100644
+--- a/src/queues.c
++++ b/src/queues.c
+@@ -301,6 +301,7 @@ bool queues_notification_replace_id(struct notification *new)
+                         if (old->id == new->id) {
+                                 iter->data = new;
+                                 new->dup_count = old->dup_count;
++                                new->timestamp = old->timestamp;
+ 
+                                 if (allqueues[i] == displayed) {
+                                         new->start = time_monotonic_now();
+-- 
+2.43.0
+
