@@ -19,7 +19,7 @@ RDEPEND="
 
 inherit git-r3
 
-EGIT_BRANCH="master"
+EGIT_BRANCH="main"
 EGIT_REPO_URI="https://github.com/d-e-s-o/conky-calendar.git"
 
 src_prepare() {
