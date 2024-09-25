@@ -1,0 +1,37 @@
+diff --git a/src/fs/io/FileReader.hxx b/src/fs/io/FileReader.hxx
+index f5fa4e..70d91d 100644
+--- a/src/fs/io/FileReader.hxx
++++ b/src/fs/io/FileReader.hxx
+@@ -20,6 +20,8 @@
+ #ifndef MPD_FILE_READER_HXX
+ #define MPD_FILE_READER_HXX
+ 
++#include <cstdint>
++
+ #include "Reader.hxx"
+ #include "fs/AllocatedPath.hxx"
+ #include "util/Compiler.h"
+diff --git a/src/input/InputStream.hxx b/src/input/InputStream.hxx
+index 4d012e..ac8b18 100644
+--- a/src/input/InputStream.hxx
++++ b/src/input/InputStream.hxx
+@@ -27,6 +27,7 @@
+
+ #include <string>
+ #include <memory>
++#include <utility>
+
+ #include <assert.h>
+
+diff --git a/src/player/Thread.cxx b/src/player/Thread.cxx
+index 64a502..8c3951 100644
+--- a/src/player/Thread.cxx
++++ b/src/player/Thread.cxx
+@@ -53,6 +53,7 @@
+
+ #include <exception>
+ #include <memory>
++#include <stdexcept>
+
+ #include <string.h>
+
