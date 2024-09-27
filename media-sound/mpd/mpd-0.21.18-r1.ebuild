@@ -60,7 +60,7 @@ RDEPEND="
 
 	ffmpeg? (
 		libav? ( media-video/libav:0= )
-		!libav? ( media-video/ffmpeg:0= )
+		!libav? ( <media-video/ffmpeg-6.0 )
 	)
 
 	flac? ( media-libs/flac )
