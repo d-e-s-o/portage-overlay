@@ -16,7 +16,7 @@ IUSE="caps emacs gnome-keyring fltk gtk ncurses qt5"
 
 DEPEND="
 	app-eselect/eselect-pinentry
-	>=dev-libs/libassuan-2.1
+	=dev-libs/libassuan-2*
 	>=dev-libs/libgcrypt-1.6.3
 	>=dev-libs/libgpg-error-1.17
 	caps? ( sys-libs/libcap )
