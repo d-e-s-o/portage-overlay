@@ -8,6 +8,7 @@
 # Doug Goldstein <cardoe@gentoo.org>
 # Georgy Yakovlev <gyakovlev@gentoo.org>
 # @SUPPORTED_EAPIS: 8
+# @PROVIDES: rust
 # @BLURB: common functions and variables for cargo builds
 
 case ${EAPI} in
@@ -18,25 +19,34 @@ esac
 if [[ -z ${_CARGO_ECLASS} ]]; then
 _CARGO_ECLASS=1
 
-# check and document RUST_DEPEND and options we need below in case conditions.
+if [[ -n ${RUST_NEEDS_LLVM} ]]; then
+		inherit llvm-r1
+fi
+
+if [[ -n ${CARGO_OPTIONAL} ]]; then
+	RUST_OPTIONAL=1
+fi
+
+# Either the lowest slot supported by rust.eclass _or_
+# reference the changelog for a particular feature requirement
 # https://github.com/rust-lang/cargo/blob/master/CHANGELOG.md
-RUST_DEPEND="virtual/rust"
+_CARGO_ECLASS_RUST_MIN_VER="1.71.1"
 
 case ${EAPI} in
 	8)
-		# 1.39 added --workspace
-		# 1.46 added --target dir
-		# 1.48 added term.progress config option
-		# 1.51 added split-debuginfo profile option
-		# 1.52 may need setting RUSTC_BOOTSTRAP envvar for some crates
-		# 1.53 added cargo update --offline, can be used to update vulnerable crates from pre-fetched registry without editing toml
-		RUST_DEPEND=">=virtual/rust-1.53"
+		if [[ -n ${RUST_MIN_VER} ]]; then
+			# This is _very_ unlikely given that we leverage the rust eclass but just in case cargo requires a newer version
+			# than the oldest in-tree in future.
+			if ver_test "${RUST_MIN_VER}" -lt "${_CARGO_ECLASS_RUST_MIN_VER}"; then
+				die "RUST_MIN_VERSION must be at least ${_CARGO_ECLASS_RUST_MIN_VER}"
+			fi
+		else
+			RUST_MIN_VER="${_CARGO_ECLASS_RUST_MIN_VER}"
+		fi
 		;;
 esac
 
-inherit flag-o-matic multiprocessing rust-toolchain toolchain-funcs
-
-[[ ! ${CARGO_OPTIONAL} ]] && BDEPEND="${RUST_DEPEND}"
+inherit flag-o-matic multiprocessing rust rust-toolchain toolchain-funcs
 
 IUSE="${IUSE} debug"
 
@@ -110,9 +120,8 @@ export CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 # be considered optional. No dependencies will be added and no phase
 # functions will be exported.
 #
-# If you enable CARGO_OPTIONAL, you have to set BDEPEND on virtual/rust
-# for your package and call at least cargo_gen_config manually before using
-# other src_functions of this eclass.
+# If you enable CARGO_OPTIONAL call at least cargo_gen_config manually
+# before using other src_functions or cargo_env of this eclass.
 # Note that cargo_gen_config is automatically called by cargo_src_unpack.
 
 # @ECLASS_VARIABLE: myfeatures
@@ -132,6 +141,11 @@ export CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 # }
 # @CODE
 
+# @ECLASS_VARIABLE: ECARGO_HOME
+# @OUTPUT_VARIABLE
+# @DESCRIPTION:
+# Location of the cargo home directory.
+
 # @ECLASS_VARIABLE: ECARGO_REGISTRY_DIR
 # @USER_VARIABLE
 # @DEFAULT_UNSET
@@ -150,6 +164,11 @@ export CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 # If non-empty, this variable prevents online operations in
 # cargo_live_src_unpack.
 # Inherits value of EVCS_OFFLINE if not set explicitly.
+
+# @ECLASS_VARIABLE: ECARGO_VENDOR
+# @OUTPUT_VARIABLE
+# @DESCRIPTION:
+# Location of the cargo vendor directory.
 
 # @ECLASS_VARIABLE: EVCS_UMASK
 # @USER_VARIABLE
@@ -251,7 +270,7 @@ cargo_crate_uris() {
 
 # @FUNCTION: cargo_gen_config
 # @DESCRIPTION:
-# Generate the $CARGO_HOME/config necessary to use our local registry and settings.
+# Generate the $CARGO_HOME/config.toml necessary to use our local registry and settings.
 # Cargo can also be configured through environment variables in addition to the TOML syntax below.
 # For each configuration key below of the form foo.bar the environment variable CARGO_FOO_BAR
 # can also be used to define the value.
@@ -264,7 +283,7 @@ cargo_gen_config() {
 
 	mkdir -p "${ECARGO_HOME}" || die
 
-	cat > "${ECARGO_HOME}/config" <<- _EOF_ || die "Failed to create cargo config"
+	cat > "${ECARGO_HOME}/config.toml" <<- _EOF_ || die "Failed to create cargo config"
 	[source.gentoo]
 	directory = "${ECARGO_VENDOR}"
 
@@ -327,9 +346,7 @@ _cargo_gen_git_config() {
 # Return the directory within target that contains the build, e.g.
 # target/aarch64-unknown-linux-gnu/release.
 cargo_target_dir() {
-	local abi
-	tc-is-cross-compiler && abi=/$(rust_abi)
-	echo "${CARGO_TARGET_DIR:-target}${abi}/$(usex debug debug release)"
+	echo "${CARGO_TARGET_DIR:-target}/$(rust_abi)/$(usex debug debug release)"
 }
 
 # @FUNCTION: cargo_src_unpack
@@ -526,36 +543,98 @@ cargo_src_configure() {
 	[[ ${ECARGO_ARGS[@]} ]] && einfo "Configured with: ${ECARGO_ARGS[@]}"
 }
 
+# @FUNCTION: cargo_env
+# @USAGE: Command with its arguments
+# @DESCRIPTION:
+# Run the given command under an environment needed for performing tasks with
+# Cargo such as building. RUSTFLAGS are appended to additional flags set here.
+# Ensure these are set consistently between Cargo invocations, otherwise
+# rebuilds will occur. Project-specific rustflags set against [build] will not
+# take affect due to Cargo limitations, so add these to your ebuild's RUSTFLAGS
+# if they seem important.
+cargo_env() {
+	debug-print-function ${FUNCNAME} "$@"
+
+	[[ ${_CARGO_GEN_CONFIG_HAS_RUN} ]] || \
+		die "FATAL: please call cargo_gen_config before using ${FUNCNAME}"
+
+	# Shadow flag variables so that filtering below remains local.
+	local flag
+	for flag in $(all-flag-vars); do
+		local -x "${flag}=${!flag}"
+	done
+
+	# Rust extensions are incompatible with C/C++ LTO compiler see e.g.
+	# https://bugs.gentoo.org/910220
+	filter-lto
+
+	tc-export AR CC CXX PKG_CONFIG
+
+	# Set vars for cc-rs crate.
+	local -x \
+		HOST_AR=$(tc-getBUILD_AR)
+		HOST_CC=$(tc-getBUILD_CC)
+		HOST_CXX=$(tc-getBUILD_CXX)
+		HOST_CFLAGS=${BUILD_CFLAGS}
+		HOST_CXXFLAGS=${BUILD_CXXFLAGS}
+
+	# Unfortunately, Cargo is *really* bad at handling flags. In short, it uses
+	# the first of the RUSTFLAGS env var, any target-specific config, and then
+	# any generic [build] config. It can merge within the latter two types from
+	# different sources, but it will not merge across these different types, so
+	# if a project sets flags under [target.'cfg(all())'], it will override any
+	# flags we set under [build] and vice-versa.
+	#
+	# It has been common for users and ebuilds to set RUSTFLAGS, which would
+	# have overridden whatever a project sets anyway, so the least-worst option
+	# is to include those RUSTFLAGS in target-specific config here, which will
+	# merge with any the project sets. Only flags in generic [build] config set
+	# by the project will be lost, and ebuilds will need to add those to
+	# RUSTFLAGS themselves if they are important.
+	#
+	# We could potentially inspect a project's generic [build] config and
+	# reapply those flags ourselves, but that would require a proper toml parser
+	# like tomlq, it might lead to confusion where projects also have
+	# target-specific config, and converting arrays to strings may not work
+	# well. Nightly features to inspect the config might help here in future.
+	#
+	# As of Rust 1.80, it is not possible to set separate flags for the build
+	# host and the target host when cross-compiling. The flags given are applied
+	# to the target host only with no flags being applied to the build host. The
+	# nightly host-config feature will improve this situation later.
+	#
+	# The default linker is "cc" so override by setting linker to CC in the
+	# RUSTFLAGS. The given linker cannot include any arguments, so split these
+	# into link-args along with LDFLAGS.
+	local -x CARGO_BUILD_TARGET=$(rust_abi)
+	local TRIPLE=${CARGO_BUILD_TARGET//-/_}
+	local TRIPLE=${TRIPLE^^} LD_A=( $(tc-getCC) ${LDFLAGS} )
+	local -Ix CARGO_TARGET_"${TRIPLE}"_RUSTFLAGS+=" -C strip=none -C linker=${LD_A[0]}"
+	[[ ${#LD_A[@]} -gt 1 ]] && local CARGO_TARGET_"${TRIPLE}"_RUSTFLAGS+="$(printf -- ' -C link-arg=%s' "${LD_A[@]:1}")"
+	local CARGO_TARGET_"${TRIPLE}"_RUSTFLAGS+=" ${RUSTFLAGS}"
+
+	(
+		# These variables will override the above, even if empty, so unset them
+		# locally. Do this in a subshell so that they remain set afterwards.
+		unset CARGO_BUILD_RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTFLAGS
+
+		"${@}"
+	)
+}
+
 # @FUNCTION: cargo_src_compile
 # @DESCRIPTION:
 # Build the package using cargo build.
 cargo_src_compile() {
 	debug-print-function ${FUNCNAME} "$@"
 
-	[[ ${_CARGO_GEN_CONFIG_HAS_RUN} ]] || \
-		die "FATAL: please call cargo_gen_config before using ${FUNCNAME}"
-
-	filter-lto
-	tc-export AR CC CXX PKG_CONFIG
-
-	if tc-is-cross-compiler; then
-		export CARGO_BUILD_TARGET=$(rust_abi)
-		local TRIPLE=${CARGO_BUILD_TARGET//-/_}
-		export CARGO_TARGET_"${TRIPLE^^}"_LINKER=$(tc-getCC)
-
-		# Set vars for cc-rs crate.
-		tc-export_build_env
-		export \
-			HOST_AR=$(tc-getBUILD_AR)
-			HOST_CC=$(tc-getBUILD_CC)
-			HOST_CXX=$(tc-getBUILD_CXX)
-			HOST_CFLAGS=${BUILD_CFLAGS}
-			HOST_CXXFLAGS=${BUILD_CXXFLAGS}
+	if [[ -z "${CARGO}" ]]; then
+		die "CARGO is not set; was rust_pkg_setup run?"
 	fi
 
-	set -- cargo build $(usex debug "" --release) ${ECARGO_ARGS[@]} "$@"
+	set -- "${CARGO}" build $(usex debug "" --release) ${ECARGO_ARGS[@]} "$@"
 	einfo "${@}"
-	"${@}" || die "cargo build failed"
+	cargo_env "${@}" || die "cargo build failed"
 }
 
 # @FUNCTION: cargo_src_install
@@ -567,16 +646,17 @@ cargo_src_compile() {
 cargo_src_install() {
 	debug-print-function ${FUNCNAME} "$@"
 
-	[[ ${_CARGO_GEN_CONFIG_HAS_RUN} ]] || \
-		die "FATAL: please call cargo_gen_config before using ${FUNCNAME}"
+	if [[ -z "${CARGO}" ]]; then
+		die "CARGO is not set; was rust_pkg_setup run?"
+	fi
 
-	set -- cargo install $(has --path ${@} || echo --path ./) \
+	set -- "${CARGO}" install $(has --path ${@} || echo --path ./) \
 		--root "${ED}/usr" \
 		${GIT_CRATES[@]:+--frozen} \
 		$(usex debug --debug "") \
 		${ECARGO_ARGS[@]} "$@"
 	einfo "${@}"
-	"${@}" || die "cargo install failed"
+	cargo_env "${@}" || die "cargo install failed"
 
 	rm -f "${ED}/usr/.crates.toml" || die
 	rm -f "${ED}/usr/.crates2.json" || die
@@ -588,12 +668,13 @@ cargo_src_install() {
 cargo_src_test() {
 	debug-print-function ${FUNCNAME} "$@"
 
-	[[ ${_CARGO_GEN_CONFIG_HAS_RUN} ]] || \
-		die "FATAL: please call cargo_gen_config before using ${FUNCNAME}"
+	if [[ -z "${CARGO}" ]]; then
+		die "CARGO is not set; was rust_pkg_setup run?"
+	fi
 
-	set -- cargo test $(usex debug "" --release) ${ECARGO_ARGS[@]} "$@"
+	set -- "${CARGO}" test $(usex debug "" --release) ${ECARGO_ARGS[@]} "$@"
 	einfo "${@}"
-	"${@}" || die "cargo test failed"
+	cargo_env "${@}" || die "cargo test failed"
 }
 
 fi
