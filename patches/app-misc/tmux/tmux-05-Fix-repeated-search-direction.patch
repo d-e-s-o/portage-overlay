@@ -1,0 +1,57 @@
+From 62c78a62b7241203e4952d947175b49a8e5a0e64 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Tue, 17 Dec 2024 08:02:44 -0800
+Subject: [PATCH] Fix repeated-search direction
+
+It is utterly confusing and counter to how many other programs behave
+to make repeated searches in the command output stateful in such a way
+that search direction depends on the direction of the initial search.
+With this change we change the behavior of the search-again and
+search-reverse commands to always search in upward or downward
+direction, respectively. As a result, the search-reverse command is now
+a misnomer, but that is acceptable for a one-off patch, and certainly
+less invasive than a fully blown rename or the introduction of a new
+command.
+---
+ window-copy.c | 18 ++++--------------
+ 1 file changed, 4 insertions(+), 14 deletions(-)
+
+diff --git a/window-copy.c b/window-copy.c
+index bc3713..53ae8d 100644
+--- a/window-copy.c
++++ b/window-copy.c
+@@ -1929,13 +1929,8 @@ window_copy_cmd_search_again(struct window_copy_cmd_state *cs)
+ 	struct window_copy_mode_data	*data = wme->data;
+ 	u_int				 np = wme->prefix;
+ 
+-	if (data->searchtype == WINDOW_COPY_SEARCHUP) {
+-		for (; np != 0; np--)
+-			window_copy_search_up(wme, data->searchregex);
+-	} else if (data->searchtype == WINDOW_COPY_SEARCHDOWN) {
+-		for (; np != 0; np--)
+-			window_copy_search_down(wme, data->searchregex);
+-	}
++  for (; np != 0; np--)
++    window_copy_search_down(wme, data->searchregex);
+ 	return (WINDOW_COPY_CMD_NOTHING);
+ }
+ 
+@@ -1946,13 +1941,8 @@ window_copy_cmd_search_reverse(struct window_copy_cmd_state *cs)
+ 	struct window_copy_mode_data	*data = wme->data;
+ 	u_int				 np = wme->prefix;
+ 
+-	if (data->searchtype == WINDOW_COPY_SEARCHUP) {
+-		for (; np != 0; np--)
+-			window_copy_search_down(wme, data->searchregex);
+-	} else if (data->searchtype == WINDOW_COPY_SEARCHDOWN) {
+-		for (; np != 0; np--)
+-			window_copy_search_up(wme, data->searchregex);
+-	}
++  for (; np != 0; np--)
++    window_copy_search_up(wme, data->searchregex);
+ 	return (WINDOW_COPY_CMD_NOTHING);
+ }
+ 
+-- 
+2.45.2
+
