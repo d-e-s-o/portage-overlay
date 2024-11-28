@@ -1,0 +1,209 @@
+From 1fff9850dfd7399bb5da1ded748099633b9d2b00 Mon Sep 17 00:00:00 2001
+From: Gregory Anders <8965202+gpanders@users.noreply.github.com>
+Date: Fri, 19 Jan 2024 14:51:10 -0600
+Subject: [PATCH] feat(ui): add chdir UI event (#27093)
+
+When an embedded Nvim instance changes its current directory a "chdir"
+UI event is emitted. Attached UIs can use this information however they
+wish. In the TUI it is used to synchronize the cwd of the TUI process
+with the cwd of the embedded Nvim process.
+---
+ runtime/doc/ui.txt                |  4 +++
+ src/nvim/api/ui_events.in.h       |  2 ++
+ src/nvim/os/fs.c                  |  8 ++++-
+ src/nvim/tui/tui.c                |  8 +++++
+ src/nvim/ui.c                     |  6 ++++
+ test/functional/ui/embed_spec.lua | 50 +++++++++++++++++++++++++++++++
+ test/functional/ui/screen.lua     |  6 +++-
+ 7 files changed, 82 insertions(+), 2 deletions(-)
+
+diff --git a/runtime/doc/ui.txt b/runtime/doc/ui.txt
+index 8784a3..7f2986 100644
+--- a/runtime/doc/ui.txt
++++ b/runtime/doc/ui.txt
+@@ -228,6 +228,10 @@ the editor.
+ 	however a UI might still use such options when rendering raw text
+ 	sent from Nvim, like for |ui-cmdline|.
+ 
++["chdir", path] ~
++	The |current-directory| of the embedded Nvim process changed to
++	`path`.
++
+ ["mode_change", mode, mode_idx] ~
+ 	Editor mode changed.  The `mode` parameter is a string representing
+ 	the current mode. `mode_idx` is an index into the array emitted in
+diff --git a/src/nvim/api/ui_events.in.h b/src/nvim/api/ui_events.in.h
+index fc7021..c3a11f 100644
+--- a/src/nvim/api/ui_events.in.h
++++ b/src/nvim/api/ui_events.in.h
+@@ -40,6 +40,8 @@ void screenshot(String path)
+   FUNC_API_SINCE(7);
+ void option_set(String name, Object value)
+   FUNC_API_SINCE(4);
++void chdir(String path)
++  FUNC_API_SINCE(12);
+ // Stop event is not exported as such, represented by EOF in the msgpack stream.
+ void stop(void)
+   FUNC_API_NOEXPORT;
+diff --git a/src/nvim/os/fs.c b/src/nvim/os/fs.c
+index cb51e8..3a8589 100644
+--- a/src/nvim/os/fs.c
++++ b/src/nvim/os/fs.c
+@@ -33,6 +33,7 @@
+ # include <sys/uio.h>
+ #endif
+ 
++#include "nvim/api/private/helpers.h"
+ #ifdef MSWIN
+ # include "nvim/mbyte.h"
+ # include "nvim/option.h"
+@@ -41,6 +42,7 @@
+ #ifdef INCLUDE_GENERATED_DECLARATIONS
+ # include "os/fs.c.generated.h"
+ #endif
++#include "nvim/ui.h"
+ 
+ struct iovec;
+ 
+@@ -96,7 +98,11 @@ int os_chdir(const char *path)
+     smsg("chdir(%s)", path);
+     verbose_leave();
+   }
+-  return uv_chdir(path);
++  int err = uv_chdir(path);
++  if (err == 0) {
++    ui_call_chdir(cstr_as_string((char *)path));
++  }
++  return err;
+ }
+ 
+ /// Get the name of current directory.
+diff --git a/src/nvim/tui/tui.c b/src/nvim/tui/tui.c
+index c97add..a3dfeb 100644
+--- a/src/nvim/tui/tui.c
++++ b/src/nvim/tui/tui.c
+@@ -1439,6 +1439,14 @@ void tui_option_set(TUIData *tui, String name, Object value)
+   }
+ }
+ 
++void tui_chdir(TUIData *tui, String path)
++{
++  int err = uv_chdir(path.data);
++  if (err != 0) {
++    ELOG("Failed to chdir to %s: %s", path.data, strerror(err));
++  }
++}
++
+ void tui_raw_line(TUIData *tui, Integer g, Integer linerow, Integer startcol, Integer endcol,
+                   Integer clearcol, Integer clearattr, LineFlags flags, const schar_T *chunk,
+                   const sattr_T *attrs)
+diff --git a/src/nvim/ui.c b/src/nvim/ui.c
+index 47e286..38ec4c 100644
+--- a/src/nvim/ui.c
++++ b/src/nvim/ui.c
+@@ -350,6 +350,12 @@ void ui_attach_impl(UI *ui, uint64_t chanid)
+   ui_refresh_options();
+   resettitle();
+ 
++  char cwd[MAXPATHL];
++  size_t cwdlen = sizeof(cwd);
++  if (uv_cwd(cwd, &cwdlen) == 0) {
++    ui_call_chdir((String){ .data = cwd, .size = cwdlen });
++  }
++
+   for (UIExtension i = kUIGlobalCount; (int)i < kUIExtCount; i++) {
+     ui_set_ext_option(ui, i, ui->ui_ext[i]);
+   }
+diff --git a/test/functional/ui/embed_spec.lua b/test/functional/ui/embed_spec.lua
+index cd2b48..d21284 100644
+--- a/test/functional/ui/embed_spec.lua
++++ b/test/functional/ui/embed_spec.lua
+@@ -131,4 +131,54 @@ describe('--embed UI', function()
+       {2:-- INSERT --}                            |
+     ]]}
+   end)
++
++  it('updates cwd of attached UI #21771', function()
++    clear { args_rm = { '--headless' } }
++
++    local screen = Screen.new(40, 8)
++    screen:attach()
++
++    screen:expect {
++      condition = function()
++        eq(helpers.paths.test_source_path, screen.pwd)
++      end,
++    }
++
++    -- Change global cwd
++    helpers.command(string.format('cd %s/src/nvim', helpers.paths.test_source_path))
++
++    screen:expect {
++      condition = function()
++        eq(string.format('%s/src/nvim', helpers.paths.test_source_path), screen.pwd)
++      end,
++    }
++
++    -- Split the window and change the cwd in the split
++    helpers.command('new')
++    helpers.command(string.format('lcd %s/test', helpers.paths.test_source_path))
++
++    screen:expect {
++      condition = function()
++        eq(string.format('%s/test', helpers.paths.test_source_path), screen.pwd)
++      end,
++    }
++
++    -- Move to the original window
++    helpers.command('wincmd p')
++
++    screen:expect {
++      condition = function()
++        eq(string.format('%s/src/nvim', helpers.paths.test_source_path), screen.pwd)
++      end,
++    }
++
++    -- Change global cwd again
++    helpers.command(string.format('cd %s', helpers.paths.test_source_path))
++
++    screen:expect {
++      condition = function()
++        eq(helpers.paths.test_source_path, screen.pwd)
++      end,
++    }
++  end)
+ end)
+diff --git a/test/functional/ui/screen.lua b/test/functional/ui/screen.lua
+index 6382fe..a711b4 100644
+--- a/test/functional/ui/screen.lua
++++ b/test/functional/ui/screen.lua
+@@ -139,6 +139,7 @@ function Screen.new(width, height)
+     suspended = false,
+     mode = 'normal',
+     options = {},
++    pwd = '',
+     popupmenu = nil,
+     cmdline = {},
+     cmdline_block = {},
+@@ -204,7 +205,6 @@ function Screen:attach(options, session)
+   if options.ext_linegrid == nil then
+     options.ext_linegrid = true
+   end
+-
+   self._session = session
+   self._options = options
+   self._clear_attrs = (not options.ext_linegrid) and {} or nil
+@@ -1032,6 +1032,10 @@ function Screen:_handle_option_set(name, value)
+   self.options[name] = value
+ end
+ 
++function Screen:_handle_chdir(path)
++  self.pwd = vim.fs.normalize(path, { expand_env = false })
++end
++
+ function Screen:_handle_popupmenu_show(items, selected, row, col, grid)
+   self.popupmenu = {items=items, pos=selected, anchor={grid, row, col}}
+ end
+-- 
+2.43.0
+
