@@ -26,7 +26,7 @@ IUSE=""
 
 inherit cargo
 
-RDEPEND="dev-lang/rust[profiler]"
+RDEPEND="dev-lang/rust"
 DEPEND="${RDEPEND}"
 
 RESTRICT="userpriv network-sandbox"

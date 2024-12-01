@@ -235,7 +235,7 @@ BDEPEND="
 			>=dev-util/web_page_replay_go-20220314
 			$(depend_clang_llvm_versions ${LLVM_MIN_SLOT} ${LLVM_MAX_SLOT})
 		)
-		>=dev-lang/rust-${RUST_MIN_VER}[profiler]
+		>=dev-lang/rust-${RUST_MIN_VER}
 	)
 	>=dev-build/gn-${GN_MIN_VER}
 	dev-lang/perl
