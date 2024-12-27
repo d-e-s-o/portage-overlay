@@ -1,0 +1,29 @@
+From c24438bb420a3767fb0d371a906f8eae20c169aa Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Thu, 26 Dec 2024 08:24:10 -0800
+Subject: [PATCH] Limit maximum pager columns to 1
+
+It can be confusing to have a different number of columns appear over the course
+of an incremental search, as adjusting to the changed layout is a mental effort.
+Limit the number of columns to a single one to limit the effects of this
+experience.
+---
+ src/pager.rs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/pager.rs b/src/pager.rs
+index b5326e..e77b07 100644
+--- a/src/pager.rs
++++ b/src/pager.rs
+@@ -74,7 +74,7 @@ pub enum SelectionMotion {
+ pub const PAGER_MIN_HEIGHT: usize = 4;
+ 
+ /// The maximum number of columns of completion to attempt to fit onto the screen.
+-const PAGER_MAX_COLS: usize = 6;
++const PAGER_MAX_COLS: usize = 1;
+ 
+ /// Width of the search field.
+ const PAGER_SEARCH_FIELD_WIDTH: usize = 12;
+-- 
+2.45.2
+
