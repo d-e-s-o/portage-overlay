@@ -1,4 +1,4 @@
-From 9f0b1589ac415b99fad8c60d28be0da4cb2ba1ab Mon Sep 17 00:00:00 2001
+From 47de459130136dd28099b3d11e8b442435d7020e Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 8 Jan 2022 17:02:56 -0800
 Subject: [PATCH] Support incrementing/decrementing the number below the cursor
@@ -9,16 +9,16 @@ support, it makes sense to provide similar functionality when working on
 the command line, to provide a more natural environment for Vim users.
 With this change we add the necessary functionality.
 
-Closes: fish-shell/fish-shell#8320
+Closes: #8320
 ---
- share/functions/fish_vi_key_bindings.fish | 72 +++++++++++++++++++++++
- 1 file changed, 72 insertions(+)
+ share/functions/fish_vi_key_bindings.fish | 80 +++++++++++++++++++++++
+ 1 file changed, 80 insertions(+)
 
 diff --git a/share/functions/fish_vi_key_bindings.fish b/share/functions/fish_vi_key_bindings.fish
-index 284c03..7434de 100644
+index 00c279..44e9b8 100644
 --- a/share/functions/fish_vi_key_bindings.fish
 +++ b/share/functions/fish_vi_key_bindings.fish
-@@ -1,3 +1,69 @@
+@@ -1,3 +1,77 @@
 +alias vi_dec 'vi_inc_dec dec'
 +alias vi_inc 'vi_inc_dec inc'
 +
@@ -35,9 +35,9 @@ index 284c03..7434de 100644
 +    # can identify a valid number.
 +    set found $just_found
 +    set found_at $cursor
-+    set end (math $cursor + (string length $found) - 1)
++    set end (math -- $cursor + (string length -- $found) - 1)
 +
-+    for i in (seq (math $cursor - 1) -1 1)
++    for i in (seq (math -- $cursor - 1) -1 1)
 +      set candidate (string sub --start $i --end $end -- $line)
 +      if set just_found (string match --ignore-case --regex '^-?[0-9]+$' -- $candidate)
 +        set found $just_found
@@ -73,6 +73,14 @@ index 284c03..7434de 100644
 +    set number (math -- $found - 1)
 +  end
 +
++  set number_abs (string trim --left --chars=- -- $number)
++  set signed $status
++  set found_abs (string trim --left --chars=- -- $found)
++  set number (string pad --char 0 --width (string length -- $found_abs) -- $number_abs)
++  if test $signed -eq 0
++    set number "-$number"
++  end
++
 +  # `string sub` may bitch about `--end` being zero if `found_at` is 1.
 +  # So ignore errors here...
 +  set before (string sub --end (math -- $found_at - 1) -- $line 2> /dev/null)
@@ -81,16 +89,16 @@ index 284c03..7434de 100644
 +  # Need to subtract two here because 1) cursor is zero based 2)
 +  # `found_at` is the index of the first character of the match, but we
 +  # want the one before that.
-+  commandline --cursor -- (math $found_at + (string length -- $number) - 2)
++  commandline --cursor -- (math -- $found_at + (string length -- $number) - 2)
 +  commandline --function -- repaint
 +end
 +
  function fish_vi_key_bindings --description 'vi-like key bindings for fish'
+     set -l legacy_bind bind
      if contains -- -h $argv
-         or contains -- --help $argv
-@@ -251,6 +317,12 @@ function fish_vi_key_bindings --description 'vi-like key bindings for fish'
-     # but this binding just move cursor backward, not delete the changes
-     bind -s --preset -M replace -k backspace backward-char
+@@ -278,6 +352,12 @@ function fish_vi_key_bindings --description 'vi-like key bindings for fish'
+     bind -s --preset -M replace shift-backspace backward-char
+     $legacy_bind -s --preset -M replace -k backspace backward-char
  
 +    #
 +    # increment or decrement numbers with ctrl+x ctrl+a
@@ -102,5 +110,5 @@ index 284c03..7434de 100644
      # visual mode
      #
 -- 
-2.32.0
+2.45.3
 
