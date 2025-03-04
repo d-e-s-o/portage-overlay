@@ -1,0 +1,24 @@
+diff --git a/chrome/browser/devtools/BUILD.gn b/chrome/browser/devtools/BUILD.gn
+index 159ee0..98d9e7 100644
+--- a/chrome/browser/devtools/BUILD.gn
++++ b/chrome/browser/devtools/BUILD.gn
+@@ -98,6 +98,7 @@ static_library("devtools") {
+ 
+   deps = [
+     "//base",
++    "//components/enterprise/buildflags",
+ 
+     # To prevent circular GN dependencies, this target does not depend on
+     # //chrome/browser:browser, even though it has a real build dependency on
+diff --git a/chrome/browser/extensions/BUILD.gn b/chrome/browser/extensions/BUILD.gn
+index 11f9fe..949f1a 100644
+--- a/chrome/browser/extensions/BUILD.gn
++++ b/chrome/browser/extensions/BUILD.gn
+@@ -812,6 +812,7 @@ static_library("extensions") {
+     "//components/device_reauth",
+     "//components/optimization_guide/core:features",
+     "//components/safe_browsing/content/browser",
++    "//components/safe_browsing/content/common/proto:download_file_types_proto",
+     "//components/safe_browsing/core/browser:safe_browsing_metrics_collector",
+     "//components/security_interstitials/content:security_interstitial_page",
+     "//components/site_engagement/core/mojom:mojo_bindings",

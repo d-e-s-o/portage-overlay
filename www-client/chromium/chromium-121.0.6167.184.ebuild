@@ -1,9 +1,21 @@
 # Copyright 2009-2024 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
+# NOTES
+# =====
 # It may be worth checking
 # https://github.com/PF4Public/gentoo-overlay/tree/master/www-client/ungoogled-chromium
 # for inspiration.
+#
+# To debug build errors, run something like
+# $ ninja -v -j16 -l0 -C out/Release chrome chromedriver chrome_sandbox
+# from the build directory (e.g.,
+# /tmp/portage/www-client/chromium-XXX/work/chromium-XXX)
+#
+# To clean:
+# $ ninja -v -j16 -l0 -C out/Release -t clean
+# (not recommended, though, as it basically nukes everything, to the
+#  point that a re-emerge takes pretty much as long as the above build)
 
 EAPI=8
 
@@ -188,9 +200,9 @@ DEPEND="${COMMON_DEPEND}
 "
 
 depend_clang_llvm_version() {
-	echo "sys-devel/clang:$1"
-	echo "sys-devel/llvm:$1"
-	echo "=sys-devel/lld-$1*"
+	echo "llvm-core/clang:$1"
+	echo "llvm-core/llvm:$1"
+	echo "=llvm-core/lld-$1*"
 }
 
 # When passed multiple arguments we assume that
@@ -228,7 +240,7 @@ BDEPEND="
 		qt6? ( dev-qt/qtbase:6 )
 	)
 	system-toolchain? (
-		libcxx? ( >=sys-devel/clang-${LLVM_MIN_SLOT} )
+		libcxx? ( >=llvm-core/clang-${LLVM_MIN_SLOT} )
 		lto? ( $(depend_clang_llvm_versions ${LLVM_MIN_SLOT} ${LLVM_MAX_SLOT}) )
 		pgo? (
 			>=dev-python/selenium-3.141.0
@@ -250,14 +262,14 @@ BDEPEND="
 "
 
 if [[ ${CHROMIUM_FORCE_CLANG} == yes ]]; then
-	BDEPEND+="system-toolchain? ( >=sys-devel/clang-${LLVM_MIN_SLOT} ) "
+	BDEPEND+="system-toolchain? ( >=llvm-core/clang-${LLVM_MIN_SLOT} ) "
 fi
 
 if [[ ${CHROMIUM_FORCE_LLD} == yes ]]; then
-	BDEPEND+="system-toolchain? ( >=sys-devel/lld-${LLVM_MIN_SLOT} ) "
+	BDEPEND+="system-toolchain? ( >=llvm-core/lld-${LLVM_MIN_SLOT} ) "
 else
 	# #918897: Hack for arm64
-	BDEPEND+=" arm64? ( >=sys-devel/lld-${LLVM_MIN_SLOT} )"
+	BDEPEND+=" arm64? ( >=llvm-core/lld-${LLVM_MIN_SLOT} )"
 fi
 
 if ! has chromium_pkg_die ${EBUILD_DEATH_HOOKS}; then
@@ -308,13 +320,13 @@ needs_lld() {
 }
 
 llvm_check_deps() {
-	if ! has_version -b "sys-devel/clang:${LLVM_SLOT}" ; then
-		einfo "sys-devel/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+	if ! has_version -b "llvm-core/clang:${LLVM_SLOT}" ; then
+		einfo "llvm-core/clang:${LLVM_SLOT} is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 		return 1
 	fi
 
-	if ( use lto || use pgo ) && ! has_version -b "=sys-devel/lld-${LLVM_SLOT}*" ; then
-		einfo "=sys-devel/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
+	if ( use lto || use pgo ) && ! has_version -b "=llvm-core/lld-${LLVM_SLOT}*" ; then
+		einfo "=llvm-core/lld-${LLVM_SLOT}* is missing! Cannot use LLVM slot ${LLVM_SLOT} ..." >&2
 		return 1
 	fi
 
@@ -438,6 +450,7 @@ src_prepare() {
 		"${FILESDIR}/chromium-117-system-zstd.patch"
 		"${FILESDIR}/chromium-119-minizip-cast.patch"
 		"${FILESDIR}/chromium-121-fix-fucking-beautiful-nonsense.patch"
+		"${FILESDIR}/chromium-121-fix-broken-deps.patch"
 	)
 
 	if use system-toolchain; then
@@ -922,6 +935,13 @@ chromium_configure() {
 		fi
 		myconf_gn+=" rust_sysroot_absolute=\"${EPREFIX}/usr/lib/rust/${rustc_ver}/\""
 		myconf_gn+=" rustc_version=\"${rustc_ver}\""
+	fi
+
+	# Disable nonsense chrome plugins, which can break the build
+	# whenever a system dependency decides to violate one of their
+	# b/s rules.
+	if ! use system-toolchain; then
+		myconf_gn+=" clang_use_chrome_plugins=false"
 	fi
 
 	# GN needs explicit config for Debug/Release as opposed to inferring it from build directory.
