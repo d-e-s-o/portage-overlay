@@ -385,13 +385,6 @@ cargo_gen_config() {
 	cat > "${ECARGO_HOME}/config.toml" <<- _EOF_ || die "Failed to create cargo config"
 	$(_cargo_gen_override_paths_config)
 
-	[source.gentoo]
-	directory = "${ECARGO_VENDOR}"
-
-	[source.crates-io]
-	replace-with = "gentoo"
-	local-registry = "/nonexistent"
-
 	[net]
 	offline = true
 
@@ -408,6 +401,17 @@ cargo_gen_config() {
 	$(_cargo_gen_git_config)
 
 	_EOF_
+
+	if [[ -z "${ECARGO_IGNORE_VENDORED}" ]]; then
+		cat >> "${ECARGO_HOME}/config.toml" <<- _EOF_ || die "Failed to append cargo config"
+		[source.gentoo]
+		directory = "${ECARGO_VENDOR}"
+
+		[source.crates-io]
+		replace-with = "gentoo"
+		local-registry = "/nonexistent"
+		_EOF_
+	fi
 
 	export CARGO_HOME="${ECARGO_HOME}"
 	_CARGO_GEN_CONFIG_HAS_RUN=1
