@@ -160,7 +160,7 @@ COMMON_DEPEND="
 	${COMMON_SNAPSHOT_DEPEND}
 	app-arch/bzip2:=
 	dev-libs/expat:=
-	net-misc/curl[ssl]
+	net-misc/curl
 	sys-apps/dbus:=
 	media-libs/flac:=
 	sys-libs/zlib:=[minizip]
