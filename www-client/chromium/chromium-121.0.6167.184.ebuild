@@ -857,7 +857,6 @@ chromium_configure() {
 		myconf_gn+=" enable_updater=false"
 		myconf_gn+=" enable_widevine=false"
 		myconf_gn+=" enable_vr=false"
-
 	fi
 
 	if use system-toolchain && [[ ${CHROMIUM_FORCE_GOOGLE_TOOLCHAIN} == no ]]; then
@@ -943,6 +942,10 @@ chromium_configure() {
 	if ! use system-toolchain; then
 		myconf_gn+=" clang_use_chrome_plugins=false"
 	fi
+
+	# Workaround to unbreak build caused by missing generated mojom
+	# headers.
+	myconf_gn+=" enable_oop_printing=false"
 
 	# GN needs explicit config for Debug/Release as opposed to inferring it from build directory.
 	myconf_gn+=" is_debug=false"
