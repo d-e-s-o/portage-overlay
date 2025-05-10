@@ -1,0 +1,45 @@
+diff --git a/src/command/PlayerCommands.cxx b/src/command/PlayerCommands.cxx
+index 716f9a..5c02bd 100644
+--- a/src/command/PlayerCommands.cxx
++++ b/src/command/PlayerCommands.cxx
+@@ -34,6 +34,8 @@
+ #include "util/StringBuffer.hxx"
+ #include "util/ScopeExit.hxx"
+ #include "util/Exception.hxx"
++#include "Main.hxx"
++#include "StateFile.hxx"
+ 
+ #ifdef ENABLE_DATABASE
+ #include "db/update/Service.hxx"
+@@ -67,6 +69,7 @@ handle_play(Client &client, Request args, gcc_unused Response &r)
+ 	int song = args.ParseOptional(0, -1);
+ 
+ 	client.GetPartition().PlayPosition(song);
++	instance->state_file->Write();
+ 	return CommandResult::OK;
+ }
+ 
+@@ -76,6 +79,7 @@ handle_playid(Client &client, Request args, gcc_unused Response &r)
+ 	int id = args.ParseOptional(0, -1);
+ 
+ 	client.GetPartition().PlayId(id);
++	instance->state_file->Write();
+ 	return CommandResult::OK;
+ }
+ 
+@@ -229,6 +233,7 @@ handle_next(Client &client, gcc_unused Request args, gcc_unused Response &r)
+ 	};
+ 
+ 	client.GetPartition().PlayNext();
++	instance->state_file->Write();
+ 	return CommandResult::OK;
+ }
+ 
+@@ -237,6 +242,7 @@ handle_previous(Client &client, gcc_unused Request args,
+ 		gcc_unused Response &r)
+ {
+ 	client.GetPartition().PlayPrevious();
++	instance->state_file->Write();
+ 	return CommandResult::OK;
+ }
+ 
