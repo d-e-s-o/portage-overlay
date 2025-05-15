@@ -1,45 +1,73 @@
-diff --git a/src/command/PlayerCommands.cxx b/src/command/PlayerCommands.cxx
-index 716f9a..5c02bd 100644
---- a/src/command/PlayerCommands.cxx
-+++ b/src/command/PlayerCommands.cxx
-@@ -34,6 +34,8 @@
- #include "util/StringBuffer.hxx"
- #include "util/ScopeExit.hxx"
- #include "util/Exception.hxx"
+From 9124b6d4b3e661e1359910225b0534836d08edb4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Wed, 14 May 2025 19:44:56 -0700
+Subject: [PATCH] Save state file more eagerly
+
+We built some infrastructure that informs the user about the currently
+playing song based on the state file that MPD writes out. Unfortunately,
+this state file is updated only periodically, but not immediately in
+response to song changes, causing an undesirable delay.
+To fix this issue, this change makes sure to write out said state file
+eagerly when the currently playing song changed.
+---
+ src/player/Control.cxx | 6 ++++++
+ src/queue/Playlist.cxx | 5 +++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/src/player/Control.cxx b/src/player/Control.cxx
+index b2042f..3237c4 100644
+--- a/src/player/Control.cxx
++++ b/src/player/Control.cxx
+@@ -21,6 +21,9 @@
+ #include "Outputs.hxx"
+ #include "Idle.hxx"
+ #include "song/DetachedSong.hxx"
 +#include "Main.hxx"
++#include "Instance.hxx"
 +#include "StateFile.hxx"
  
- #ifdef ENABLE_DATABASE
- #include "db/update/Service.hxx"
-@@ -67,6 +69,7 @@ handle_play(Client &client, Request args, gcc_unused Response &r)
- 	int song = args.ParseOptional(0, -1);
+ #include <algorithm>
  
- 	client.GetPartition().PlayPosition(song);
-+	instance->state_file->Write();
- 	return CommandResult::OK;
+@@ -137,6 +140,7 @@ PlayerControl::LockSetPause(bool pause_flag) noexcept
+ 	if (!thread.IsDefined())
+ 		return;
+ 
++  {
+ 	const std::lock_guard<Mutex> protect(mutex);
+ 
+ 	switch (state) {
+@@ -153,6 +157,8 @@ PlayerControl::LockSetPause(bool pause_flag) noexcept
+ 			PauseLocked();
+ 		break;
+ 	}
++  }
++  instance->state_file->Write();
  }
  
-@@ -76,6 +79,7 @@ handle_playid(Client &client, Request args, gcc_unused Response &r)
- 	int id = args.ParseOptional(0, -1);
+ void
+diff --git a/src/queue/Playlist.cxx b/src/queue/Playlist.cxx
+index 401526..5aa3ff 100644
+--- a/src/queue/Playlist.cxx
++++ b/src/queue/Playlist.cxx
+@@ -24,6 +24,9 @@
+ #include "song/DetachedSong.hxx"
+ #include "SingleMode.hxx"
+ #include "Log.hxx"
++#include "Main.hxx"
++#include "Instance.hxx"
++#include "StateFile.hxx"
  
- 	client.GetPartition().PlayId(id);
-+	instance->state_file->Write();
- 	return CommandResult::OK;
+ #include <assert.h>
+ 
+@@ -85,6 +88,8 @@ playlist::SongStarted()
+ 	/* reset a song's "priority" when playback starts */
+ 	if (queue.SetPriority(queue.OrderToPosition(current), 0, -1, false))
+ 		OnModified();
++
++  instance->state_file->Write();
  }
  
-@@ -229,6 +233,7 @@ handle_next(Client &client, gcc_unused Request args, gcc_unused Response &r)
- 	};
- 
- 	client.GetPartition().PlayNext();
-+	instance->state_file->Write();
- 	return CommandResult::OK;
- }
- 
-@@ -237,6 +242,7 @@ handle_previous(Client &client, gcc_unused Request args,
- 		gcc_unused Response &r)
- {
- 	client.GetPartition().PlayPrevious();
-+	instance->state_file->Write();
- 	return CommandResult::OK;
- }
- 
+ inline void
+-- 
+2.49.0
+
