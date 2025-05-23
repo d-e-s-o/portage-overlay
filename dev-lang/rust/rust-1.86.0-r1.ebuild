@@ -742,7 +742,6 @@ src_install() {
 
 	newenvd - "51${P}" <<-_EOF_
 		RUST_SRC_PATH="/usr/lib/rustlib/src/rust/src/"
-		CARGO_TARGET_DIR_PREFIX="/tmp/rust-build-artifacts/"
 		CARGO_HOME="/tmp/cargo-home/"
 	_EOF_
 
@@ -814,11 +813,6 @@ pkg_postinst() {
 	if has_version app-editors/gvim || has_version app-editors/vim; then
 		optfeature "vim support for rust" app-vim/rust-vim
 	fi
-
-	elog
-	elog "In order for CARGO_TARGET_DIR_PREFIX to be set properly, please run"
-	elog "env-update && source /etc/profile"
-	elog
 }
 
 pkg_postrm() {
