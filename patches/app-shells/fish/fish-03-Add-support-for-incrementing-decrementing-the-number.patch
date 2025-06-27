@@ -1,5 +1,5 @@
-From 47de459130136dd28099b3d11e8b442435d7020e Mon Sep 17 00:00:00 2001
-From: Daniel Mueller <deso@posteo.net>
+From 02389f41d01bc45695d136f2eeea0abc8491265c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Sat, 8 Jan 2022 17:02:56 -0800
 Subject: [PATCH] Support incrementing/decrementing the number below the cursor
 
@@ -11,35 +11,36 @@ With this change we add the necessary functionality.
 
 Closes: #8320
 ---
- share/functions/fish_vi_key_bindings.fish | 80 +++++++++++++++++++++++
- 1 file changed, 80 insertions(+)
+ share/functions/fish_vi_key_bindings.fish |  83 ++++++++++++++++
+ 1 files changed, 83 insertions(+)
 
 diff --git a/share/functions/fish_vi_key_bindings.fish b/share/functions/fish_vi_key_bindings.fish
-index 00c279..44e9b8 100644
+index 83242a..b78ce0 100644
 --- a/share/functions/fish_vi_key_bindings.fish
 +++ b/share/functions/fish_vi_key_bindings.fish
-@@ -1,3 +1,77 @@
-+alias vi_dec 'vi_inc_dec dec'
-+alias vi_inc 'vi_inc_dec inc'
+@@ -1,3 +1,80 @@
++alias fish_vi_dec 'fish_vi_inc_dec dec'
++alias fish_vi_inc 'fish_vi_inc_dec inc'
 +
 +# TODO: Currently we do not support hexadecimal and octal values.
-+function vi_inc_dec --description 'increment or decrement a number'
++function fish_vi_inc_dec --description 'increment or decrement the number below the cursor'
 +  # The cursor is zero based, but all string functions assume 1 to be
 +  # the lowest index. Adjust accordingly.
-+  set cursor (math (commandline --cursor) + 1)
-+  set line (commandline --current-buffer)
++  set --local cursor (math -- (commandline --cursor) + 1)
++  set --local line (commandline --current-buffer | string collect)
 +
-+  set candidate (string sub --start $cursor -- $line)
-+  if set just_found (string match --ignore-case --regex '^-?[0-9]+' -- $candidate)
++  set --local candidate (string sub --start $cursor -- $line | string collect)
++  if set --local just_found (string match --regex '^-?[0-9]+' -- $candidate)
 +    # Search from the current cursor position backwards for as long as we
 +    # can identify a valid number.
-+    set found $just_found
-+    set found_at $cursor
-+    set end (math -- $cursor + (string length -- $found) - 1)
++    set --function found $just_found
++    set --function found_at $cursor
++    set --local end (math -- $cursor + (string length -- $found) - 1)
 +
-+    for i in (seq (math -- $cursor - 1) -1 1)
++    set --local i (math -- $cursor - 1)
++    while [ $i -ge 1 ]
 +      set candidate (string sub --start $i --end $end -- $line)
-+      if set just_found (string match --ignore-case --regex '^-?[0-9]+$' -- $candidate)
++      if set just_found (string match --regex '^-?[0-9]+$' -- $candidate)
 +        set found $just_found
 +        set found_at $i
 +        # We found a candidate, but continue to make sure that we captured
@@ -48,14 +49,16 @@ index 00c279..44e9b8 100644
 +        # We have already found a number earlier. Work with that.
 +        break
 +      end
++
++      set i (math -- $i - 1)
 +    end
 +  else
 +    # We didn't find a match below the cursor. Mirror Vim behavior by
 +    # checking ahead as well.
-+    for i in (seq (math -- $cursor + 1) (math (string length -- $line) - 1))
-+      set candidate (string sub --start $i -- $line)
++    for i in (seq (math -- $cursor + 1) (math -- (string length -- $line) - 1))
++      set candidate (string sub --start $i -- $line | string collect)
 +
-+      if set just_found (string match --ignore-case --regex '^-?[0-9]+' -- $candidate)
++      if set just_found (string match --regex '^-?[0-9]+' -- $candidate)
 +        set found $just_found
 +        set found_at $i
 +        break
@@ -73,9 +76,9 @@ index 00c279..44e9b8 100644
 +    set number (math -- $found - 1)
 +  end
 +
-+  set number_abs (string trim --left --chars=- -- $number)
-+  set signed $status
-+  set found_abs (string trim --left --chars=- -- $found)
++  set --local number_abs (string trim --left --chars=- -- $number)
++  set --local signed $status
++  set --local found_abs (string trim --left --chars=- -- $found)
 +  set number (string pad --char 0 --width (string length -- $found_abs) -- $number_abs)
 +  if test $signed -eq 0
 +    set number "-$number"
@@ -83,8 +86,8 @@ index 00c279..44e9b8 100644
 +
 +  # `string sub` may bitch about `--end` being zero if `found_at` is 1.
 +  # So ignore errors here...
-+  set before (string sub --end (math -- $found_at - 1) -- $line 2> /dev/null)
-+  set after (string sub --start (math -- $found_at + (string length -- $found)) -- $line)
++  set --local before (string sub --end (math -- $found_at - 1) -- $line 2> /dev/null | string collect)
++  set --local after (string sub --start (math -- $found_at + (string length -- $found)) -- $line | string collect)
 +  commandline --replace -- "$before$number$after"
 +  # Need to subtract two here because 1) cursor is zero based 2)
 +  # `found_at` is the index of the first character of the match, but we
@@ -94,21 +97,21 @@ index 00c279..44e9b8 100644
 +end
 +
  function fish_vi_key_bindings --description 'vi-like key bindings for fish'
-     set -l legacy_bind bind
      if contains -- -h $argv
-@@ -278,6 +352,12 @@ function fish_vi_key_bindings --description 'vi-like key bindings for fish'
+         or contains -- --help $argv
+@@ -271,6 +348,12 @@ function fish_vi_key_bindings --description 'vi-like key bindings for fish'
+     bind -s --preset -M replace backspace backward-char
      bind -s --preset -M replace shift-backspace backward-char
-     $legacy_bind -s --preset -M replace -k backspace backward-char
  
 +    #
-+    # increment or decrement numbers with ctrl+x ctrl+a
++    # Increment or decrement number below the cursor with ctrl+x ctrl+a
 +    #
-+    bind -s --preset -M default \ca vi_inc
-+    bind -s --preset -M default \cx vi_dec
++    bind -s --preset -M default ctrl-a fish_vi_inc
++    bind -s --preset -M default ctrl-x fish_vi_dec
 +
      #
      # visual mode
      #
 -- 
-2.45.3
+2.49.0
 
