@@ -1,0 +1,294 @@
+From d1fa9cc15c4a295d104c3bb149818043a944ceab Mon Sep 17 00:00:00 2001
+From: Johannes Altmanninger <aclopte@gmail.com>
+Date: Sun, 29 Dec 2024 19:31:15 +0100
+Subject: [PATCH 1/3] Move some fake readline commands to a separate type
+
+---
+ src/input.rs        | 26 ++++++++--------------
+ src/input_common.rs | 49 ++++++++++++++++++++--------------------
+ src/reader.rs       | 54 +++++++++++++++++++++------------------------
+ 3 files changed, 59 insertions(+), 70 deletions(-)
+
+diff --git a/src/input.rs b/src/input.rs
+index 537074..5b3c43 100644
+--- a/src/input.rs
++++ b/src/input.rs
+@@ -4,7 +4,8 @@
+ use crate::event;
+ use crate::flog::FLOG;
+ use crate::input_common::{
+-    CharEvent, CharInputStyle, InputData, InputEventQueuer, ReadlineCmd, R_END_INPUT_FUNCTIONS,
++    CharEvent, CharInputStyle, ImplicitEvent, InputData, InputEventQueuer, ReadlineCmd,
++    R_END_INPUT_FUNCTIONS,
+ };
+ use crate::key::{self, canonicalize_raw_escapes, ctrl, Key, Modifiers};
+ use crate::proc::job_reap;
+@@ -120,10 +121,6 @@ const fn make_md(name: &'static wstr, code: ReadlineCmd) -> InputFunctionMetadat
+ /// Keep this list sorted alphabetically!
+ #[rustfmt::skip]
+ const INPUT_FUNCTION_METADATA: &[InputFunctionMetadata] = &[
+-    // NULL makes it unusable - this is specially inserted when we detect mouse input
+-    make_md(L!(""), ReadlineCmd::DisableMouseTracking),
+-    make_md(L!(""), ReadlineCmd::FocusIn),
+-    make_md(L!(""), ReadlineCmd::FocusOut),
+     make_md(L!("accept-autosuggestion"), ReadlineCmd::AcceptAutosuggestion),
+     make_md(L!("and"), ReadlineCmd::FuncAnd),
+     make_md(L!("backward-bigword"), ReadlineCmd::BackwardBigword),
+@@ -621,9 +618,10 @@ fn consume(mut self) {
+ 
+     /// Test if any of our peeked events are readline or check_exit.
+     fn char_sequence_interrupted(&self) -> bool {
+-        self.peeked
+-            .iter()
+-            .any(|evt| evt.is_readline_or_command() || evt.is_check_exit())
++        self.peeked.iter().any(|evt| {
++            evt.is_readline_or_command()
++                || matches!(evt, CharEvent::Implicit(ImplicitEvent::CheckExit))
++        })
+     }
+ 
+     /// Reset our index back to 0.
+@@ -774,15 +772,6 @@ pub fn read_char(&mut self) -> CharEvent {
+                 CharEvent::Command(_) => {
+                     return evt;
+                 }
+-                CharEvent::Eof => {
+-                    // If we have EOF, we need to immediately quit.
+-                    // There's no need to go through the input functions.
+-                    return evt;
+-                }
+-                CharEvent::CheckExit => {
+-                    // Allow the reader to check for exit conditions.
+-                    return evt;
+-                }
+                 CharEvent::Key(ref kevt) => {
+                     FLOG!(
+                         reader,
+@@ -797,6 +786,9 @@ pub fn read_char(&mut self) -> CharEvent {
+                     self.push_front(evt);
+                     self.mapping_execute_matching_or_generic();
+                 }
++                CharEvent::Implicit(_) => {
++                    return evt;
++                }
+             }
+         }
+     }
+diff --git a/src/input_common.rs b/src/input_common.rs
+index ebe050..89d8d5 100644
+--- a/src/input_common.rs
++++ b/src/input_common.rs
+@@ -130,10 +130,6 @@ pub enum ReadlineCmd {
+     BeginUndoGroup,
+     EndUndoGroup,
+     RepeatJump,
+-    DisableMouseTracking,
+-    FocusIn,
+-    FocusOut,
+-    // ncurses uses the obvious name
+     ClearScreenAndRepaint,
+     // NOTE: This one has to be last.
+     ReverseRepeatJump,
+@@ -180,6 +176,21 @@ pub struct KeyEvent {
+     pub seq: WString,
+ }
+ 
++#[derive(Debug, Clone)]
++pub enum ImplicitEvent {
++    /// end-of-file was reached.
++    Eof,
++    /// An event was handled internally, or an interrupt was received. Check to see if the reader
++    /// loop should exit.
++    CheckExit,
++    /// Our terminal window gained focus.
++    FocusIn,
++    /// Our terminal window lost focus.
++    FocusOut,
++    /// Request to disable mouse tracking.
++    DisableMouseTracking,
++}
++
+ #[derive(Debug, Clone)]
+ pub enum CharEvent {
+     /// A character was entered.
+@@ -191,12 +202,8 @@ pub enum CharEvent {
+     /// A shell command.
+     Command(WString),
+ 
+-    /// end-of-file was reached.
+-    Eof,
+-
+-    /// An event was handled internally, or an interrupt was received. Check to see if the reader
+-    /// loop should exit.
+-    CheckExit,
++    /// Any event that has no user-visible representation.
++    Implicit(ImplicitEvent),
+ }
+ 
+ impl CharEvent {
+@@ -204,14 +211,6 @@ pub fn is_char(&self) -> bool {
+         matches!(self, CharEvent::Key(_))
+     }
+ 
+-    pub fn is_eof(&self) -> bool {
+-        matches!(self, CharEvent::Eof)
+-    }
+-
+-    pub fn is_check_exit(&self) -> bool {
+-        matches!(self, CharEvent::CheckExit)
+-    }
+-
+     pub fn is_readline(&self) -> bool {
+         matches!(self, CharEvent::Readline(_))
+     }
+@@ -273,7 +272,7 @@ pub fn from_readline_seq(cmd: ReadlineCmd, seq: WString) -> CharEvent {
+     }
+ 
+     pub fn from_check_exit() -> CharEvent {
+-        CharEvent::CheckExit
++        CharEvent::Implicit(ImplicitEvent::CheckExit)
+     }
+ }
+ 
+@@ -657,7 +656,7 @@ fn try_readch(&mut self, blocking: bool) -> Option<CharEvent> {
+             let rr = readb(self.get_in_fd(), blocking);
+             match rr {
+                 ReadbResult::Eof => {
+-                    return Some(CharEvent::Eof);
++                    return Some(CharEvent::Implicit(ImplicitEvent::Eof));
+                 }
+ 
+                 ReadbResult::Interrupted => {
+@@ -992,11 +991,11 @@ fn parse_csi(&mut self, buffer: &mut Vec<u8>) -> Option<Key> {
+             }
+             b'Z' => shift(key::Tab),
+             b'I' => {
+-                self.push_front(CharEvent::from_readline(ReadlineCmd::FocusIn));
++                self.push_front(CharEvent::Implicit(ImplicitEvent::FocusIn));
+                 return Some(Key::from_raw(key::Invalid));
+             }
+             b'O' => {
+-                self.push_front(CharEvent::from_readline(ReadlineCmd::FocusOut));
++                self.push_front(CharEvent::Implicit(ImplicitEvent::FocusOut));
+                 return Some(Key::from_raw(key::Invalid));
+             }
+             _ => return None,
+@@ -1015,7 +1014,7 @@ fn disable_mouse_tracking(&mut self) {
+ 
+         // We shouldn't directly manipulate stdout from here, so we ask the reader to do it.
+         // writembs(outputter_t::stdoutput(), "\x1B[?1000l");
+-        self.push_front(CharEvent::from_readline(ReadlineCmd::DisableMouseTracking));
++        self.push_front(CharEvent::Implicit(ImplicitEvent::DisableMouseTracking));
+     }
+ 
+     fn parse_ss3(&mut self, buffer: &mut Vec<u8>) -> Option<Key> {
+@@ -1191,7 +1190,9 @@ fn promote_interruptions_to_front(&mut self) {
+         // Find the first sequence of non-char events.
+         // EOF is considered a char: we don't want to pull EOF in front of real chars.
+         let queue = &mut self.get_input_data_mut().queue;
+-        let is_char = |evt: &CharEvent| evt.is_char() || evt.is_eof();
++        let is_char = |evt: &CharEvent| {
++            evt.is_char() || matches!(evt, CharEvent::Implicit(ImplicitEvent::Eof))
++        };
+         // Find the index of the first non-char event.
+         // If there's none, we're done.
+         let Some(first): Option<usize> = queue.iter().position(|e| !is_char(e)) else {
+diff --git a/src/reader.rs b/src/reader.rs
+index d62be6..ff4923 100644
+--- a/src/reader.rs
++++ b/src/reader.rs
+@@ -77,6 +77,7 @@
+ };
+ use crate::input::init_input;
+ use crate::input_common::terminal_protocols_disable_ifn;
++use crate::input_common::ImplicitEvent;
+ use crate::input_common::IN_MIDNIGHT_COMMANDER_PRE_CSI_U;
+ use crate::input_common::{
+     terminal_protocol_hacks, terminal_protocols_enable_ifn, CharEvent, CharInputStyle, InputData,
+@@ -2198,22 +2199,16 @@ fn handle_char_event(&mut self, injected_event: Option<CharEvent>) -> ControlFlo
+         let Some(event_needing_handling) = event_needing_handling else {
+             return ControlFlow::Continue(());
+         };
+-        if event_needing_handling.is_check_exit() {
+-            return ControlFlow::Continue(());
+-        } else if event_needing_handling.is_eof() {
+-            reader_sighup();
+-            return ControlFlow::Continue(());
+-        }
+-
+-        if !matches!(
+-            self.rls().last_cmd,
+-            Some(ReadlineCmd::Yank | ReadlineCmd::YankPop)
+-        ) {
+-            self.rls_mut().yank_len = 0;
+-        }
+ 
+         match event_needing_handling {
+             CharEvent::Readline(readline_cmd_evt) => {
++                if !matches!(
++                    self.rls().last_cmd,
++                    Some(ReadlineCmd::Yank | ReadlineCmd::YankPop)
++                ) {
++                    self.rls_mut().yank_len = 0;
++                }
++
+                 let readline_cmd = readline_cmd_evt.cmd;
+                 if readline_cmd == ReadlineCmd::Cancel && self.is_navigating_pager_contents() {
+                     self.clear_transient_edit();
+@@ -2267,9 +2262,23 @@ fn handle_char_event(&mut self, injected_event: Option<CharEvent>) -> ControlFlo
+                 }
+                 self.rls_mut().last_cmd = None;
+             }
+-            CharEvent::Eof | CharEvent::CheckExit => {
+-                panic!("Should have a char, readline or command")
+-            }
++            CharEvent::Implicit(implicit_event) => match implicit_event {
++                ImplicitEvent::Eof => {
++                    reader_sighup();
++                }
++                ImplicitEvent::CheckExit => (),
++                ImplicitEvent::FocusIn => {
++                    event::fire_generic(self.parser, L!("fish_focus_in").to_owned(), vec![]);
++                }
++                ImplicitEvent::FocusOut => {
++                    event::fire_generic(self.parser, L!("fish_focus_out").to_owned(), vec![]);
++                }
++                ImplicitEvent::DisableMouseTracking => {
++                    Outputter::stdoutput()
++                        .borrow_mut()
++                        .write_wstr(L!("\x1B[?1000l"));
++                }
++            },
+         }
+         ControlFlow::Continue(())
+     }
+@@ -3480,17 +3489,6 @@ fn handle_readline_command(&mut self, c: ReadlineCmd) {
+                 let (_elt, el) = self.active_edit_line_mut();
+                 el.end_edit_group();
+             }
+-            rl::DisableMouseTracking => {
+-                Outputter::stdoutput()
+-                    .borrow_mut()
+-                    .write_wstr(L!("\x1B[?1000l"));
+-            }
+-            rl::FocusIn => {
+-                event::fire_generic(self.parser, L!("fish_focus_in").to_owned(), vec![]);
+-            }
+-            rl::FocusOut => {
+-                event::fire_generic(self.parser, L!("fish_focus_out").to_owned(), vec![]);
+-            }
+             rl::ClearScreenAndRepaint => {
+                 self.parser.libdata_mut().is_repaint = true;
+                 let clear = screen_clear();
+@@ -5187,8 +5185,6 @@ fn command_ends_history_search(c: ReadlineCmd) -> bool {
+             | rl::EndOfHistory
+             | rl::Repaint
+             | rl::ForceRepaint
+-            | rl::FocusIn
+-            | rl::FocusOut
+     )
+ }
+ 
+-- 
+2.49.0
+
