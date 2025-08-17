@@ -270,6 +270,9 @@ CRATES="
 	yeslogic-fontconfig-sys-2.11.2
 "
 
+RUST_MIN_VER="1.77.2"
+RUST_MULTILIB=1
+
 inherit cargo gnome2 multilib-minimal python-any-r1 rust-toolchain vala
 
 DESCRIPTION="Scalable Vector Graphics (SVG) rendering library"
@@ -301,7 +304,6 @@ RDEPEND="
 "
 DEPEND="${RDEPEND}"
 BDEPEND="
-	>=virtual/rust-1.58[${MULTILIB_USEDEP}]
 	x11-libs/gdk-pixbuf
 	${PYTHON_DEPS}
 	$(python_gen_any_dep 'dev-python/docutils[${PYTHON_USEDEP}]')
