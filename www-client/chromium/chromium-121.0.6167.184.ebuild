@@ -253,7 +253,7 @@ BDEPEND="
 	dev-lang/perl
 	>=dev-build/ninja-1.7.2
 	=dev-lang/python-3*
-	>=dev-util/gperf-3.0.3
+	=dev-util/gperf-3.1-r2
 	dev-vcs/git
 	>=net-libs/nodejs-7.6.0[inspector]
 	>=sys-devel/bison-2.4.3
