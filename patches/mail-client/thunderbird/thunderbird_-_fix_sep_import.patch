@@ -1,0 +1,38 @@
+diff --git a/comm/tools/esmify/mach_commands.py b/comm/tools/esmify/mach_commands.py
+index fb02f4..f1ce34 100644
+--- a/comm/tools/esmify/mach_commands.py
++++ b/comm/tools/esmify/mach_commands.py
+@@ -14,12 +14,12 @@
+ 
+ def path_sep_to_native(path_str):
+     """Make separators in the path OS native."""
+-    return pathlib.os.sep.join(path_str.split("/"))
++    return os.sep.join(path_str.split("/"))
+ 
+ 
+ def path_sep_from_native(path):
+     """Make separators in the path OS native."""
+-    return "/".join(str(path).split(pathlib.os.sep))
++    return "/".join(str(path).split(os.sep))
+ 
+ 
+ excluded_from_convert_prefix = list(
+diff --git a/tools/esmify/mach_commands.py b/tools/esmify/mach_commands.py
+index 787de4..680801 100644
+--- a/tools/esmify/mach_commands.py
++++ b/tools/esmify/mach_commands.py
+@@ -15,12 +15,12 @@
+ 
+ def path_sep_to_native(path_str):
+     """Make separators in the path OS native."""
+-    return pathlib.os.sep.join(path_str.split("/"))
++    return os.sep.join(path_str.split("/"))
+ 
+ 
+ def path_sep_from_native(path):
+     """Make separators in the path OS native."""
+-    return "/".join(str(path).split(pathlib.os.sep))
++    return "/".join(str(path).split(os.sep))
+ 
+ 
+ excluded_from_convert_prefix = list(
