@@ -37,6 +37,6 @@ src_unpack() {
 }
 
 src_install() {
-	dosbin "${FILESDIR}/${PN}"
+	dobin "${FILESDIR}/${PN}"
 }
 
