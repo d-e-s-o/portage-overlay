@@ -1,0 +1,13 @@
+diff --git a/sh/init.sh.Linux.in b/sh/init.sh.Linux.in
+index 31ab27..aa0ce7 100644
+--- a/sh/init.sh.Linux.in
++++ b/sh/init.sh.Linux.in
+@@ -71,7 +71,7 @@ if [ "$sys" = VSERVER ]; then
+ 	rm -rf /run/*
+ elif ! mountinfo -q /run; then
+ 	ebegin "Mounting /run"
+-	run_mount_opts="mode=0755,nosuid,nodev,nr_inodes=800k,size=20%,strictatime"
++	run_mount_opts="mode=0755,nosuid,nodev,nr_inodes=800k,size=16384k,strictatime"
+ 	if ! fstabinfo --mount /run; then
+ 		if ! mount -t tmpfs -o ${run_mount_opts} tmpfs /run; then
+ 			eerror "Unable to mount tmpfs on /run."
