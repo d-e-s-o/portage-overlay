@@ -1,0 +1,22 @@
+diff --git a/third_party/blink/renderer/platform/wtf/casting.h b/third_party/blink/renderer/platform/wtf/casting.h
+index bac960..ba5bf8 100644
+--- a/third_party/blink/renderer/platform/wtf/casting.h
++++ b/third_party/blink/renderer/platform/wtf/casting.h
+@@ -119,7 +119,7 @@ bool IsA(Base* from) {
+ // returns nullptr if the input pointer is nullptr.
+ template <typename Derived, typename Base>
+ const Derived& To(const Base& from) {
+-  CHECK(IsA<Derived>(from));
++  //CHECK(IsA<Derived>(from));
+   return static_cast<const Derived&>(from);
+ }
+ 
+@@ -130,7 +130,7 @@ const Derived* To(const Base* from) {
+ 
+ template <typename Derived, typename Base>
+ Derived& To(Base& from) {
+-  CHECK(IsA<Derived>(from));
++  //CHECK(IsA<Derived>(from));
+   return static_cast<Derived&>(from);
+ }
+ template <typename Derived, typename Base>

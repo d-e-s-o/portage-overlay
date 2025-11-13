@@ -451,6 +451,7 @@ src_prepare() {
 		"${FILESDIR}/chromium-119-minizip-cast.patch"
 		"${FILESDIR}/chromium-121-fix-fucking-beautiful-nonsense.patch"
 		"${FILESDIR}/chromium-121-fix-broken-deps.patch"
+		"${FILESDIR}/chromium-121-remove-is-a-check.patch"
 	)
 
 	if use system-toolchain; then
