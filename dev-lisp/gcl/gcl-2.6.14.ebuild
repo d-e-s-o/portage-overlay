@@ -76,10 +76,7 @@ src_install() {
 	emake DESTDIR="${D}" install
 
 	rm elisp/add-defaults.el
-	dodoc readme readme.gmp readme.xgcl ChangeLog doc/* info/*.pdf
-	dodoc -r info/gcl-si
 	doman man/man1/gcl.1
-	doinfo info/gcl.info* info/gcl-si.info
 
 	use athena && dodoc xgcl-2/*.pdf
 
