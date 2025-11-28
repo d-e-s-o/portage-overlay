@@ -15,7 +15,6 @@ IUSE="+ansi athena emacs +readline tk X"
 RESTRICT="strip"  #205803
 
 RDEPEND="dev-libs/gmp
-	virtual/latex-base
 	emacs? ( app-editors/emacs:= )
 	readline? ( sys-libs/readline:= )
 	athena? ( x11-libs/libXaw )
