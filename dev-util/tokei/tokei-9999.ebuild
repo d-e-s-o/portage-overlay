@@ -1,23 +1,9 @@
-#/***************************************************************************
-# *   Copyright (C) 2020 Daniel Mueller (deso@posteo.net)                   *
-# *                                                                         *
-# *   This program is free software: you can redistribute it and/or modify  *
-# *   it under the terms of the GNU General Public License as published by  *
-# *   the Free Software Foundation, either version 3 of the License, or     *
-# *   (at your option) any later version.                                   *
-# *                                                                         *
-# *   This program is distributed in the hope that it will be useful,       *
-# *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
-# *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
-# *   GNU General Public License for more details.                          *
-# *                                                                         *
-# *   You should have received a copy of the GNU General Public License     *
-# *   along with this program.  If not, see <http://www.gnu.org/licenses/>. *
-# ***************************************************************************/
+# Copyright (C) 2020-2025 Daniel Mueller <deso@posteo.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 EAPI=8
 
-DESCRIPTION="XXX"
+DESCRIPTION="Count your code, quickly."
 
 LICENSE="Apache-2.0 MIT"
 SLOT="0"
@@ -34,7 +20,7 @@ RESTRICT="userpriv network-sandbox"
 inherit git-r3
 
 EGIT_BRANCH="master"
-EGIT_COMMIT="7e0b30ff4c1fe78fe2cc615d1f0f52c7ce6cb761"
+EGIT_COMMIT="6f3556bd664c6483661d432a1270b1d2a69b82ec"
 EGIT_REPO_URI="https://github.com/XAMPPRocky/tokei.git"
 
 src_unpack() {
