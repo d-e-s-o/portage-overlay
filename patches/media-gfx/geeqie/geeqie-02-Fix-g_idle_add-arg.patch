@@ -1,0 +1,13 @@
+diff --git a/src/remote.c b/src/remote.c
+index 2f4b88..dcabaf 100644
+--- a/src/remote.c
++++ b/src/remote.c
+@@ -465,7 +465,7 @@ static void gr_new_window(const gchar *text, GIOChannel *channel, gpointer data)
+ 	layout_set_path(lw_id, pwd);
+ }
+ 
+-static gboolean gr_close_window_cb()
++static gboolean gr_close_window_cb(void *)
+ {
+ 	if (!layout_valid(&lw_id)) return FALSE;
+ 
