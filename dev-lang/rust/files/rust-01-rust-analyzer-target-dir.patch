@@ -1,0 +1,742 @@
+From 4177ffce57a330992cb640a354c6793af117a055 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Mon, 22 Dec 2025 06:35:07 -0800
+Subject: [PATCH] Backport
+ https://github.com/rust-lang/rust-analyzer/issues/20821
+
+---
+ .../project-model/src/build_dependencies.rs   | 10 ++-
+ .../project-model/src/cargo_workspace.rs      | 34 ++++++++---
+ .../crates/project-model/src/lib.rs           |  2 +-
+ .../crates/project-model/src/sysroot.rs       |  7 +--
+ .../crates/project-model/src/tests.rs         |  9 +--
+ .../crates/project-model/src/workspace.rs     | 54 ++--------------
+ .../rust-analyzer/src/cli/rustc_tests.rs      |  2 -
+ .../crates/rust-analyzer/src/config.rs        | 61 +++++++++++--------
+ .../crates/rust-analyzer/src/flycheck.rs      | 54 ++++++++++++----
+ .../rust-analyzer/src/handlers/request.rs     |  1 +
+ .../crates/rust-analyzer/src/reload.rs        | 13 +++-
+ .../crates/rust-analyzer/src/test_runner.rs   |  5 +-
+ 12 files changed, 131 insertions(+), 121 deletions(-)
+
+diff --git a/src/tools/rust-analyzer/crates/project-model/src/build_dependencies.rs b/src/tools/rust-analyzer/crates/project-model/src/build_dependencies.rs
+index 5eda5a..bdda82f 100644
+--- a/src/tools/rust-analyzer/crates/project-model/src/build_dependencies.rs
++++ b/src/tools/rust-analyzer/crates/project-model/src/build_dependencies.rs
+@@ -86,6 +86,7 @@ pub(crate) fn run_for_workspace(
+             config,
+             &allowed_features,
+             workspace.manifest_path(),
++            workspace.target_directory().as_ref(),
+             current_dir,
+             sysroot,
+             toolchain,
+@@ -106,8 +107,9 @@ pub(crate) fn run_once(
+         let (_guard, cmd) = Self::build_command(
+             config,
+             &Default::default(),
+-            // This is not gonna be used anyways, so just construct a dummy here
++            // These are not gonna be used anyways, so just construct a dummy here
+             &ManifestPath::try_from(working_directory.clone()).unwrap(),
++            working_directory.as_ref(),
+             working_directory,
+             &Sysroot::empty(),
+             None,
+@@ -430,6 +432,7 @@ fn build_command(
+         config: &CargoConfig,
+         allowed_features: &FxHashSet<String>,
+         manifest_path: &ManifestPath,
++        target_dir: &Utf8Path,
+         current_dir: &AbsPath,
+         sysroot: &Sysroot,
+         toolchain: Option<&semver::Version>,
+@@ -450,8 +453,9 @@ fn build_command(
+                 cmd.arg("--manifest-path");
+                 cmd.arg(manifest_path);
+ 
+-                if let Some(target_dir) = &config.target_dir {
+-                    cmd.arg("--target-dir").arg(target_dir);
++                if let Some(target_dir) = config.target_dir_config.target_dir(Some(target_dir)) {
++                    cmd.arg("--target-dir");
++                    cmd.arg(target_dir.as_ref());
+                 }
+ 
+                 if let Some(target) = &config.target {
+diff --git a/src/tools/rust-analyzer/crates/project-model/src/cargo_workspace.rs b/src/tools/rust-analyzer/crates/project-model/src/cargo_workspace.rs
+index 04fb22..c197f5 100644
+--- a/src/tools/rust-analyzer/crates/project-model/src/cargo_workspace.rs
++++ b/src/tools/rust-analyzer/crates/project-model/src/cargo_workspace.rs
+@@ -1,7 +1,6 @@
+ //! See [`CargoWorkspace`].
+ 
+-use std::ops;
+-use std::str::from_utf8;
++use std::{borrow::Cow, ops, str::from_utf8};
+ 
+ use anyhow::Context;
+ use base_db::Env;
+@@ -94,6 +93,29 @@ fn default() -> Self {
+     }
+ }
+ 
++#[derive(Clone, Debug, Default, PartialEq, Eq)]
++pub enum TargetDirectoryConfig {
++    #[default]
++    None,
++    UseSubdirectory,
++    Directory(Utf8PathBuf),
++}
++
++impl TargetDirectoryConfig {
++    pub fn target_dir<'a>(
++        &'a self,
++        ws_target_dir: Option<&'a Utf8Path>,
++    ) -> Option<Cow<'a, Utf8Path>> {
++        match self {
++            TargetDirectoryConfig::None => None,
++            TargetDirectoryConfig::UseSubdirectory => {
++                Some(Cow::Owned(ws_target_dir?.join("rust-analyzer")))
++            }
++            TargetDirectoryConfig::Directory(dir) => Some(Cow::Borrowed(dir)),
++        }
++    }
++}
++
+ #[derive(Default, Clone, Debug, PartialEq, Eq)]
+ pub struct CargoConfig {
+     /// Whether to pass `--all-targets` to cargo invocations.
+@@ -120,7 +142,7 @@ pub struct CargoConfig {
+     pub extra_env: FxHashMap<String, Option<String>>,
+     pub invocation_strategy: InvocationStrategy,
+     /// Optional path to use instead of `target` when building
+-    pub target_dir: Option<Utf8PathBuf>,
++    pub target_dir_config: TargetDirectoryConfig,
+     /// Gate `#[test]` behind `#[cfg(test)]`
+     pub set_test: bool,
+     /// Load the project without any dependencies
+@@ -714,21 +736,15 @@ pub(crate) fn new(
+         }
+     }
+ 
+-    pub(crate) fn no_deps_metadata(&self) -> Option<&cargo_metadata::Metadata> {
+-        self.no_deps_result.as_ref().ok()
+-    }
+-
+     /// Executes the metadata-fetching command.
+     ///
+     /// A successful result may still contain a metadata error if the full fetch failed,
+     /// but the fallback `--no-deps` pre-fetch succeeded during command construction.
+     pub(crate) fn exec(
+         self,
+-        target_dir: &Utf8Path,
+         locked: bool,
+         progress: &dyn Fn(String),
+     ) -> anyhow::Result<(cargo_metadata::Metadata, Option<anyhow::Error>)> {
+-        _ = target_dir;
+         let Self {
+             mut command,
+             manifest_path: _,
+diff --git a/src/tools/rust-analyzer/crates/project-model/src/lib.rs b/src/tools/rust-analyzer/crates/project-model/src/lib.rs
+index e36b904..910bc0 100644
+--- a/src/tools/rust-analyzer/crates/project-model/src/lib.rs
++++ b/src/tools/rust-analyzer/crates/project-model/src/lib.rs
+@@ -62,7 +62,7 @@ pub enum QueryConfig<'a> {
+     build_dependencies::{ProcMacroDylibPath, WorkspaceBuildScripts},
+     cargo_workspace::{
+         CargoConfig, CargoFeatures, CargoMetadataConfig, CargoWorkspace, Package, PackageData,
+-        PackageDependency, RustLibSource, Target, TargetData, TargetKind,
++        PackageDependency, RustLibSource, Target, TargetData, TargetDirectoryConfig, TargetKind,
+     },
+     manifest_path::ManifestPath,
+     project_json::{ProjectJson, ProjectJsonData},
+diff --git a/src/tools/rust-analyzer/crates/project-model/src/sysroot.rs b/src/tools/rust-analyzer/crates/project-model/src/sysroot.rs
+index c0a500..ae7ebe 100644
+--- a/src/tools/rust-analyzer/crates/project-model/src/sysroot.rs
++++ b/src/tools/rust-analyzer/crates/project-model/src/sysroot.rs
+@@ -9,7 +9,7 @@
+ 
+ use anyhow::{Result, format_err};
+ use itertools::Itertools;
+-use paths::{AbsPath, AbsPathBuf, Utf8Path, Utf8PathBuf};
++use paths::{AbsPath, AbsPathBuf, Utf8PathBuf};
+ use rustc_hash::FxHashMap;
+ use stdx::format_to;
+ use toolchain::{Tool, probe_for_binary};
+@@ -211,7 +211,6 @@ pub fn load_workspace(
+         sysroot_source_config: &RustSourceWorkspaceConfig,
+         no_deps: bool,
+         current_dir: &AbsPath,
+-        target_dir: &Utf8Path,
+         progress: &dyn Fn(String),
+     ) -> Option<RustLibSrcWorkspace> {
+         assert!(matches!(self.workspace, RustLibSrcWorkspace::Empty), "workspace already loaded");
+@@ -225,7 +224,6 @@ pub fn load_workspace(
+                 match self.load_library_via_cargo(
+                     &library_manifest,
+                     current_dir,
+-                    target_dir,
+                     cargo_config,
+                     no_deps,
+                     progress,
+@@ -318,7 +316,6 @@ fn load_library_via_cargo(
+         &self,
+         library_manifest: &ManifestPath,
+         current_dir: &AbsPath,
+-        target_dir: &Utf8Path,
+         cargo_config: &CargoMetadataConfig,
+         no_deps: bool,
+         progress: &dyn Fn(String),
+@@ -335,7 +332,7 @@ fn load_library_via_cargo(
+         let locked = true;
+         let (mut res, _) =
+             FetchMetadata::new(library_manifest, current_dir, &cargo_config, self, no_deps)
+-                .exec(target_dir, locked, progress)?;
++                .exec(locked, progress)?;
+ 
+         // Patch out `rustc-std-workspace-*` crates to point to the real crates.
+         // This is done prior to `CrateGraph` construction to prevent de-duplication logic from failing.
+diff --git a/src/tools/rust-analyzer/crates/project-model/src/tests.rs b/src/tools/rust-analyzer/crates/project-model/src/tests.rs
+index 987d38..222c9f 100644
+--- a/src/tools/rust-analyzer/crates/project-model/src/tests.rs
++++ b/src/tools/rust-analyzer/crates/project-model/src/tests.rs
+@@ -238,13 +238,8 @@ fn smoke_test_real_sysroot_cargo() {
+     );
+     let cwd = AbsPathBuf::assert_utf8(temp_dir().join("smoke_test_real_sysroot_cargo"));
+     std::fs::create_dir_all(&cwd).unwrap();
+-    let loaded_sysroot = sysroot.load_workspace(
+-        &RustSourceWorkspaceConfig::default_cargo(),
+-        false,
+-        &cwd,
+-        &Utf8PathBuf::default(),
+-        &|_| (),
+-    );
++    let loaded_sysroot =
++        sysroot.load_workspace(&RustSourceWorkspaceConfig::default_cargo(), false, &|_| ());
+     if let Some(loaded_sysroot) = loaded_sysroot {
+         sysroot.set_workspace(loaded_sysroot);
+     }
+diff --git a/src/tools/rust-analyzer/crates/project-model/src/workspace.rs b/src/tools/rust-analyzer/crates/project-model/src/workspace.rs
+index 0649ce..46b5dd 100644
+--- a/src/tools/rust-analyzer/crates/project-model/src/workspace.rs
++++ b/src/tools/rust-analyzer/crates/project-model/src/workspace.rs
+@@ -16,7 +16,7 @@
+ use rustc_hash::{FxHashMap, FxHashSet};
+ use semver::Version;
+ use span::{Edition, FileId};
+-use toolchain::{NO_RUSTUP_AUTO_INSTALL_ENV, Tool};
++use toolchain::Tool;
+ use tracing::instrument;
+ use tracing::{debug, error, info};
+ use triomphe::Arc;
+@@ -295,11 +295,6 @@ struct Root {
+             &sysroot,
+             *no_deps,
+         );
+-        let target_dir = config
+-            .target_dir
+-            .clone()
+-            .or_else(|| fetch_metadata.no_deps_metadata().map(|m| m.target_directory.clone()))
+-            .unwrap_or_else(|| workspace_dir.join("target").into());
+ 
+         // We spawn a bunch of processes to query various information about the workspace's
+         // toolchain and sysroot
+@@ -345,7 +340,7 @@ struct Root {
+                         },
+                         &sysroot,
+                         *no_deps,
+-                    ).exec(&target_dir, true, progress) {
++                    ).exec(true, progress) {
+                         Ok((meta, _error)) => {
+                             let workspace = CargoWorkspace::new(
+                                 meta,
+@@ -374,7 +369,7 @@ struct Root {
+                 })
+             });
+ 
+-            let cargo_metadata = s.spawn(|| fetch_metadata.exec(&target_dir, false, progress));
++            let cargo_metadata = s.spawn(|| fetch_metadata.exec(false, progress));
+             let loaded_sysroot = s.spawn(|| {
+                 sysroot.load_workspace(
+                     &RustSourceWorkspaceConfig::CargoMetadata(sysroot_metadata_config(
+@@ -384,7 +379,6 @@ struct Root {
+                     )),
+                     config.no_deps,
+                     workspace_dir,
+-                    &target_dir,
+                     progress,
+                 )
+             });
+@@ -465,11 +459,6 @@ pub fn load_inline(
+             .unwrap_or_default();
+         let toolchain = version::get(query_config, &config.extra_env).ok().flatten();
+         let project_root = project_json.project_root();
+-        let target_dir = config
+-            .target_dir
+-            .clone()
+-            .or_else(|| cargo_target_dir(project_json.manifest()?, &config.extra_env, &sysroot))
+-            .unwrap_or_else(|| project_root.join("target").into());
+ 
+         // We spawn a bunch of processes to query various information about the workspace's
+         // toolchain and sysroot
+@@ -488,7 +477,6 @@ pub fn load_inline(
+                         &RustSourceWorkspaceConfig::Json(*sysroot_project),
+                         config.no_deps,
+                         project_root,
+-                        &target_dir,
+                         progress,
+                     )
+                 } else {
+@@ -500,7 +488,6 @@ pub fn load_inline(
+                         )),
+                         config.no_deps,
+                         project_root,
+-                        &target_dir,
+                         progress,
+                     )
+                 }
+@@ -548,11 +535,6 @@ pub fn load_detached_file(
+             .unwrap_or_default();
+         let rustc_cfg = rustc_cfg::get(query_config, None, &config.extra_env);
+         let target_data = target_data::get(query_config, None, &config.extra_env);
+-        let target_dir = config
+-            .target_dir
+-            .clone()
+-            .or_else(|| cargo_target_dir(detached_file, &config.extra_env, &sysroot))
+-            .unwrap_or_else(|| dir.join("target").into());
+ 
+         let loaded_sysroot = sysroot.load_workspace(
+             &RustSourceWorkspaceConfig::CargoMetadata(sysroot_metadata_config(
+@@ -562,7 +544,6 @@ pub fn load_detached_file(
+             )),
+             config.no_deps,
+             dir,
+-            &target_dir,
+             &|_| (),
+         );
+         if let Some(loaded_sysroot) = loaded_sysroot {
+@@ -583,13 +564,8 @@ pub fn load_detached_file(
+             &sysroot,
+             config.no_deps,
+         );
+-        let target_dir = config
+-            .target_dir
+-            .clone()
+-            .or_else(|| fetch_metadata.no_deps_metadata().map(|m| m.target_directory.clone()))
+-            .unwrap_or_else(|| dir.join("target").into());
+         let cargo_script =
+-            fetch_metadata.exec(&target_dir, false, &|_| ()).ok().map(|(ws, error)| {
++            fetch_metadata.exec(false, &|_| ()).ok().map(|(ws, error)| {
+                 let cargo_config_extra_env = cargo_config_env(detached_file, &config_file);
+                 (
+                     CargoWorkspace::new(ws, detached_file.clone(), cargo_config_extra_env, false),
+@@ -1899,25 +1875,3 @@ fn sysroot_metadata_config(
+         kind: "sysroot",
+     }
+ }
+-
+-fn cargo_target_dir(
+-    manifest: &ManifestPath,
+-    extra_env: &FxHashMap<String, Option<String>>,
+-    sysroot: &Sysroot,
+-) -> Option<Utf8PathBuf> {
+-    let cargo = sysroot.tool(Tool::Cargo, manifest.parent(), extra_env);
+-    let mut meta = cargo_metadata::MetadataCommand::new();
+-    meta.env(NO_RUSTUP_AUTO_INSTALL_ENV.0, NO_RUSTUP_AUTO_INSTALL_ENV.1);
+-    meta.cargo_path(cargo.get_program());
+-    meta.manifest_path(manifest);
+-    // `--no-deps` doesn't (over)write lockfiles as it doesn't do any package resolve.
+-    // So we can use it to get `target_directory` before copying lockfiles
+-    meta.no_deps();
+-    let mut other_options = vec![];
+-    if manifest.is_rust_manifest() {
+-        meta.env("RUSTC_BOOTSTRAP", "1");
+-        other_options.push("-Zscript".to_owned());
+-    }
+-    meta.other_options(other_options);
+-    meta.exec().map(|m| m.target_directory).ok()
+-}
+diff --git a/src/tools/rust-analyzer/crates/rust-analyzer/src/cli/rustc_tests.rs b/src/tools/rust-analyzer/crates/rust-analyzer/src/cli/rustc_tests.rs
+index 609ebf..506e44 100644
+--- a/src/tools/rust-analyzer/crates/rust-analyzer/src/cli/rustc_tests.rs
++++ b/src/tools/rust-analyzer/crates/rust-analyzer/src/cli/rustc_tests.rs
+@@ -9,7 +9,6 @@
+ use ide::{AnalysisHost, DiagnosticCode, DiagnosticsConfig};
+ use ide_db::base_db;
+ use itertools::Either;
+-use paths::Utf8PathBuf;
+ use profile::StopWatch;
+ use project_model::toolchain_info::{QueryConfig, target_data};
+ use project_model::{
+@@ -79,7 +78,6 @@ fn new() -> Result<Self> {
+             &RustSourceWorkspaceConfig::default_cargo(),
+             false,
+             &path,
+-            &Utf8PathBuf::default(),
+             &|_| (),
+         );
+         if let Some(loaded_sysroot) = loaded_sysroot {
+diff --git a/src/tools/rust-analyzer/crates/rust-analyzer/src/config.rs b/src/tools/rust-analyzer/crates/rust-analyzer/src/config.rs
+index 96b6583..468e60 100644
+--- a/src/tools/rust-analyzer/crates/rust-analyzer/src/config.rs
++++ b/src/tools/rust-analyzer/crates/rust-analyzer/src/config.rs
+@@ -23,7 +23,7 @@
+ use paths::{Utf8Path, Utf8PathBuf};
+ use project_model::{
+     CargoConfig, CargoFeatures, ProjectJson, ProjectJsonData, ProjectJsonFromCommand,
+-    ProjectManifest, RustLibSource,
++    ProjectManifest, RustLibSource, TargetDirectoryConfig,
+ };
+ use rustc_hash::{FxHashMap, FxHashSet};
+ use semver::Version;
+@@ -2248,7 +2248,7 @@ pub fn cargo(&self, source_root: Option<SourceRootId>) -> CargoConfig {
+             run_build_script_command: self.cargo_buildScripts_overrideCommand(source_root).clone(),
+             extra_args: self.cargo_extraArgs(source_root).clone(),
+             extra_env: self.cargo_extraEnv(source_root).clone(),
+-            target_dir: self.target_dir_from_config(source_root),
++            target_dir_config: self.target_dir_from_config(source_root),
+             set_test: *self.cfg_setTest(source_root),
+             no_deps: *self.cargo_noDeps(source_root),
+         }
+@@ -2336,7 +2336,7 @@ pub(crate) fn cargo_test_options(&self, source_root: Option<SourceRootId>) -> Ca
+             extra_args: self.extra_args(source_root).clone(),
+             extra_test_bin_args: self.runnables_extraTestBinaryArgs(source_root).clone(),
+             extra_env: self.extra_env(source_root).clone(),
+-            target_dir: self.target_dir_from_config(source_root),
++            target_dir_config: self.target_dir_from_config(source_root),
+             set_test: true,
+         }
+     }
+@@ -2394,7 +2394,7 @@ pub(crate) fn flycheck(&self, source_root: Option<SourceRootId>) -> FlycheckConf
+                     extra_args: self.check_extra_args(source_root),
+                     extra_test_bin_args: self.runnables_extraTestBinaryArgs(source_root).clone(),
+                     extra_env: self.check_extra_env(source_root),
+-                    target_dir: self.target_dir_from_config(source_root),
++                    target_dir_config: self.target_dir_from_config(source_root),
+                     set_test: *self.cfg_setTest(source_root),
+                 },
+                 ansi_color_output: self.color_diagnostic_output(),
+@@ -2402,17 +2402,12 @@ pub(crate) fn flycheck(&self, source_root: Option<SourceRootId>) -> FlycheckConf
+         }
+     }
+ 
+-    fn target_dir_from_config(&self, source_root: Option<SourceRootId>) -> Option<Utf8PathBuf> {
+-        self.cargo_targetDir(source_root).as_ref().and_then(|target_dir| match target_dir {
+-            TargetDirectory::UseSubdirectory(true) => {
+-                let env_var = env::var("CARGO_TARGET_DIR").ok();
+-                let mut path = Utf8PathBuf::from(env_var.as_deref().unwrap_or("target"));
+-                path.push("rust-analyzer");
+-                Some(path)
+-            }
+-            TargetDirectory::UseSubdirectory(false) => None,
+-            TargetDirectory::Directory(dir) => Some(dir.clone()),
+-        })
++    fn target_dir_from_config(&self, source_root: Option<SourceRootId>) -> TargetDirectoryConfig {
++        match &self.cargo_targetDir(source_root) {
++            Some(TargetDirectory::UseSubdirectory(true)) => TargetDirectoryConfig::UseSubdirectory,
++            Some(TargetDirectory::UseSubdirectory(false)) | None => TargetDirectoryConfig::None,
++            Some(TargetDirectory::Directory(dir)) => TargetDirectoryConfig::Directory(dir.clone()),
++        }
+     }
+ 
+     pub fn check_on_save(&self, source_root: Option<SourceRootId>) -> bool {
+@@ -3929,7 +3924,7 @@ fn doc_comment_to_string(doc: &[&str]) -> String {
+ 
+ #[cfg(test)]
+ mod tests {
+-    use std::fs;
++    use std::{borrow::Cow, fs};
+ 
+     use test_utils::{ensure_file_contents, project_root};
+ 
+@@ -4064,9 +4059,13 @@ fn cargo_target_dir_unset() {
+ 
+         (config, _, _) = config.apply_change(change);
+         assert_eq!(config.cargo_targetDir(None), &None);
+-        assert!(
+-            matches!(config.flycheck(None), FlycheckConfig::CargoCommand { options, .. } if options.target_dir.is_none())
+-        );
++        assert!(matches!(
++            config.flycheck(None),
++            FlycheckConfig::CargoCommand {
++                options: CargoOptions { target_dir_config: TargetDirectoryConfig::None, .. },
++                ..
++            }
++        ));
+     }
+ 
+     #[test]
+@@ -4082,11 +4081,16 @@ fn cargo_target_dir_subdir() {
+         (config, _, _) = config.apply_change(change);
+ 
+         assert_eq!(config.cargo_targetDir(None), &Some(TargetDirectory::UseSubdirectory(true)));
+-        let target =
++        let ws_target_dir =
+             Utf8PathBuf::from(std::env::var("CARGO_TARGET_DIR").unwrap_or("target".to_owned()));
+-        assert!(
+-            matches!(config.flycheck(None), FlycheckConfig::CargoCommand { options, .. } if options.target_dir == Some(target.join("rust-analyzer")))
+-        );
++        assert!(matches!(
++            config.flycheck(None),
++            FlycheckConfig::CargoCommand {
++                options: CargoOptions { target_dir_config, .. },
++                ..
++            } if target_dir_config.target_dir(Some(&ws_target_dir)).map(Cow::into_owned)
++                == Some(ws_target_dir.join("rust-analyzer"))
++        ));
+     }
+ 
+     #[test]
+@@ -4105,8 +4109,13 @@ fn cargo_target_dir_relative_dir() {
+             config.cargo_targetDir(None),
+             &Some(TargetDirectory::Directory(Utf8PathBuf::from("other_folder")))
+         );
+-        assert!(
+-            matches!(config.flycheck(None), FlycheckConfig::CargoCommand { options, .. } if options.target_dir == Some(Utf8PathBuf::from("other_folder")))
+-        );
++        assert!(matches!(
++            config.flycheck(None),
++            FlycheckConfig::CargoCommand {
++                options: CargoOptions { target_dir_config, .. },
++                ..
++            } if target_dir_config.target_dir(None).map(Cow::into_owned)
++                == Some(Utf8PathBuf::from("other_folder"))
++        ));
+     }
+ }
+diff --git a/src/tools/rust-analyzer/crates/rust-analyzer/src/flycheck.rs b/src/tools/rust-analyzer/crates/rust-analyzer/src/flycheck.rs
+index b54510..68337dd 100644
+--- a/src/tools/rust-analyzer/crates/rust-analyzer/src/flycheck.rs
++++ b/src/tools/rust-analyzer/crates/rust-analyzer/src/flycheck.rs
+@@ -12,7 +12,8 @@
+ use crossbeam_channel::{Receiver, Sender, select_biased, unbounded};
+ use ide_db::FxHashSet;
+ use itertools::Itertools;
+-use paths::{AbsPath, AbsPathBuf, Utf8PathBuf};
++use paths::{AbsPath, AbsPathBuf, Utf8Path, Utf8PathBuf};
++use project_model::TargetDirectoryConfig;
+ use rustc_hash::FxHashMap;
+ use serde::Deserialize as _;
+ use serde_derive::Deserialize;
+@@ -46,7 +47,7 @@ pub(crate) struct CargoOptions {
+     pub(crate) extra_args: Vec<String>,
+     pub(crate) extra_test_bin_args: Vec<String>,
+     pub(crate) extra_env: FxHashMap<String, Option<String>>,
+-    pub(crate) target_dir: Option<Utf8PathBuf>,
++    pub(crate) target_dir_config: TargetDirectoryConfig,
+ }
+ 
+ #[derive(Clone, Debug)]
+@@ -58,7 +59,7 @@ pub(crate) enum Target {
+ }
+ 
+ impl CargoOptions {
+-    pub(crate) fn apply_on_command(&self, cmd: &mut Command) {
++    pub(crate) fn apply_on_command(&self, cmd: &mut Command, ws_target_dir: Option<&Utf8Path>) {
+         for target in &self.target_tuples {
+             cmd.args(["--target", target.as_str()]);
+         }
+@@ -82,8 +83,8 @@ pub(crate) fn apply_on_command(&self, cmd: &mut Command) {
+                 cmd.arg(self.features.join(" "));
+             }
+         }
+-        if let Some(target_dir) = &self.target_dir {
+-            cmd.arg("--target-dir").arg(target_dir);
++        if let Some(target_dir) = self.target_dir_config.target_dir(ws_target_dir) {
++            cmd.arg("--target-dir").arg(target_dir.as_ref());
+         }
+     }
+ }
+@@ -158,6 +159,7 @@ pub(crate) fn spawn(
+         sysroot_root: Option<AbsPathBuf>,
+         workspace_root: AbsPathBuf,
+         manifest_path: Option<AbsPathBuf>,
++        ws_target_dir: Option<Utf8PathBuf>,
+     ) -> FlycheckHandle {
+         let actor = FlycheckActor::new(
+             id,
+@@ -167,6 +169,7 @@ pub(crate) fn spawn(
+             sysroot_root,
+             workspace_root,
+             manifest_path,
++            ws_target_dir,
+         );
+         let (sender, receiver) = unbounded::<StateChange>();
+         let thread =
+@@ -314,6 +317,7 @@ struct FlycheckActor {
+     sender: Sender<FlycheckMessage>,
+     config: FlycheckConfig,
+     manifest_path: Option<AbsPathBuf>,
++    ws_target_dir: Option<Utf8PathBuf>,
+     /// Either the workspace root of the workspace we are flychecking,
+     /// or the project root of the project.
+     root: Arc<AbsPathBuf>,
+@@ -355,6 +359,7 @@ fn new(
+         sysroot_root: Option<AbsPathBuf>,
+         workspace_root: AbsPathBuf,
+         manifest_path: Option<AbsPathBuf>,
++        ws_target_dir: Option<Utf8PathBuf>,
+     ) -> FlycheckActor {
+         tracing::info!(%id, ?workspace_root, "Spawning flycheck");
+         FlycheckActor {
+@@ -366,6 +371,7 @@ fn new(
+             root: Arc::new(workspace_root),
+             scope: FlycheckScope::Workspace,
+             manifest_path,
++            ws_target_dir,
+             command_handle: None,
+             command_receiver: None,
+             diagnostics_cleared_for: Default::default(),
+@@ -428,13 +434,32 @@ fn run(mut self, inbox: Receiver<StateChange>) {
+                         CargoCheckParser,
+                         sender,
+                         match &self.config {
+-                            FlycheckConfig::CargoCommand { options, .. } => Some(
+-                                options
+-                                    .target_dir
+-                                    .as_deref()
+-                                    .unwrap_or("target".as_ref())
+-                                    .join(format!("rust-analyzer/flycheck{}", self.id)),
+-                            ),
++                            FlycheckConfig::CargoCommand { options, .. } => {
++                                let ws_target_dir =
++                                    self.ws_target_dir.as_ref().map(Utf8PathBuf::as_path);
++                                let target_dir =
++                                    options.target_dir_config.target_dir(ws_target_dir);
++
++                                // If `"rust-analyzer.cargo.targetDir": null`, we should use
++                                // workspace's target dir instead of hard-coded fallback.
++                                let target_dir = target_dir.as_deref().or(ws_target_dir);
++
++                                Some(
++                                    // As `CommandHandle::spawn`'s working directory is
++                                    // rust-analyzer's working directory, which might be different
++                                    // from the flycheck's working directory, we should canonicalize
++                                    // the output directory, otherwise we might write it into the
++                                    // wrong target dir.
++                                    // If `target_dir` is an absolute path, it will replace
++                                    // `self.root` and that's an intended behavior.
++                                    self.root
++                                        .join(target_dir.unwrap_or(
++                                            Utf8Path::new("target").join("rust-analyzer").as_path(),
++                                        ))
++                                        .join(format!("flycheck{}", self.id))
++                                        .into(),
++                                )
++                            }
+                             _ => None,
+                         },
+                     ) {
+@@ -670,7 +695,10 @@ fn check_command(
+ 
+                 cmd.arg("--keep-going");
+ 
+-                options.apply_on_command(&mut cmd);
++                options.apply_on_command(
++                    &mut cmd,
++                    self.ws_target_dir.as_ref().map(Utf8PathBuf::as_path),
++                );
+                 cmd.args(&options.extra_args);
+                 Some(cmd)
+             }
+diff --git a/src/tools/rust-analyzer/crates/rust-analyzer/src/handlers/request.rs b/src/tools/rust-analyzer/crates/rust-analyzer/src/handlers/request.rs
+index 6cb28ae..5f71cb 100644
+--- a/src/tools/rust-analyzer/crates/rust-analyzer/src/handlers/request.rs
++++ b/src/tools/rust-analyzer/crates/rust-analyzer/src/handlers/request.rs
+@@ -264,6 +264,7 @@ pub(crate) fn handle_run_test(
+                     path,
+                     state.config.cargo_test_options(None),
+                     cargo.workspace_root(),
++                    Some(cargo.target_directory().as_ref()),
+                     target,
+                     state.test_run_sender.clone(),
+                 )?;
+diff --git a/src/tools/rust-analyzer/crates/rust-analyzer/src/reload.rs b/src/tools/rust-analyzer/crates/rust-analyzer/src/reload.rs
+index ca15e6..f05800 100644
+--- a/src/tools/rust-analyzer/crates/rust-analyzer/src/reload.rs
++++ b/src/tools/rust-analyzer/crates/rust-analyzer/src/reload.rs
+@@ -23,6 +23,7 @@
+ use itertools::Itertools;
+ use load_cargo::{ProjectFolders, load_proc_macro};
+ use lsp_types::FileSystemWatcher;
++use paths::Utf8Path;
+ use proc_macro_api::ProcMacroClient;
+ use project_model::{ManifestPath, ProjectWorkspace, ProjectWorkspaceKind, WorkspaceBuildScripts};
+ use stdx::{format_to, thread::ThreadIntent};
+@@ -866,6 +867,7 @@ fn reload_flycheck(&mut self) {
+                     None,
+                     self.config.root_path().clone(),
+                     None,
++                    None,
+                 )]
+             }
+             crate::flycheck::InvocationStrategy::PerWorkspace => {
+@@ -880,13 +882,17 @@ fn reload_flycheck(&mut self) {
+                                 | ProjectWorkspaceKind::DetachedFile {
+                                     cargo: Some((cargo, _, _)),
+                                     ..
+-                                } => (cargo.workspace_root(), Some(cargo.manifest_path())),
++                                } => (
++                                    cargo.workspace_root(),
++                                    Some(cargo.manifest_path()),
++                                    Some(cargo.target_directory()),
++                                ),
+                                 ProjectWorkspaceKind::Json(project) => {
+                                     // Enable flychecks for json projects if a custom flycheck command was supplied
+                                     // in the workspace configuration.
+                                     match config {
+                                         FlycheckConfig::CustomCommand { .. } => {
+-                                            (project.path(), None)
++                                            (project.path(), None, None)
+                                         }
+                                         _ => return None,
+                                     }
+@@ -896,7 +902,7 @@ fn reload_flycheck(&mut self) {
+                             ws.sysroot.root().map(ToOwned::to_owned),
+                         ))
+                     })
+-                    .map(|(id, (root, manifest_path), sysroot_root)| {
++                    .map(|(id, (root, manifest_path, target_dir), sysroot_root)| {
+                         FlycheckHandle::spawn(
+                             id,
+                             next_gen,
+@@ -905,6 +911,7 @@ fn reload_flycheck(&mut self) {
+                             sysroot_root,
+                             root.to_path_buf(),
+                             manifest_path.map(|it| it.to_path_buf()),
++                            target_dir.map(|it| AsRef::<Utf8Path>::as_ref(it).to_path_buf()),
+                         )
+                     })
+                     .collect()
+diff --git a/src/tools/rust-analyzer/crates/rust-analyzer/src/test_runner.rs b/src/tools/rust-analyzer/crates/rust-analyzer/src/test_runner.rs
+index 0c8658..9a65e7 100644
+--- a/src/tools/rust-analyzer/crates/rust-analyzer/src/test_runner.rs
++++ b/src/tools/rust-analyzer/crates/rust-analyzer/src/test_runner.rs
+@@ -2,7 +2,7 @@
+ //! thread and report the result of each test in a channel.
+ 
+ use crossbeam_channel::Sender;
+-use paths::AbsPath;
++use paths::{AbsPath, Utf8Path};
+ use project_model::TargetKind;
+ use serde::Deserialize as _;
+ use serde_derive::Deserialize;
+@@ -98,6 +98,7 @@ pub(crate) fn new(
+         path: Option<&str>,
+         options: CargoOptions,
+         root: &AbsPath,
++        ws_target_dir: Option<&Utf8Path>,
+         test_target: TestTarget,
+         sender: Sender<CargoTestMessage>,
+     ) -> std::io::Result<Self> {
+@@ -123,7 +124,7 @@ pub(crate) fn new(
+         cmd.arg("--no-fail-fast");
+         cmd.arg("--manifest-path");
+         cmd.arg(root.join("Cargo.toml"));
+-        options.apply_on_command(&mut cmd);
++        options.apply_on_command(&mut cmd, ws_target_dir);
+         cmd.arg("--");
+         if let Some(path) = path {
+             cmd.arg(path);
+-- 
+2.51.2
+
