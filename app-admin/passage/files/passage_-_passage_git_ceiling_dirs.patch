@@ -1,0 +1,23 @@
+From 0178f4d168b7fe367c68fa8523142708fee0432e Mon Sep 17 00:00:00 2001
+From: mutlusun <mutlusun@users.noreply.github.com>
+Date: Thu, 19 Jan 2023 07:30:22 +0100
+Subject: [PATCH] Include `.passage` directory in `GIT_CEILING_DIRECTORIES`
+
+Previously, the git command stopped searching for a git repository in `.passage/` directory. Now, it stops in the home directory and can detect the `.passage` directory as repository.
+---
+ src/password-store.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/password-store.sh b/src/password-store.sh
+index 83549ef..ac8a5d8 100755
+--- a/src/password-store.sh
++++ b/src/password-store.sh
+@@ -19,7 +19,7 @@ CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:punct:][:alnum:]}"
+ CHARACTER_SET_NO_SYMBOLS="${PASSWORD_STORE_CHARACTER_SET_NO_SYMBOLS:-[:alnum:]}"
+ 
+ unset GIT_DIR GIT_WORK_TREE GIT_NAMESPACE GIT_INDEX_FILE GIT_INDEX_VERSION GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
+-export GIT_CEILING_DIRECTORIES="$PREFIX/.."
++export GIT_CEILING_DIRECTORIES="$PREFIX/../.."
+ 
+ #
+ # BEGIN helper functions
