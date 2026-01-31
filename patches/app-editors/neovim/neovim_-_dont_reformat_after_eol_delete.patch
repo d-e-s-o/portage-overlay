@@ -1,0 +1,59 @@
+From c8cd65205ca3414240bebb23504ae9ebc46eba18 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Sat, 31 Jan 2026 14:25:35 -0800
+Subject: [PATCH] Don't auto-format paragraph when deleting rest of line
+
+While conceptually logical, it is super annoying that, with
+auto-formatting enabled, Neovim reformats the paragraph immediately when
+deleting the rest of a line.
+Special case deletions to not do that, if the rest of the line is being
+removed.
+---
+ src/nvim/ops.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/src/nvim/ops.c b/src/nvim/ops.c
+index 677948..178ba8 100644
+--- a/src/nvim/ops.c
++++ b/src/nvim/ops.c
+@@ -1768,11 +1768,23 @@ int op_delete(oparg_T *oap)
+       mb_adjust_opend(oap);
+     }
+ 
++    // Track whether this is a delete-to-end-of-line operation (e.g., D, d$)
++    // before the deletion happens, while we still know the original line length.
++    bool delete_to_eol = false;
++
+     if (oap->line_count == 1) {         // delete characters within one line
+       if (u_save_cursor() == FAIL) {            // save line for undo
+         return FAIL;
+       }
+ 
++      // Check if deletion extends to end of line (for skipping auto_format later)
++      if (oap->op_type == OP_DELETE) {
++        colnr_T orig_len = get_cursor_line_len();
++        // For inclusive motion: end.col is last char to delete, so end.col + 1 >= orig_len
++        // For non-inclusive: end.col is one past last char, so end.col >= orig_len
++        delete_to_eol = (oap->end.col + oap->inclusive >= orig_len);
++      }
++
+       // if 'cpoptions' contains '$', display '$' at end of change
+       if (vim_strchr(p_cpo, CPO_DOLLAR) != NULL
+           && oap->op_type == OP_CHANGE
+@@ -1841,7 +1853,12 @@ int op_delete(oparg_T *oap)
+                      0, 0, 0, kExtmarkUndo);
+     }
+     if (oap->op_type == OP_DELETE) {
+-      auto_format(false, true);
++      // Don't auto-format when deleting to end of line (e.g., D, d$).
++      // The deleted text was at the end, not in the middle of a paragraph,
++      // so reformatting would be unexpected and disruptive.
++      if (!delete_to_eol) {
++        auto_format(false, true);
++      }
+     }
+   }
+ 
+-- 
+2.52.0
+
