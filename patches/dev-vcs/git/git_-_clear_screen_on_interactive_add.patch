@@ -1,0 +1,19 @@
+diff --git a/add-patch.c b/add-patch.c
+index 173a53..ca9f97 100644
+--- a/add-patch.c
++++ b/add-patch.c
+@@ -1504,6 +1504,14 @@ static int patch_update_file(struct add_p_state *s,
+ 		strbuf_reset(&s->buf);
+ 		if (file_diff->hunk_nr) {
+ 			if (rendered_hunk_index != hunk_index) {
++				if (isatty(1) && !is_terminal_dumb()) {
++					fputs("\033[H\033[2J", stdout);
++					render_diff_header(s, file_diff,
++								 colored,
++								 &s->buf);
++					fputs(s->buf.buf, stdout);
++					strbuf_reset(&s->buf);
++				}
+ 				if (use_pager) {
+ 					setup_pager(the_repository);
+ 					sigchain_push(SIGPIPE, SIG_IGN);
