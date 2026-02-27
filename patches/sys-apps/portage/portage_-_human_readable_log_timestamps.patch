@@ -1,0 +1,11 @@
+--- a/lib/_emerge/emergelog.py
++++ b/lib/_emerge/emergelog.py
+@@ -45,7 +45,7 @@ def emergelog(xterm_titles, mystr, short_msg=None):
+             )
+         mylock = portage.locks.lockfile(file_path)
+         try:
+-            mylogfile.write(f"{time.time():.0f}: {mystr}\n")
++            mylogfile.write(f"{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}: {mystr}\n")
+             mylogfile.close()
+         finally:
+             portage.locks.unlockfile(mylock)
