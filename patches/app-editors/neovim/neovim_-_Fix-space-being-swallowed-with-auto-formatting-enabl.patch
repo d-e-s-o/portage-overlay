@@ -1,0 +1,77 @@
+From 2e9f30c7e89fd7372405a0f7f24739d580c7b4cb Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Fri, 6 Mar 2026 06:59:09 -0800
+Subject: [PATCH] Fix space being swallowed with auto-formatting enabled
+
+---
+ src/nvim/textformat.c                | 16 ++++++++++++++++
+ test/old/testdir/test_textformat.vim | 26 ++++++++++++++++++++++++++
+ 2 files changed, 42 insertions(+)
+
+diff --git a/src/nvim/textformat.c b/src/nvim/textformat.c
+index b40dbd..07c42c 100644
+--- a/src/nvim/textformat.c
++++ b/src/nvim/textformat.c
+@@ -647,6 +647,22 @@ void auto_format(bool trailblank, bool prev_line)
+     curwin->w_cursor = pos;
+   }
+ 
++  // Also skip formatting when the user just typed whitespace in the
++  // middle of the line.  Reformatting would join all paragraph lines and
++  // re-wrap, consuming the space at the line break point via
++  // OPENLINE_DELSPACES.  By deferring, the next non-whitespace character
++  // will be inserted adjacent to the space, keeping it protected from
++  // being consumed at a line break.  auto_format() will then reformat
++  // properly on the next keystroke.
++  if (*old != NUL && !trailblank && !wasatend && pos.col > 0
++      && (State & MODE_INSERT)) {
++    char *line = get_cursor_line_ptr();
++    if (WHITECHAR(line[pos.col - 1])) {
++      curwin->w_cursor = pos;
++      return;
++    }
++  }
++
+   // With the 'c' flag in 'formatoptions' and 't' missing: only format
+   // comments.
+   if (has_format_option(FO_WRAP_COMS) && !has_format_option(FO_WRAP)
+diff --git a/test/old/testdir/test_textformat.vim b/test/old/testdir/test_textformat.vim
+index 7a13de..691558 100644
+--- a/test/old/testdir/test_textformat.vim
++++ b/test/old/testdir/test_textformat.vim
+@@ -1158,6 +1158,32 @@ func Test_fo_a_w()
+   %bw!
+ endfunc
+ 
++" Test that auto-format ('a' flag) preserves spaces typed in the middle of a line
++func Test_fo_a_midline_space()
++  new
++  let lines = [
++    \ 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa it but',
++    \ 'Lorem Ipsum is simply dummy text of the printing and typesetting dasddd',
++    \ 'industry.',
++    \ ]
++  call setline(1, lines)
++  set fo=ta tw=70
++
++  " Prevent INPUT_BUFLEN batching so auto_format runs between keystrokes
++  autocmd InsertCharPre * " nothing
++
++  " Position at 't' of 'it' (col 68) and type space then Z
++  call cursor(1, 68)
++  call feedkeys("a Z\<Esc>", 'xt')
++
++  " The space between 'it' and 'Z' must be preserved
++  call assert_match('it Z', getline(1))
++
++  autocmd! InsertCharPre
++  set fo& tw&
++  bw!
++endfunc
++
+ " Test for formatting lines using gq in visual mode
+ func Test_visual_gq_format()
+   new
+-- 
+2.52.0
+
