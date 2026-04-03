@@ -1,7 +1,7 @@
-From 3e2bf546165f3abb18ad89625fadb3d860e1cc78 Mon Sep 17 00:00:00 2001
+From 902d495aa7f983051bf4a849328554bb5e4b33c9 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Sat, 30 Sep 2017 12:19:16 -0700
-Subject: [PATCH 05/13] Rework resizing logic
+Subject: [PATCH 05/14] Rework resizing logic
 
 i3's logic for resizing, although understandably logical, is unintuitive
 for users of Awesome, tmux, or vim. In particular, the way i3 resizes
@@ -16,27 +16,29 @@ depending on the direction). If no next neighbor is found then the left
 one is taken and the direction inversed.
 This change implements the logic of the latter for i3.
 ---
- src/commands.c | 43 +++++++++++++++++++++++++------------------
- 1 file changed, 25 insertions(+), 18 deletions(-)
+ src/commands.c | 67 ++++++++++++++++++++++++++------------------------
+ 1 file changed, 35 insertions(+), 32 deletions(-)
 
 diff --git a/src/commands.c b/src/commands.c
-index 6e174d..1379b4 100644
+index c09b2d..f90534 100644
 --- a/src/commands.c
 +++ b/src/commands.c
-@@ -554,21 +554,34 @@ static bool cmd_resize_tiling_width_height(I3_CMD, Con *current, const char *way
-             child->percent = percentage;
+@@ -494,46 +494,49 @@ static bool cmd_resize_tiling_width_height(I3_CMD, Con *current, const char *dir
+         }
      }
  
--    double new_current_percent = current->percent + ((double)ppt / 100.0);
--    double subtract_percent = ((double)ppt / 100.0) / (children - 1);
--    LOG("new_current_percent = %f\n", new_current_percent);
--    LOG("subtract_percent = %f\n", subtract_percent);
--    /* Ensure that the new percentages are positive. */
--    TAILQ_FOREACH(child, &(current->parent->nodes_head), nodes) {
--        if (child == current)
--            continue;
--        if (child->percent - subtract_percent <= 0.0) {
--            LOG("Not resizing, already at minimum size (child %p would end up with a size of %.f\n", child, child->percent - subtract_percent);
+-    double new_current_percent;
+-    if (ppt != 0.0) {
+-        new_current_percent = current->percent + ppt;
+-    } else {
+-        /* Convert px change to change in percentages */
+-        ppt = (double)px / (double)con_rect_size_in_orientation(current->parent);
+-        new_current_percent = current->percent + ppt;
+-    }
+-    const double subtract_percent = ppt / (children - 1);
+-    if (ppt < 0.0 && new_current_percent < percent_for_1px(current)) {
+-        yerror("Not resizing, container would end with less than 1px");
+-        return false;
 +    /*
 +     * The way our resizing works is always between two cons. If the
 +     * current con has a right neighbour we resize relative to it.
@@ -52,30 +54,49 @@ index 6e174d..1379b4 100644
 +        current = TAILQ_PREV(current, nodes_head, nodes);
 +        if (current == NULL) {
 +            LOG("Not resizing\n");
-             ysuccess(false);
-             return false;
-         }
++            ysuccess(false);
++            return false;
++        }
 +        next = swap;
      }
--    if (new_current_percent <= 0.0) {
+ 
++    double new_current_percent;
++    double new_next_percent;
++    if (ppt != 0.0) {
++        new_current_percent = current->percent + ppt;
++        new_next_percent = next->percent - ppt;
++    } else {
++        const double pct = (double)px / (double)con_rect_size_in_orientation(current->parent);
++        new_current_percent = current->percent + pct;
++        new_next_percent = next->percent - pct;
++    }
+     LOG("new_current_percent = %f\n", new_current_percent);
+-    LOG("subtract_percent = %f\n", subtract_percent);
+-    /* Ensure that the new percentages are positive. */
+-    if (subtract_percent >= 0.0) {
+-        TAILQ_FOREACH (child, &(current->parent->nodes_head), nodes) {
+-            if (child == current) {
+-                continue;
+-            }
+-            if (child->percent - subtract_percent < percent_for_1px(child)) {
+-                yerror("Not resizing, already at minimum size (child %p would end up with a size of %.f", child, child->percent - subtract_percent);
+-                return false;
+-            }
+-        }
 +
-+    double new_current_percent = current->percent + ((double)ppt / 100.0);
-+    double subtract_percent = (double)ppt / 100.0;
-+    double new_next_percent = next->percent - subtract_percent;
-+    LOG("new_current_percent = %f\n", new_current_percent);
-+    LOG("subtract_percent = %f\n", subtract_percent);
-+
-+    if (new_current_percent <= 0.0 || new_next_percent <= 0.0) {
-         LOG("Not resizing, already at minimum size\n");
-         ysuccess(false);
-         return false;
-@@ -577,13 +590,7 @@ static bool cmd_resize_tiling_width_height(I3_CMD, Con *current, const char *way
++    if (new_current_percent < percent_for_1px(current) || new_next_percent < percent_for_1px(next)) {
++        LOG("Not resizing, already at minimum size\n");
++        ysuccess(false);
++        return false;
+     }
+ 
      current->percent = new_current_percent;
      LOG("current->percent after = %f\n", current->percent);
  
--    TAILQ_FOREACH(child, &(current->parent->nodes_head), nodes) {
--        if (child == current)
+-    TAILQ_FOREACH (child, &(current->parent->nodes_head), nodes) {
+-        if (child == current) {
 -            continue;
+-        }
 -        child->percent -= subtract_percent;
 -        LOG("child->percent after (%p) = %f\n", child, child->percent);
 -    }
@@ -85,5 +106,5 @@ index 6e174d..1379b4 100644
  }
  
 -- 
-2.18.0
+2.52.0
 

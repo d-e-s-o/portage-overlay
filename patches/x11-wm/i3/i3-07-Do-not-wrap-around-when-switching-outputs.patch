@@ -1,7 +1,7 @@
-From 982a1dde1912f54135e46a4a572611ea0833708c Mon Sep 17 00:00:00 2001
+From f7c5048dff477bd86ec871d55576d53210110f94 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Tue, 14 Nov 2017 21:06:42 -0800
-Subject: [PATCH 07/13] Do not wrap around when switching outputs
+Subject: [PATCH 07/14] Do not wrap around when switching outputs
 
 When switching to another output i3 wraps around. For example, if we are
 already focused on the right most output and issue a command to focus
@@ -17,27 +17,30 @@ is. The behavior when changing the output in another direction
  1 file changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/output.c b/src/output.c
-index c76dfd..cfb7e9 100644
+index a1d6aa..4c8d23 100644
 --- a/src/output.c
 +++ b/src/output.c
-@@ -32,13 +32,13 @@ Output *get_output_from_string(Output *current_output, const char *output_str) {
-     if (strcasecmp(output_str, "current") == 0) {
+@@ -35,16 +35,16 @@ Output *get_output_from_string(Output *current_output, const char *output_str) {
          return get_output_for_con(focused);
-     } else if (strcasecmp(output_str, "left") == 0) {
+     }
+     if (strcasecmp(output_str, "left") == 0) {
 -        return get_output_next_wrap(D_LEFT, current_output);
 +        return get_output_next(D_LEFT, current_output, CLOSEST_OUTPUT);
-     } else if (strcasecmp(output_str, "right") == 0) {
+     }
+     if (strcasecmp(output_str, "right") == 0) {
 -        return get_output_next_wrap(D_RIGHT, current_output);
 +        return get_output_next(D_RIGHT, current_output, CLOSEST_OUTPUT);
-     } else if (strcasecmp(output_str, "up") == 0) {
+     }
+     if (strcasecmp(output_str, "up") == 0) {
 -        return get_output_next_wrap(D_UP, current_output);
 +        return get_output_next(D_UP, current_output, CLOSEST_OUTPUT);
-     } else if (strcasecmp(output_str, "down") == 0) {
+     }
+     if (strcasecmp(output_str, "down") == 0) {
 -        return get_output_next_wrap(D_DOWN, current_output);
 +        return get_output_next(D_DOWN, current_output, CLOSEST_OUTPUT);
      }
  
      return get_output_by_name(output_str, true);
 -- 
-2.18.0
+2.52.0
 

@@ -1,7 +1,7 @@
-From 34615be024b1e58aa13e7e7c807bc4647d7cacb4 Mon Sep 17 00:00:00 2001
+From 085ec9f3e3755e974916d011bf7004a39154f840 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 29 Sep 2017 21:25:30 -0700
-Subject: [PATCH 03/13] Allow for creation of new workspace when selecting next
+Subject: [PATCH 03/14] Allow for creation of new workspace when selecting next
  one
 
 Until now, i3 when asked to select the next workspace, would cycle
@@ -10,42 +10,53 @@ Instead we would like it to switch to the workspace with the next higher
 number or create it if it does not exist. A cycling through workspaces
 is not needed.
 ---
- src/workspace.c | 21 ++++++++++-----------
- 1 file changed, 10 insertions(+), 11 deletions(-)
+ src/workspace.c | 31 +++++++++----------------------
+ 1 file changed, 9 insertions(+), 22 deletions(-)
 
 diff --git a/src/workspace.c b/src/workspace.c
-index 17108d..dfd290 100644
+index bda067..25ab17 100644
 --- a/src/workspace.c
 +++ b/src/workspace.c
-@@ -617,18 +617,17 @@ Con *workspace_next_on_output(void) {
+@@ -731,30 +731,17 @@ Con *workspace_next_on_output(void) {
          /* If currently a named workspace, find next named workspace. */
          next = TAILQ_NEXT(current, nodes);
      } else {
 -        /* If currently a numbered workspace, find next numbered workspace. */
--        NODES_FOREACH(output_get_content(output)) {
--            if (child->type != CT_WORKSPACE)
+-        bool found_current = false;
+-        NODES_FOREACH (output_get_content(output)) {
+-            if (child->type != CT_WORKSPACE) {
 -                continue;
--            if (child->num == -1)
+-            }
+-            if (child->num == -1) {
 -                break;
+-            }
 -            /* Need to check child against current and next because we are
 -             * traversing multiple lists and thus are not guaranteed the
 -             * relative order between the list of workspaces. */
--            if (current->num < child->num && (!next || child->num < next->num))
+-            if (current->num < child->num && (!next || child->num < next->num)) {
 -                next = child;
+-            }
 +        int result;
 +        char num_str[3];
 +        long num = current->num + 1;
-+
+ 
+-            /* If two workspaces have the same number, but different names
+-             * (eg '5:a', '5:b') then just take the next one. */
+-            if (child == current) {
+-                found_current = true;
+-            } else if (found_current && current->num == child->num) {
+-                return child;
+-            }
 +        result = snprintf(num_str, sizeof(num_str), "%ld", num);
 +        if (result >= sizeof(num_str)) {
 +            ELOG("Workspace number too big: %ld\n", num);
 +            /* Ups, that will make boom somewhere. */
 +            return NULL;
          }
-+        next = workspace_get(num_str, NULL);
++        next = workspace_get(num_str);
      }
  
      /* Find next named workspace. */
 -- 
-2.18.0
+2.52.0
 

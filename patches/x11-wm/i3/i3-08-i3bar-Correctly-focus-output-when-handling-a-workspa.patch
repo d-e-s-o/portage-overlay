@@ -1,57 +1,62 @@
-From 2d6f4ed7e68bf46d97c5df4d0ec4e0320d8b71d5 Mon Sep 17 00:00:00 2001
+From 3f48f346dc4e47065af61b52c2813e07dfe5ecac Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
-Date: Fri, 17 Nov 2017 07:59:33 -0800
-Subject: [PATCH 08/13] i3bar: Correctly focus output when handling a workspace
- mouse click
+Date: Sat, 18 Nov 2017 11:24:55 -0800
+Subject: [PATCH 08/14] Correctly sort in workspaces when disabling outputs
 
-In a multi monitor setup, there are two problems when it comes to
-selecting a workspace through the i3bar via a mouse click. First,
-when the user selects a workspace on the i3bar on the output (i.e.,
-monitor) that does not contain the currently focused workspace, this
-workspace will not receive the focus if there is no application running
-on it.
-Second, in the same scenario a workspace switch can happen on the wrong
-output, provided the workspace's name does not uniquely identify a
-single object.
-This change addresses both problems by reworking the command that i3bar
-sends to switch workspaces. In particular, it prefixes the 'workspace
-<ws-name>' part with an 'focus output <output-name>' command, which
-takes care of focusing the correct output. By doing so, the subsequent
-'workspace' command will also find the correct workspace in case of
-duplicated workspace names because the search starts on the currently
-focused output.
-Note that both problems are not exposed on a vanilla i3. Only if i3 is
-slightly modified to allow empty workspaces and duplicated workspace
-names can this be an issue.
+When an output (i.e., monitor) that is managed by i3 is disabled, all
+workspaces get moved to the "first" output. That becomes a problem with
+the existing logic in the context of duplicated workspace numbers as
+the number is used to determine where the insertion should happen.
+This change addresses the problem by adjusting the number (and name) of
+the workspace before the insertion takes place in a way that existing
+workspaces from the old output are appended to the list of existing
+workspaces.
 ---
- i3bar/src/xcb.c | 12 +++++++++---
- 1 file changed, 9 insertions(+), 3 deletions(-)
+ src/randr.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-diff --git a/i3bar/src/xcb.c b/i3bar/src/xcb.c
-index 5bc11c..7fbbf5 100644
---- a/i3bar/src/xcb.c
-+++ b/i3bar/src/xcb.c
-@@ -602,11 +602,17 @@ void handle_button(xcb_button_press_event_t *event) {
-         namelen++;
+diff --git a/src/randr.c b/src/randr.c
+index 26ee13..c416fa 100644
+--- a/src/randr.c
++++ b/src/randr.c
+@@ -865,6 +865,7 @@ static void move_content(Con *con) {
+     /* 1: Get the con to focus next */
+     Con *next = focused;
+ 
++    int num_children = first_content != NULL ? con_num_children(first_content) : 0;
+     /* 2: iterate through workspaces and re-assign them, fixing the coordinates
+      * of floating containers as we go */
+     const Con *old_content = output_get_content(con);
+@@ -879,6 +880,10 @@ static void move_content(Con *con) {
+         DLOG("Detaching current = %p / %s\n", current, current->name);
+         con_detach(current);
+         DLOG("Re-attaching current = %p / %s\n", current, current->name);
++        /* Adjust the con's number to make it be sorted in properly. */
++        current->num = ++num_children;
++        free(current->name);
++        sasprintf(&current->name, "%d", current->num);
+         con_attach(current, first_content, false);
+         DLOG("Fixing the coordinates of floating containers\n");
+         Con *floating_con;
+@@ -894,6 +899,7 @@ static void move_content(Con *con) {
+         workspace_show(con_get_workspace(next));
      }
  
--    const size_t len = namelen + strlen("workspace \"\"") + 1;
-+    const char cmd_workspace[] = "; workspace \"\"";
-+    const char cmd_output[] = "focus output ";
-+    const size_t walk_len = strlen(walk->name);
-+    const size_t len = sizeof(cmd_output) - 1 + walk_len + namelen + sizeof(cmd_workspace);
-     char *buffer = scalloc(len + num_quotes, 1);
--    strncpy(buffer, "workspace \"", strlen("workspace \""));
-+
-+    strcpy(buffer, cmd_output);
-+    strcat(buffer, walk->name);
-+    strcat(buffer, cmd_workspace);
-     size_t inpos, outpos;
--    for (inpos = 0, outpos = strlen("workspace \"");
-+    for (inpos = 0, outpos = len - (namelen + 2);
-          inpos < namelen;
-          inpos++, outpos++) {
-         if (utf8_name[inpos] == '"' || utf8_name[inpos] == '\\') {
++    num_children = first_content != NULL ? con_num_children(first_content) : 0;
+     /* 3: move the dock clients to the first output */
+     Con *child;
+     TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+@@ -908,6 +914,10 @@ static void move_content(Con *con) {
+             DLOG("Moving dock client %p to nc %p\n", dock, nc);
+             con_detach(dock);
+             DLOG("Re-attaching\n");
++            /* Adjust the con's number to make it be sorted in properly. */
++            dock->num = ++num_children;
++            free(dock->name);
++            sasprintf(&dock->name, "%d", dock->num);
+             con_attach(dock, nc, false);
+             DLOG("Done\n");
+         }
 -- 
-2.18.0
+2.52.0
 

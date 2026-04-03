@@ -1,7 +1,7 @@
-From ba4e5d705e9dd7ca1ff2994f3628067cee77dbc4 Mon Sep 17 00:00:00 2001
+From 35ab3590fc0c1fd0adf8ea17a2c4162940995653 Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Thu, 21 Dec 2017 22:22:13 -0800
-Subject: [PATCH 12/13] Close empty workspaces on i3 restart
+Subject: [PATCH 11/14] Close empty workspaces on i3 restart
 
 The change to no longer destroy empty workspaces combined with i3's
 ability to create them easily dynamically can lead to situations where
@@ -25,13 +25,13 @@ the configuration file.
  3 files changed, 49 insertions(+)
 
 diff --git a/include/con.h b/include/con.h
-index 58123a..fdcfdf 100644
+index 631071..23476f 100644
 --- a/include/con.h
 +++ b/include/con.h
-@@ -524,3 +524,9 @@ i3String *con_parse_title_format(Con *con);
+@@ -587,3 +587,9 @@ void con_merge_into(Con *old, Con *new);
   *
   */
- bool con_swap(Con *first, Con *second);
+ bool con_inside_stacked_or_tabbed(Con *con);
 +
 +/**
 + * Closes workspaces that are empty.
@@ -39,12 +39,12 @@ index 58123a..fdcfdf 100644
 + */
 +void con_close_empty_workspaces(Con *con);
 diff --git a/src/con.c b/src/con.c
-index 329c74..32a27a 100644
+index c37d07..d4405d 100644
 --- a/src/con.c
 +++ b/src/con.c
-@@ -2496,3 +2496,45 @@ swap_end:
- 
-     return result;
+@@ -2741,3 +2741,45 @@ bool con_inside_stacked_or_tabbed(Con *con) {
+     }
+     return con_inside_stacked_or_tabbed(con->parent);
  }
 +
 +/*
@@ -77,7 +77,7 @@ index 329c74..32a27a 100644
 +        /* check if this workspace is currently visible */
 +        if (!workspace_is_visible(con)) {
 +            yajl_gen gen = ipc_marshal_workspace_event("empty", con, NULL);
-+            tree_close_internal(con, DONT_KILL_WINDOW, false, false);
++            tree_close_internal(con, DONT_KILL_WINDOW, false);
 +
 +            const unsigned char *payload;
 +            ylength length;
@@ -89,10 +89,10 @@ index 329c74..32a27a 100644
 +    }
 +}
 diff --git a/src/tree.c b/src/tree.c
-index ada980..1a394a 100644
+index f5105e..6664de 100644
 --- a/src/tree.c
 +++ b/src/tree.c
-@@ -109,6 +109,7 @@ bool tree_restore(const char *path, xcb_get_geometry_reply_t *geometry) {
+@@ -113,6 +113,7 @@ bool tree_restore(const char *path, xcb_get_geometry_reply_t *geometry) {
          TAILQ_INSERT_HEAD(&(croot->nodes_head), __i3, nodes);
      }
  
@@ -101,5 +101,5 @@ index ada980..1a394a 100644
      result = true;
  
 -- 
-2.18.0
+2.52.0
 

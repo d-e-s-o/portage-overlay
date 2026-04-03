@@ -1,0 +1,174 @@
+From 32e7c06ee772b22a889a1bd113b199e080f5f937 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Mon, 2 Apr 2018 19:07:47 -0700
+Subject: [PATCH 12/14] Honor output in workspace_auto_back_and_forth logic
+
+Similar to the startup ID logic, the workspace_auto_back_and_forth
+functionality is not written taking the output of a workspace into
+consideration. That can be a problem when workspace names are
+ambiguous. In addition to that, the previous workspace is remembered on
+a global scale, not on a per-output basis.
+To fix both problems, this change causes i3 to store the last active
+workspace on a per output basis. This way we can switch back and forth
+between workspaces on the individual outputs, making the behavior more
+intuitive for our use case.
+---
+ include/data.h      |  3 +++
+ include/workspace.h |  7 -------
+ src/commands.c      |  7 -------
+ src/ipc.c           |  5 -----
+ src/load_layout.c   |  3 ---
+ src/workspace.c     | 28 ++++++++++++++--------------
+ 6 files changed, 17 insertions(+), 36 deletions(-)
+
+diff --git a/include/data.h b/include/data.h
+index 5afc3b..37d1f0 100644
+--- a/include/data.h
++++ b/include/data.h
+@@ -411,6 +411,9 @@ struct xoutput {
+ 
+     /** Pointer to the Con which represents this output */
+     Con *con;
++    /** The name of the previously focused workspace. Used for back and
++     * forth functionality. */
++    char *prev_ws;
+ 
+     /** x, y, width, height */
+     Rect rect;
+diff --git a/include/workspace.h b/include/workspace.h
+index 39496c..d0b18f 100644
+--- a/include/workspace.h
++++ b/include/workspace.h
+@@ -24,13 +24,6 @@
+ #define NET_WM_DESKTOP_NONE 0xFFFFFFF0
+ #define NET_WM_DESKTOP_ALL 0xFFFFFFFF
+ 
+-/**
+- * Stores a copy of the name of the last used workspace for the workspace
+- * back-and-forth switching.
+- *
+- */
+-extern char *previous_workspace_name;
+-
+ /**
+  * Returns the workspace with the given name or NULL if such a workspace does
+  * not exist.
+diff --git a/src/commands.c b/src/commands.c
+index 3ffe5d..9ec988 100644
+--- a/src/commands.c
++++ b/src/commands.c
+@@ -2194,13 +2194,6 @@ void cmd_rename_workspace(I3_CMD, const char *old_name, const char *new_name) {
+         con_focus(previously_focused);
+     }
+ 
+-    /* Let back-and-forth work after renaming the previous workspace.
+-     * See #3694. */
+-    if (previous_workspace_name && !strcmp(previous_workspace_name, old_name_copy)) {
+-        FREE(previous_workspace_name);
+-        previous_workspace_name = sstrdup(new_name);
+-    }
+-
+     cmd_output->needs_tree_render = true;
+     ysuccess(true);
+ 
+diff --git a/src/ipc.c b/src/ipc.c
+index 72abff..b9a1e0 100644
+--- a/src/ipc.c
++++ b/src/ipc.c
+@@ -720,11 +720,6 @@ void dump_node(yajl_gen gen, Con *con, bool inplace_restart) {
+         y(integer, con->depth);
+     }
+ 
+-    if (inplace_restart && con->type == CT_ROOT && previous_workspace_name) {
+-        ystr("previous_workspace_name");
+-        ystr(previous_workspace_name);
+-    }
+-
+     y(map_close);
+ }
+ 
+diff --git a/src/load_layout.c b/src/load_layout.c
+index 8f4ec9..529ba0 100644
+--- a/src/load_layout.c
++++ b/src/load_layout.c
+@@ -470,9 +470,6 @@ static int json_string(void *ctx, const unsigned char *val, size_t len) {
+                 json_node->scratchpad_state = SCRATCHPAD_CHANGED;
+             }
+             free(buf);
+-        } else if (strcasecmp(last_key, "previous_workspace_name") == 0) {
+-            FREE(previous_workspace_name);
+-            previous_workspace_name = sstrndup((const char *)val, len);
+         }
+     }
+     return 1;
+diff --git a/src/workspace.c b/src/workspace.c
+index 465cf0..5c9477 100644
+--- a/src/workspace.c
++++ b/src/workspace.c
+@@ -11,13 +11,6 @@
+ #include "all.h"
+ #include "yajl_utils.h"
+ 
+-/*
+- * Stores a copy of the name of the last used workspace for the workspace
+- * back-and-forth switching.
+- *
+- */
+-char *previous_workspace_name = NULL;
+-
+ /* NULL-terminated list of workspace names (in order) extracted from
+  * keybindings. */
+ static char **binding_workspace_names = NULL;
+@@ -500,9 +493,13 @@ void workspace_show(Con *workspace) {
+      * NOTE: Internal cons such as __i3_scratch (when a scratchpad window is
+      * focused) are skipped, see bug #868. */
+     if (current && !con_is_internal(current)) {
+-        FREE(previous_workspace_name);
+-        previous_workspace_name = sstrdup(current->name);
+-        DLOG("Setting previous_workspace_name = %s\n", previous_workspace_name);
++        Output *output = get_output_for_con(current);
++        /* Only set the previous workspace if we did not change outputs. */
++        if (output == get_output_for_con(workspace)) {
++            FREE(output->prev_ws);
++            output->prev_ws = sstrdup(current->name);
++            DLOG("Setting prev_ws = %s for output = %s\n", output->prev_ws, output_primary_name(output));
++        }
+     }
+ 
+     workspace_reassign_sticky(workspace);
+@@ -877,12 +874,14 @@ workspace_prev_on_output_end:
+  *
+  */
+ void workspace_back_and_forth(void) {
+-    if (!previous_workspace_name) {
++    Output *output = get_output_for_con(focused);
++    if (!output->prev_ws) {
+         DLOG("No previous workspace name set. Not switching.\n");
+         return;
+     }
+ 
+-    workspace_show_by_name(previous_workspace_name);
++    Con *workspace = workspace_get_on_output(output->con, output->prev_ws);
++    workspace_show(workspace);
+ }
+ 
+ /*
+@@ -890,12 +889,13 @@ void workspace_back_and_forth(void) {
+  *
+  */
+ Con *workspace_back_and_forth_get(void) {
+-    if (!previous_workspace_name) {
++    Output *output = get_output_for_con(focused);
++    if (!output->prev_ws) {
+         DLOG("No previous workspace name set.\n");
+         return NULL;
+     }
+ 
+-    return workspace_get(previous_workspace_name);
++    return workspace_get_on_output(output->con, output->prev_ws);
+ }
+ 
+ static bool get_urgency_flag(Con *con) {
+-- 
+2.52.0
+

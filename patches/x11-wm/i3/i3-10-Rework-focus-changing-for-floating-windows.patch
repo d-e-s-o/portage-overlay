@@ -1,0 +1,123 @@
+From a9ccb7e5c9e689cd3b49d287e8ae011339b854f1 Mon Sep 17 00:00:00 2001
+From: Daniel Mueller <deso@posteo.net>
+Date: Wed, 29 Nov 2017 08:10:38 -0800
+Subject: [PATCH 10/14] Rework focus changing for floating windows
+
+Floating windows feel quite alien compared to "normal" ones when it
+comes to their focusing behavior. In particular, three problems have
+been identified:
+1) They wrap around similar to what other windows did originally.
+2) They do not adhere to what can be argued to be the intuitive behavior
+   of the 'focus left|right|up|down' commands. In particular, they only
+   support cycling through the windows as opposed to taking into account
+   their actual position.
+3) Related to the second point they are also not taking into account
+   different outputs, as is the case for "normal" windows.
+
+This change reworks the focusing logic by making it honor the floating
+window's actual position. The patch also hooks them up into the focusing
+logic of "normal" windows. Because of that, we also honor output. So if,
+say, no further floating windows are found left of the current one but
+there is a different output there, this output will receive focus.
+---
+ include/util.h |  4 ++++
+ src/tree.c     | 36 +++++++++++++++++++++++-------------
+ src/util.c     | 16 ++++++++++++++++
+ 3 files changed, 43 insertions(+), 13 deletions(-)
+
+diff --git a/include/util.h b/include/util.h
+index 70fe56..e554e2 100644
+--- a/include/util.h
++++ b/include/util.h
+@@ -62,6 +62,10 @@
+ int min(int a, int b);
+ int max(int a, int b);
+ bool rect_contains(Rect rect, uint32_t x, uint32_t y);
++bool rect_left_of(Rect r1, Rect r2);
++bool rect_right_of(Rect r1, Rect r2);
++bool rect_above_of(Rect r1, Rect r2);
++bool rect_below_of(Rect r1, Rect r2);
+ Rect rect_add(Rect a, Rect b);
+ Rect rect_sub(Rect a, Rect b);
+ bool rect_equals(Rect a, Rect b);
+diff --git a/src/tree.c b/src/tree.c
+index 2ceb06..f5105e 100644
+--- a/src/tree.c
++++ b/src/tree.c
+@@ -526,23 +526,33 @@ static Con *get_tree_next(Con *con, direction_t direction) {
+ 
+         Con *const parent = con->parent;
+         if (con->type == CT_FLOATING_CON) {
+-            if (orientation != HORIZ) {
+-                /* up/down does not change floating containers */
+-                return NULL;
++            Con *next = NULL;
++            Con *current;
++            bool (*fn)(Rect, Rect);
++            if (orientation == HORIZ) {
++                fn = previous ? rect_left_of : rect_right_of;
++            } else {
++                fn = previous ? rect_above_of : rect_below_of;
+             }
+ 
+-            /* left/right focuses the previous/next floating container */
+-            Con *next = previous ? TAILQ_PREV(con, floating_head, floating_windows)
+-                                 : TAILQ_NEXT(con, floating_windows);
+-            /* If there is no next/previous container, wrap */
+-            if (!next) {
+-                next = previous ? TAILQ_LAST(&(parent->floating_head), floating_head)
+-                                : TAILQ_FIRST(&(parent->floating_head));
++            current = TAILQ_FIRST(&parent->floating_head);
++            while (current != NULL) {
++                if (fn(current->rect, con->rect)) {
++                    if (next == NULL || fn(next->rect, current->rect)) {
++                       next = current;
++                    }
++                }
++                current = TAILQ_NEXT(current, floating_windows);
+             }
+-            /* Our parent does not list us in floating heads? */
+-            assert(next);
+ 
+-            return next;
++            if (next) {
++                return next;
++            }
++
++            /* If we did not find a matching con then continue with the
++             * parent (i.e., the workspace). */
++            con = parent;
++            continue;
+         }
+ 
+         if (con_num_children(parent) > 1 && con_orientation(parent) == orientation) {
+diff --git a/src/util.c b/src/util.c
+index c06099..6d9085 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -36,6 +36,22 @@ __attribute__((__const__)) bool rect_contains(const Rect rect, const uint32_t x,
+             y <= (rect.y + rect.height));
+ }
+ 
++bool rect_left_of(Rect r1, Rect r2) {
++    return r1.x < r2.x;
++}
++
++bool rect_right_of(Rect r1, Rect r2) {
++    return r1.x + r1.width > r2.x + r2.width;
++}
++
++bool rect_above_of(Rect r1, Rect r2) {
++    return r1.y < r2.y;
++}
++
++bool rect_below_of(Rect r1, Rect r2) {
++    return r1.y + r1.height > r2.y + r2.height;
++}
++
+ __attribute__((__const__)) Rect rect_add(const Rect a, const Rect b) {
+     return (Rect){a.x + b.x,
+                   a.y + b.y,
+-- 
+2.52.0
+

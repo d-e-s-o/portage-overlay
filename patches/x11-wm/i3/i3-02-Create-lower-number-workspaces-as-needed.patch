@@ -1,7 +1,7 @@
-From 2ab6df0b9e0d457fc489636dd377fce464db1523 Mon Sep 17 00:00:00 2001
+From c8d4eb3feff03fbd6d7d150e3fa29e2bbd016dab Mon Sep 17 00:00:00 2001
 From: Daniel Mueller <deso@posteo.net>
 Date: Fri, 29 Sep 2017 21:16:48 -0700
-Subject: [PATCH 02/13] Create lower number workspaces as needed
+Subject: [PATCH 02/14] Create lower number workspaces as needed
 
 It is very annoying that when switching to a workspace that this
 workspace is created if it does not exist but not the ones with a lower
@@ -12,17 +12,17 @@ creating it and its lower number peers if necessary.
 ---
  include/workspace.h |  6 ++++++
  src/commands.c      |  9 ++++++---
- src/workspace.c     | 35 +++++++++++++++++++++++++++++++++++
- 3 files changed, 47 insertions(+), 3 deletions(-)
+ src/workspace.c     | 36 ++++++++++++++++++++++++++++++++++++
+ 3 files changed, 48 insertions(+), 3 deletions(-)
 
 diff --git a/include/workspace.h b/include/workspace.h
-index 8d109e..3cca73 100644
+index 0b8304..2b29ab 100644
 --- a/include/workspace.h
 +++ b/include/workspace.h
-@@ -194,3 +194,9 @@ Con *workspace_encapsulate(Con *ws);
+@@ -186,3 +186,9 @@ Con *workspace_encapsulate(Con *ws);
   *
   */
- bool workspace_move_to_output(Con *ws, const char *output);
+ void workspace_move_to_output(Con *ws, Output *output);
 +
 +/**
 + * Select the workspace with the given number, automatically creating
@@ -30,19 +30,19 @@ index 8d109e..3cca73 100644
 + */
 +Con *workspace_select(const char *num);
 diff --git a/src/commands.c b/src/commands.c
-index 899bbb..6e174d 100644
+index b421ab..c09b2d 100644
 --- a/src/commands.c
 +++ b/src/commands.c
-@@ -362,7 +362,7 @@ void cmd_move_con_to_workspace_name(I3_CMD, const char *name, const char *_no_au
+@@ -323,7 +323,7 @@ void cmd_move_con_to_workspace_name(I3_CMD, const char *name, const char *no_aut
  
      LOG("should move window to workspace %s\n", name);
      /* get the workspace */
--    Con *ws = workspace_get(name, NULL);
+-    Con *ws = workspace_get(name);
 +    Con *ws = workspace_select(name);
  
-     if (!no_auto_back_and_forth)
+     if (no_auto_back_and_forth == NULL) {
          ws = maybe_auto_back_and_forth_workspace(ws);
-@@ -925,7 +925,8 @@ void cmd_workspace_number(I3_CMD, const char *which, const char *_no_auto_back_a
+@@ -872,7 +872,8 @@ void cmd_workspace_number(I3_CMD, const char *which, const char *no_auto_back_an
      if (!workspace) {
          LOG("There is no workspace with number %ld, creating a new one.\n", parsed_num);
          ysuccess(true);
@@ -52,15 +52,15 @@ index 899bbb..6e174d 100644
          cmd_output->needs_tree_render = true;
          return;
      }
-@@ -964,6 +965,7 @@ void cmd_workspace_back_and_forth(I3_CMD) {
+@@ -907,6 +908,7 @@ void cmd_workspace_back_and_forth(I3_CMD) {
   */
- void cmd_workspace_name(I3_CMD, const char *name, const char *_no_auto_back_and_forth) {
-     const bool no_auto_back_and_forth = (_no_auto_back_and_forth != NULL);
+ void cmd_workspace_name(I3_CMD, const char *name, const char *no_auto_back_and_forth_str) {
+     const bool no_auto_back_and_forth = (no_auto_back_and_forth_str != NULL);
 +    Con *workspace;
  
      if (strncasecmp(name, "__", strlen("__")) == 0) {
-         LOG("You cannot switch to the i3-internal workspaces (\"%s\").\n", name);
-@@ -982,7 +984,8 @@ void cmd_workspace_name(I3_CMD, const char *name, const char *_no_auto_back_and_
+         yerror("You cannot switch to the i3-internal workspaces (\"%s\").", name);
+@@ -920,7 +922,8 @@ void cmd_workspace_name(I3_CMD, const char *name, const char *no_auto_back_and_f
          ysuccess(true);
          return;
      }
@@ -71,17 +71,17 @@ index 899bbb..6e174d 100644
      cmd_output->needs_tree_render = true;
      // XXX: default reply for now, make this a better reply
 diff --git a/src/workspace.c b/src/workspace.c
-index 335e05..17108d 100644
+index 67dcd3..bda067 100644
 --- a/src/workspace.c
 +++ b/src/workspace.c
-@@ -983,3 +983,38 @@ bool workspace_move_to_output(Con *ws, const char *name) {
- 
-     return true;
+@@ -1131,3 +1131,39 @@ void workspace_move_to_output(Con *ws, Output *output) {
+         break;
+     }
  }
 +
 +Con *workspace_select(const char *num) {
-+    bool created;
-+    Con *workspace = workspace_get(num, &created);
++    bool created = (get_existing_workspace_by_name(num) == NULL);
++    Con *workspace = workspace_get(num);
 +
 +    /* If the workspace already exists we simply use it. */
 +    if (!created) {
@@ -109,10 +109,11 @@ index 335e05..17108d 100644
 +         * would save us all those unnecessary calls to ewmh_update_*. But given
 +         * the expected low frequency of those creations we should be fine.
 +         */
-+        (void)workspace_get(num_str, &created);
++        created = (get_existing_workspace_by_name(num_str) == NULL);
++        (void)workspace_get(num_str);
 +    }
 +    return workspace;
 +}
 -- 
-2.18.0
+2.52.0
 

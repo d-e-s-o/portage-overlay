@@ -1,0 +1,230 @@
+From 9ef60498bb73ad9a999d5fcb6fd7b415a7778b92 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Mon, 1 Dec 2025 21:40:53 -0800
+Subject: [PATCH 14/14] Number workspaces using base 36
+
+Number workspaces using base 36 instead of 10. In so doing we have more
+single letter workspace names, navigation to which can intuitively be
+bound to the corresponding keys.
+---
+ include/util.h  |  3 ++-
+ src/randr.c     |  5 +++--
+ src/util.c      | 50 ++++++++++++++++++++++++++++++++++++++++++++-----
+ src/workspace.c | 30 ++++++++++++++---------------
+ 4 files changed, 64 insertions(+), 24 deletions(-)
+
+diff --git a/include/util.h b/include/util.h
+index e554e2..0be537 100644
+--- a/include/util.h
++++ b/include/util.h
+@@ -90,7 +90,8 @@ bool layout_from_name(const char *layout_str, layout_t *out);
+  * interpreted as a "named workspace".
+  *
+  */
+-int ws_name_to_number(const char *name);
++long ws_name_to_number(const char *name);
++char *num_to_base36(unsigned long value, char *buf, size_t bufsize);
+ 
+ /**
+  * Updates *destination with new_value and returns true if it was changed or false
+diff --git a/src/randr.c b/src/randr.c
+index e3ea77..9c01b9 100644
+--- a/src/randr.c
++++ b/src/randr.c
+@@ -869,6 +869,7 @@ static void move_content(Con *con) {
+     /* 2: iterate through workspaces and re-assign them, fixing the coordinates
+      * of floating containers as we go */
+     const Con *old_content = output_get_content(con);
++    char num_str[3];
+     while (!TAILQ_EMPTY(&(old_content->nodes_head))) {
+         Con *current = TAILQ_FIRST(&(old_content->nodes_head));
+         DLOG("Detaching current = %p / %s\n", current, current->name);
+@@ -877,7 +878,7 @@ static void move_content(Con *con) {
+         /* Adjust the con's number to make it be sorted in properly. */
+         current->num = ++num_children;
+         free(current->name);
+-        sasprintf(&current->name, "%d", current->num);
++        current->name = strdup(num_to_base36(current->num, num_str, sizeof(num_str)));
+         con_attach(current, first_content, false);
+         DLOG("Fixing the coordinates of floating containers\n");
+         Con *floating_con;
+@@ -911,7 +912,7 @@ static void move_content(Con *con) {
+             /* Adjust the con's number to make it be sorted in properly. */
+             dock->num = ++num_children;
+             free(dock->name);
+-            sasprintf(&dock->name, "%d", dock->num);
++            dock->name = strdup(num_to_base36(dock->num, num_str, sizeof(num_str)));
+             con_attach(dock, nc, false);
+             DLOG("Done\n");
+         }
+diff --git a/src/util.c b/src/util.c
+index 6d9085..c466a7 100644
+--- a/src/util.c
++++ b/src/util.c
+@@ -83,7 +83,7 @@ __attribute__((__const__)) bool rect_equals(const Rect a, const Rect b) {
+ __attribute__((pure)) bool name_is_digits(const char *name) {
+     /* positive integers and zero are interpreted as numbers */
+     for (size_t i = 0; i < strlen(name); i++) {
+-        if (!isdigit(name[i])) {
++        if (!isalnum(name[i])) {
+             return false;
+         }
+     }
+@@ -128,18 +128,58 @@ bool layout_from_name(const char *layout_str, layout_t *out) {
+  * interpreted as a "named workspace".
+  *
+  */
+-int ws_name_to_number(const char *name) {
++long ws_name_to_number(const char *name) {
+     /* positive integers and zero are interpreted as numbers */
+     char *endptr = NULL;
+-    errno = 0;
+-    long long parsed_num = strtoll(name, &endptr, 10);
+-    if (errno != 0 || parsed_num > INT32_MAX || parsed_num < 0 || endptr == name) {
++    long parsed_num = strtol(name, &endptr, 36);
++    if (parsed_num == LONG_MIN ||
++        parsed_num == LONG_MAX ||
++        parsed_num < 0 ||
++        endptr == name) {
+         parsed_num = -1;
+     }
+ 
+     return parsed_num;
+ }
+ 
++char *num_to_base36(unsigned long value, char *buf, size_t bufsize) {
++    static const char digits[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
++    char tmp[64];     /* temporary reverse buffer */
++    int pos = 0;
++
++    if (bufsize == 0)
++        return NULL;  /* no space at all */
++
++    /* Special case for zero */
++    if (value == 0) {
++        if (bufsize < 2)
++            return NULL;  /* not enough space */
++        buf[0] = '0';
++        buf[1] = '\0';
++        return buf;
++    }
++
++    /* Convert to base 36 (in reverse order) */
++    while (value > 0) {
++        tmp[pos++] = digits[value % 36];
++        value /= 36;
++        if (pos >= (int)sizeof(tmp))
++            return NULL;  /* shouldn't happen, but safe */
++    }
++
++    /* Check storage space */
++    if (bufsize <= (size_t)pos)
++        return NULL;
++
++    /* Reverse into output buffer */
++    for (int i = 0; i < pos; i++) {
++        buf[i] = tmp[pos - 1 - i];
++    }
++    buf[pos] = '\0';
++
++    return buf;
++}
++
+ /*
+  * Updates *destination with new_value and returns true if it was changed or false
+  * if it was the same
+diff --git a/src/workspace.c b/src/workspace.c
+index 5c9477..8b8e6a 100644
+--- a/src/workspace.c
++++ b/src/workspace.c
+@@ -127,6 +127,9 @@ bool output_triggers_assignment(Output *output, struct Workspace_Assignment *ass
+  */
+ Con *workspace_get_on_output(Con *output, const char *num) {
+     Con *out, *workspace = NULL;
++    long parsed_num = ws_name_to_number(num);
++    char num_str[3];
++    num = parsed_num != -1 ? num_to_base36(parsed_num, num_str, sizeof(num_str)) : num;
+ 
+     TAILQ_FOREACH (out, &(croot->nodes_head), nodes)
+     GREP_FIRST(workspace, output_get_content(out), !strcasecmp(child->name, num) &&
+@@ -136,11 +139,7 @@ Con *workspace_get_on_output(Con *output, const char *num) {
+         return workspace;
+     }
+ 
+-    LOG(“Creating new workspace \”%s\”\n”, num);
+-
+-    /* We set workspace->num to the number if this workspace’s name begins with
+-     * a positive number. Otherwise it’s a named ws and num will be -1. */
+-    const long parsed_num = ws_name_to_number(num);
++    LOG("Creating new workspace \"%s\"\n", num);
+ 
+     Con *assigned = get_assigned_output(num, parsed_num);
+     /* if an assignment is not found, we create this workspace on the current output */
+@@ -155,7 +154,7 @@ Con *workspace_get_on_output(Con *output, const char *num) {
+     workspace = con_new(NULL, NULL);
+ 
+     char *name;
+-    sasprintf(&name, “[i3 con] workspace %s”, num);
++    sasprintf(&name, "[i3 con] workspace %s", num);
+     x_set_name(workspace, name);
+     free(name);
+ 
+@@ -169,7 +168,7 @@ Con *workspace_get_on_output(Con *output, const char *num) {
+     con_attach(workspace, output_get_content(output), false);
+     _workspace_apply_default_orientation(workspace);
+ 
+-    ipc_send_workspace_event(“init”, workspace, NULL);
++    ipc_send_workspace_event("init", workspace, NULL);
+     ewmh_update_desktop_properties();
+ 
+     return workspace;
+@@ -180,8 +179,8 @@ Con *workspace_get(const char *num) {
+ }
+ 
+ /*
+- * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
+- * workspace web”), so that when an output needs a workspace, i3 can start with
++ * Extracts workspace names from keybindings (e.g. "web" from "bindsym $mod+1
++ * workspace web"), so that when an output needs a workspace, i3 can start with
+  * the first configured one. Needs to be called before reorder_bindings() so
+  * that the config-file order is used, not the i3-internal order.
+  *
+@@ -753,12 +752,12 @@ Con *workspace_next_on_output(void) {
+         /* If currently a named workspace, find next named workspace. */
+         next = TAILQ_NEXT(current, nodes);
+     } else {
+-        int result;
++        char *result;
+         char num_str[3];
+         long num = current->num + 1;
+ 
+-        result = snprintf(num_str, sizeof(num_str), "%ld", num);
+-        if (result >= sizeof(num_str)) {
++        result = num_to_base36(num, num_str, sizeof(num_str));
++        if (result == NULL) {
+             ELOG("Workspace number too big: %ld\n", num);
+             /* Ups, that will make boom somewhere. */
+             return NULL;
+@@ -1155,16 +1154,15 @@ Con *workspace_select(const char *num) {
+     }
+ 
+     for (long num = workspace->num - 1; num >= 1 && created; num -= 1) {
+-        int result;
+-        /* 99 workspaces ought to be enough. */
++        char *result;
+         char num_str[3];
+ 
+         /*
+          * It is very unfortunate that workspace_get works with string
+          * representations of numbers but that's what we have...
+          */
+-        result = snprintf(num_str, sizeof(num_str), "%ld", num);
+-        if (result >= sizeof(num_str)) {
++        result = num_to_base36(num, num_str, sizeof(num_str));
++        if (result == NULL) {
+             ELOG("Workspace number too big: %ld\n", num);
+             /* Ups, that will make boom somewhere. */
+             return NULL;
+-- 
+2.52.0
+
