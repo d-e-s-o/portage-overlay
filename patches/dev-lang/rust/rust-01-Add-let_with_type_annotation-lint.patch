@@ -1,0 +1,248 @@
+From 251f667efc5c85bd700d49c8763c805991e7ad0f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Mon, 6 Apr 2026 09:52:45 -0700
+Subject: [PATCH] Add `let_with_type_annotation` lint
+
+Add a new restriction lint that flags explicit type annotations on
+`let` bindings (e.g., `let x: u32 = 42`). The lint encourages removing
+the annotation and adjusting the right-hand side or surrounding code so
+that the type can be inferred, reducing noise and making code easier to
+refactor.
+
+As a restriction lint it defaults to Allow, since type annotations are
+sometimes necessary for disambiguation or when there is no initializer.
+---
+ src/tools/clippy/CHANGELOG.md                 |  1 +
+ .../clippy/clippy_lints/src/declared_lints.rs |  1 +
+ .../src/let_with_type_annotation.rs           | 54 +++++++++++++++++
+ src/tools/clippy/clippy_lints/src/lib.rs      |  2 +
+ .../tests/ui/let_with_type_annotation.rs      | 44 ++++++++++++++
+ .../tests/ui/let_with_type_annotation.stderr  | 60 +++++++++++++++++++
+ 6 files changed, 162 insertions(+)
+ create mode 100644 src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs
+ create mode 100644 src/tools/clippy/tests/ui/let_with_type_annotation.rs
+ create mode 100644 src/tools/clippy/tests/ui/let_with_type_annotation.stderr
+
+diff --git a/src/tools/clippy/CHANGELOG.md b/src/tools/clippy/CHANGELOG.md
+index 91d793..4ccca8a 100644
+--- a/src/tools/clippy/CHANGELOG.md
++++ b/src/tools/clippy/CHANGELOG.md
+@@ -6591,6 +6591,7 @@ Released 2018-09-13
+ [`let_underscore_must_use`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_underscore_must_use
+ [`let_underscore_untyped`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_underscore_untyped
+ [`let_unit_value`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_unit_value
++[`let_with_type_annotation`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_with_type_annotation
+ [`let_with_type_underscore`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_with_type_underscore
+ [`lines_filter_map_ok`]: https://rust-lang.github.io/rust-clippy/master/index.html#lines_filter_map_ok
+ [`linkedlist`]: https://rust-lang.github.io/rust-clippy/master/index.html#linkedlist
+diff --git a/src/tools/clippy/clippy_lints/src/declared_lints.rs b/src/tools/clippy/clippy_lints/src/declared_lints.rs
+index 6b6894..35657e 100644
+--- a/src/tools/clippy/clippy_lints/src/declared_lints.rs
++++ b/src/tools/clippy/clippy_lints/src/declared_lints.rs
+@@ -254,6 +254,7 @@
+     crate::let_underscore::LET_UNDERSCORE_LOCK_INFO,
+     crate::let_underscore::LET_UNDERSCORE_MUST_USE_INFO,
+     crate::let_underscore::LET_UNDERSCORE_UNTYPED_INFO,
++    crate::let_with_type_annotation::LET_WITH_TYPE_ANNOTATION_INFO,
+     crate::let_with_type_underscore::LET_WITH_TYPE_UNDERSCORE_INFO,
+     crate::lifetimes::ELIDABLE_LIFETIME_NAMES_INFO,
+     crate::lifetimes::EXTRA_UNUSED_LIFETIMES_INFO,
+diff --git a/src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs b/src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs
+new file mode 100644
+index 000000..e58b906
+--- /dev/null
++++ b/src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs
+@@ -0,0 +1,54 @@
++use clippy_utils::diagnostics::span_lint_and_help;
++use rustc_ast::Local;
++use rustc_lint::{EarlyContext, EarlyLintPass, LintContext};
++use rustc_session::declare_lint_pass;
++
++declare_clippy_lint! {
++    /// ### What it does
++    /// Warns when a `let` binding has an explicit type annotation.
++    ///
++    /// ### Why restrict this?
++    /// Explicit type annotations on `let` bindings can often be avoided by
++    /// adjusting the right-hand side or surrounding code so that the type is
++    /// inferred. Omitting annotations reduces noise and makes code easier to
++    /// refactor.
++    ///
++    /// ### Known problems
++    /// Sometimes type annotations are necessary for disambiguation (e.g.,
++    /// `let x: Vec<_> = iter.collect()`), or when there is no initializer.
++    /// In those cases, allow this lint on a case-by-case basis.
++    ///
++    /// ### Example
++    /// ```rust,ignore
++    /// let x: u32 = 42;
++    /// ```
++    /// Use instead:
++    /// ```rust,ignore
++    /// let x = 42u32;
++    /// ```
++    #[clippy::version = "1.96.0"]
++    pub LET_WITH_TYPE_ANNOTATION,
++    restriction,
++    "explicit type annotation on a `let` binding"
++}
++
++declare_lint_pass!(LetWithTypeAnnotation => [LET_WITH_TYPE_ANNOTATION]);
++
++impl EarlyLintPass for LetWithTypeAnnotation {
++    fn check_local(&mut self, cx: &EarlyContext<'_>, local: &Local) {
++        if let Some(ty) = &local.ty
++            && local.span.eq_ctxt(ty.span)
++            && let sm = cx.sess().source_map()
++            && !local.span.in_external_macro(sm)
++        {
++            span_lint_and_help(
++                cx,
++                LET_WITH_TYPE_ANNOTATION,
++                local.span,
++                "explicit type annotation on `let` binding",
++                None,
++                "consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred",
++            );
++        }
++    }
++}
+diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
+index a957af..1ffd230 100644
+--- a/src/tools/clippy/clippy_lints/src/lib.rs
++++ b/src/tools/clippy/clippy_lints/src/lib.rs
+@@ -186,6 +186,7 @@
+ mod len_zero;
+ mod let_if_seq;
+ mod let_underscore;
++mod let_with_type_annotation;
+ mod let_with_type_underscore;
+ mod lifetimes;
+ mod literal_representation;
+@@ -514,6 +515,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
+         Box::new(|| Box::new(byte_char_slices::ByteCharSlice)),
+         Box::new(|| Box::new(cfg_not_test::CfgNotTest)),
+         Box::new(|| Box::new(empty_line_after::EmptyLineAfter::new())),
++        Box::new(|| Box::new(let_with_type_annotation::LetWithTypeAnnotation)),
+         // add early passes here, used by `cargo dev new_lint`
+     ];
+     store.early_passes.extend(early_lints);
+diff --git a/src/tools/clippy/tests/ui/let_with_type_annotation.rs b/src/tools/clippy/tests/ui/let_with_type_annotation.rs
+new file mode 100644
+index 000000..b68fd6
+--- /dev/null
++++ b/src/tools/clippy/tests/ui/let_with_type_annotation.rs
+@@ -0,0 +1,44 @@
++#![warn(clippy::let_with_type_annotation)]
++#![allow(clippy::useless_vec, clippy::needless_late_init)]
++
++// Should lint
++fn should_lint() {
++    let x: u32 = 42;
++    //~^ let_with_type_annotation
++    let s: String = String::new();
++    //~^ let_with_type_annotation
++    let v: Vec<i32> = vec![1];
++    //~^ let_with_type_annotation
++    let b: bool = true;
++    //~^ let_with_type_annotation
++    let r: &str = "hello";
++    //~^ let_with_type_annotation
++
++    // With underscore type (still explicit annotation)
++    let _x: i64 = 0;
++    //~^ let_with_type_annotation
++
++    // Without initializer
++    let _y: u32;
++    //~^ let_with_type_annotation
++}
++
++// Should not lint
++fn should_not_lint() {
++    let x = 42u32;
++    let s = String::new();
++    let v = vec![1i32];
++    let b = true;
++    let r = "hello";
++
++    // No type annotation, no init
++    let _y;
++    _y = 1;
++}
++
++#[allow(clippy::let_with_type_annotation)]
++fn allowed() {
++    let x: u32 = 42; // should be suppressed
++}
++
++fn main() {}
+diff --git a/src/tools/clippy/tests/ui/let_with_type_annotation.stderr b/src/tools/clippy/tests/ui/let_with_type_annotation.stderr
+new file mode 100644
+index 000000..301295
+--- /dev/null
++++ b/src/tools/clippy/tests/ui/let_with_type_annotation.stderr
+@@ -0,0 +1,60 @@
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:6:5
++   |
++LL |     let x: u32 = 42;
++   |     ^^^^^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++   = note: `-D clippy::let-with-type-annotation` implied by `-D warnings`
++   = help: to override `-D warnings` add `#[allow(clippy::let_with_type_annotation)]`
++
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:8:5
++   |
++LL |     let s: String = String::new();
++   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:10:5
++   |
++LL |     let v: Vec<i32> = vec![1];
++   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:12:5
++   |
++LL |     let b: bool = true;
++   |     ^^^^^^^^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:14:5
++   |
++LL |     let r: &str = "hello";
++   |     ^^^^^^^^^^^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:18:5
++   |
++LL |     let _x: i64 = 0;
++   |     ^^^^^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++
++error: explicit type annotation on `let` binding
++  --> tests/ui/let_with_type_annotation.rs:22:5
++   |
++LL |     let _y: u32;
++   |     ^^^^^^^^^^^^
++   |
++   = help: consider removing the type annotation and adjusting the expression or surrounding code so the type can be inferred
++
++error: aborting due to 7 previous errors
++
+-- 
+2.52.0
+
