@@ -1,0 +1,358 @@
+From b00ec85683381d97619e372890c983ef6c0a7e14 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Tue, 14 Apr 2026 10:59:48 -0700
+Subject: [PATCH] Add `unit_expression_statement` lint
+
+Add a new `restriction` lint that flags function and method call
+statements whose return type is `()` without an explicit
+`let () = ...;` binding.
+
+Writing `let () = expr;` makes the unit return type visible in source.
+If the callee's signature later changes to return a non-unit type, this
+pattern turns the silent discard into a compile error at the call site.
+
+The lint fires only on `ExprKind::Call` and `ExprKind::MethodCall` in
+`StmtKind::Semi` position, skipping macro expansions, assignments,
+control flow, and unit literals. The suggestion is machine-applicable.
+---
+ src/tools/clippy/CHANGELOG.md                 |  1 +
+ .../clippy/clippy_lints/src/declared_lints.rs |  1 +
+ src/tools/clippy/clippy_lints/src/lib.rs      |  2 +
+ .../src/unit_expression_statement.rs          | 54 +++++++++++++
+ .../tests/ui/unit_expression_statement.fixed  | 81 +++++++++++++++++++
+ .../tests/ui/unit_expression_statement.rs     | 81 +++++++++++++++++++
+ .../tests/ui/unit_expression_statement.stderr | 41 ++++++++++
+ 7 files changed, 261 insertions(+)
+ create mode 100644 src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
+ create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.fixed
+ create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.rs
+ create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.stderr
+
+diff --git a/src/tools/clippy/CHANGELOG.md b/src/tools/clippy/CHANGELOG.md
+index 91d793..62c21e 100644
+--- a/src/tools/clippy/CHANGELOG.md
++++ b/src/tools/clippy/CHANGELOG.md
+@@ -7042,6 +7042,7 @@ Released 2018-09-13
+ [`uninlined_format_args`]: https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
+ [`unit_arg`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_arg
+ [`unit_cmp`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_cmp
++[`unit_expression_statement`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_expression_statement
+ [`unit_hash`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_hash
+ [`unit_return_expecting_ord`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_return_expecting_ord
+ [`unknown_clippy_lints`]: https://rust-lang.github.io/rust-clippy/master/index.html#unknown_clippy_lints
+diff --git a/src/tools/clippy/clippy_lints/src/declared_lints.rs b/src/tools/clippy/clippy_lints/src/declared_lints.rs
+index 6b6894..d22173 100644
+--- a/src/tools/clippy/clippy_lints/src/declared_lints.rs
++++ b/src/tools/clippy/clippy_lints/src/declared_lints.rs
+@@ -752,6 +752,7 @@
+     crate::unicode::UNICODE_NOT_NFC_INFO,
+     crate::uninhabited_references::UNINHABITED_REFERENCES_INFO,
+     crate::uninit_vec::UNINIT_VEC_INFO,
++    crate::unit_expression_statement::UNIT_EXPRESSION_STATEMENT_INFO,
+     crate::unit_return_expecting_ord::UNIT_RETURN_EXPECTING_ORD_INFO,
+     crate::unit_types::LET_UNIT_VALUE_INFO,
+     crate::unit_types::UNIT_ARG_INFO,
+diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
+index a957af..7e98b8 100644
+--- a/src/tools/clippy/clippy_lints/src/lib.rs
++++ b/src/tools/clippy/clippy_lints/src/lib.rs
+@@ -361,6 +361,7 @@
+ mod unicode;
+ mod uninhabited_references;
+ mod uninit_vec;
++mod unit_expression_statement;
+ mod unit_return_expecting_ord;
+ mod unit_types;
+ mod unnecessary_box_returns;
+@@ -857,6 +858,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
+         Box::new(|_| Box::<replace_box::ReplaceBox>::default()),
+         Box::new(move |_| Box::new(manual_ilog2::ManualIlog2::new(conf))),
+         Box::new(|_| Box::new(same_length_and_capacity::SameLengthAndCapacity)),
++        Box::new(|_| Box::new(unit_expression_statement::UnitExpressionStatement)),
+         // add late passes here, used by `cargo dev new_lint`
+     ];
+     store.late_passes.extend(late_lints);
+diff --git a/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs b/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
+new file mode 100644
+index 000000..5e04c6a
+--- /dev/null
++++ b/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
+@@ -0,0 +1,54 @@
++use clippy_utils::diagnostics::span_lint_and_sugg;
++use rustc_errors::Applicability;
++use rustc_hir::{ExprKind, Stmt, StmtKind};
++use rustc_lint::{LateContext, LateLintPass};
++use rustc_session::declare_lint_pass;
++
++declare_clippy_lint! {
++    /// ### What it does
++    /// Checks for expression statements that evaluate to `()` without an
++    /// explicit `let () = ...;` binding.
++    ///
++    /// ### Why restrict this?
++    /// Wrapping a unit-returning call in `let () = expr;` makes the unit return
++    /// type explicit in the source. If the function signature later changes to
++    /// return a non-unit type, this pattern causes a compile error at the call
++    /// site rather than silently discarding the new return value.
++    ///
++    /// ### Example
++    /// ```no_run
++    /// fn do_something() {}
++    /// do_something();
++    /// ```
++    /// Use instead:
++    /// ```no_run
++    /// fn do_something() {}
++    /// let () = do_something();
++    /// ```
++    #[clippy::version = "1.96.0"]
++    pub UNIT_EXPRESSION_STATEMENT,
++    restriction,
++    "expression statement returning `()` without an explicit `let () = ...` binding"
++}
++
++declare_lint_pass!(UnitExpressionStatement => [UNIT_EXPRESSION_STATEMENT]);
++
++impl<'tcx> LateLintPass<'tcx> for UnitExpressionStatement {
++    fn check_stmt(&mut self, cx: &LateContext<'tcx>, stmt: &'tcx Stmt<'tcx>) {
++        if let StmtKind::Semi(expr) = stmt.kind
++            && !stmt.span.from_expansion()
++            && matches!(expr.kind, ExprKind::Call(..) | ExprKind::MethodCall(..))
++            && cx.typeck_results().expr_ty(expr).is_unit()
++        {
++            span_lint_and_sugg(
++                cx,
++                UNIT_EXPRESSION_STATEMENT,
++                stmt.span.shrink_to_lo(),
++                "unit-returning expression statement with implicit `()`",
++                "bind the unit value explicitly",
++                "let () = ".to_string(),
++                Applicability::MachineApplicable,
++            );
++        }
++    }
++}
+diff --git a/src/tools/clippy/tests/ui/unit_expression_statement.fixed b/src/tools/clippy/tests/ui/unit_expression_statement.fixed
+new file mode 100644
+index 000000..d49566e
+--- /dev/null
++++ b/src/tools/clippy/tests/ui/unit_expression_statement.fixed
+@@ -0,0 +1,81 @@
++#![warn(clippy::unit_expression_statement)]
++#![allow(
++    clippy::let_unit_value,
++    clippy::match_single_binding,
++    clippy::needless_ifs,
++    clippy::no_effect,
++    clippy::unnecessary_operation,
++    dropping_copy_types,
++    unused_must_use
++)]
++
++fn unit_fn() {}
++
++fn unit_fn_with_args(_a: &str) {}
++
++fn fallible() -> Result<(), String> {
++    Ok(())
++}
++
++fn returns_i32() -> i32 {
++    42
++}
++
++// Should lint
++fn should_lint() {
++    let () = unit_fn();
++    //~^ unit_expression_statement
++    let () = unit_fn_with_args("hello");
++    //~^ unit_expression_statement
++    let () = fallible().unwrap();
++    //~^ unit_expression_statement
++
++    let mut v = vec![1, 2, 3];
++    let () = v.push(4);
++    //~^ unit_expression_statement
++    let () = v.clear();
++    //~^ unit_expression_statement
++
++    let () = drop(42);
++    //~^ unit_expression_statement
++}
++
++// Should not lint
++fn should_not_lint() {
++    // Already explicit
++    let () = unit_fn();
++
++    // Non-unit return type (returns i32)
++    returns_i32();
++
++    // Unit literal
++    ();
++
++    // Assignments
++    let mut x = 5;
++    x = 10;
++    x += 1;
++    let _ = x;
++
++    // Control flow constructs (not Call/MethodCall)
++    if true {}
++    match 0 {
++        _ => {},
++    }
++    for _ in 0..3 {}
++    while false {}
++
++    // Macro expansion
++    println!("hello");
++    eprintln!("hello");
++
++    // Block expression
++    {}
++}
++
++#[allow(clippy::unit_expression_statement)]
++fn allowed() {
++    unit_fn(); // should be suppressed
++}
++
++fn main() {}
+diff --git a/src/tools/clippy/tests/ui/unit_expression_statement.rs b/src/tools/clippy/tests/ui/unit_expression_statement.rs
+new file mode 100644
+index 000000..882aad
+--- /dev/null
++++ b/src/tools/clippy/tests/ui/unit_expression_statement.rs
+@@ -0,0 +1,81 @@
++#![warn(clippy::unit_expression_statement)]
++#![allow(
++    clippy::let_unit_value,
++    clippy::match_single_binding,
++    clippy::needless_ifs,
++    clippy::no_effect,
++    clippy::unnecessary_operation,
++    dropping_copy_types,
++    unused_must_use
++)]
++
++fn unit_fn() {}
++
++fn unit_fn_with_args(_a: &str) {}
++
++fn fallible() -> Result<(), String> {
++    Ok(())
++}
++
++fn returns_i32() -> i32 {
++    42
++}
++
++// Should lint
++fn should_lint() {
++    unit_fn();
++    //~^ unit_expression_statement
++    unit_fn_with_args("hello");
++    //~^ unit_expression_statement
++    fallible().unwrap();
++    //~^ unit_expression_statement
++
++    let mut v = vec![1, 2, 3];
++    v.push(4);
++    //~^ unit_expression_statement
++    v.clear();
++    //~^ unit_expression_statement
++
++    drop(42);
++    //~^ unit_expression_statement
++}
++
++// Should not lint
++fn should_not_lint() {
++    // Already explicit
++    let () = unit_fn();
++
++    // Non-unit return type (returns i32)
++    returns_i32();
++
++    // Unit literal
++    ();
++
++    // Assignments
++    let mut x = 5;
++    x = 10;
++    x += 1;
++    let _ = x;
++
++    // Control flow constructs (not Call/MethodCall)
++    if true {}
++    match 0 {
++        _ => {},
++    }
++    for _ in 0..3 {}
++    while false {}
++
++    // Macro expansion
++    println!("hello");
++    eprintln!("hello");
++
++    // Block expression
++    {}
++}
++
++#[allow(clippy::unit_expression_statement)]
++fn allowed() {
++    unit_fn(); // should be suppressed
++}
++
++fn main() {}
+diff --git a/src/tools/clippy/tests/ui/unit_expression_statement.stderr b/src/tools/clippy/tests/ui/unit_expression_statement.stderr
+new file mode 100644
+index 000000..b27548c
+--- /dev/null
++++ b/src/tools/clippy/tests/ui/unit_expression_statement.stderr
+@@ -0,0 +1,41 @@
++error: unit-returning expression statement with implicit `()`
++  --> tests/ui/unit_expression_statement.rs:26:5
++   |
++LL |     unit_fn();
++   |     ^ help: bind the unit value explicitly: `let () =`
++   |
++   = note: `-D clippy::unit-expression-statement` implied by `-D warnings`
++   = help: to override `-D warnings` add `#[allow(clippy::unit_expression_statement)]`
++
++error: unit-returning expression statement with implicit `()`
++  --> tests/ui/unit_expression_statement.rs:28:5
++   |
++LL |     unit_fn_with_args("hello");
++   |     ^ help: bind the unit value explicitly: `let () =`
++
++error: unit-returning expression statement with implicit `()`
++  --> tests/ui/unit_expression_statement.rs:30:5
++   |
++LL |     fallible().unwrap();
++   |     ^ help: bind the unit value explicitly: `let () =`
++
++error: unit-returning expression statement with implicit `()`
++  --> tests/ui/unit_expression_statement.rs:34:5
++   |
++LL |     v.push(4);
++   |     ^ help: bind the unit value explicitly: `let () =`
++
++error: unit-returning expression statement with implicit `()`
++  --> tests/ui/unit_expression_statement.rs:36:5
++   |
++LL |     v.clear();
++   |     ^ help: bind the unit value explicitly: `let () =`
++
++error: unit-returning expression statement with implicit `()`
++  --> tests/ui/unit_expression_statement.rs:39:5
++   |
++LL |     drop(42);
++   |     ^ help: bind the unit value explicitly: `let () =`
++
++error: aborting due to 6 previous errors
++
+-- 
+2.52.0
+
