@@ -1,4 +1,4 @@
-From 251f667efc5c85bd700d49c8763c805991e7ad0f Mon Sep 17 00:00:00 2001
+From a73bbd2d0a58f9ff45f6de6f6428e61a7b99a258 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Mon, 6 Apr 2026 09:52:45 -0700
 Subject: [PATCH] Add `let_with_type_annotation` lint
@@ -14,20 +14,20 @@ sometimes necessary for disambiguation or when there is no initializer.
 ---
  src/tools/clippy/CHANGELOG.md                 |  1 +
  .../clippy/clippy_lints/src/declared_lints.rs |  1 +
- .../src/let_with_type_annotation.rs           | 54 +++++++++++++++++
+ .../src/let_with_type_annotation.rs           | 55 +++++++++++++++++
  src/tools/clippy/clippy_lints/src/lib.rs      |  2 +
  .../tests/ui/let_with_type_annotation.rs      | 44 ++++++++++++++
  .../tests/ui/let_with_type_annotation.stderr  | 60 +++++++++++++++++++
- 6 files changed, 162 insertions(+)
+ 6 files changed, 163 insertions(+)
  create mode 100644 src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs
  create mode 100644 src/tools/clippy/tests/ui/let_with_type_annotation.rs
  create mode 100644 src/tools/clippy/tests/ui/let_with_type_annotation.stderr
 
 diff --git a/src/tools/clippy/CHANGELOG.md b/src/tools/clippy/CHANGELOG.md
-index 91d793..4ccca8a 100644
+index 7c798a..86b601 100644
 --- a/src/tools/clippy/CHANGELOG.md
 +++ b/src/tools/clippy/CHANGELOG.md
-@@ -6591,6 +6591,7 @@ Released 2018-09-13
+@@ -6657,6 +6657,7 @@ Released 2018-09-13
  [`let_underscore_must_use`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_underscore_must_use
  [`let_underscore_untyped`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_underscore_untyped
  [`let_unit_value`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_unit_value
@@ -36,10 +36,10 @@ index 91d793..4ccca8a 100644
  [`lines_filter_map_ok`]: https://rust-lang.github.io/rust-clippy/master/index.html#lines_filter_map_ok
  [`linkedlist`]: https://rust-lang.github.io/rust-clippy/master/index.html#linkedlist
 diff --git a/src/tools/clippy/clippy_lints/src/declared_lints.rs b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-index 6b6894..35657e 100644
+index e16b19..c68ab0 100644
 --- a/src/tools/clippy/clippy_lints/src/declared_lints.rs
 +++ b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-@@ -254,6 +254,7 @@
+@@ -257,6 +257,7 @@
      crate::let_underscore::LET_UNDERSCORE_LOCK_INFO,
      crate::let_underscore::LET_UNDERSCORE_MUST_USE_INFO,
      crate::let_underscore::LET_UNDERSCORE_UNTYPED_INFO,
@@ -49,10 +49,10 @@ index 6b6894..35657e 100644
      crate::lifetimes::EXTRA_UNUSED_LIFETIMES_INFO,
 diff --git a/src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs b/src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs
 new file mode 100644
-index 000000..e58b906
+index 000000..5d6988
 --- /dev/null
 +++ b/src/tools/clippy/clippy_lints/src/let_with_type_annotation.rs
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,55 @@
 +use clippy_utils::diagnostics::span_lint_and_help;
 +use rustc_ast::Local;
 +use rustc_lint::{EarlyContext, EarlyLintPass, LintContext};
@@ -84,7 +84,8 @@ index 000000..e58b906
 +    #[clippy::version = "1.96.0"]
 +    pub LET_WITH_TYPE_ANNOTATION,
 +    restriction,
-+    "explicit type annotation on a `let` binding"
++    "explicit type annotation on a `let` binding",
++    @eval_always = true
 +}
 +
 +declare_lint_pass!(LetWithTypeAnnotation => [LET_WITH_TYPE_ANNOTATION]);
@@ -108,10 +109,10 @@ index 000000..e58b906
 +    }
 +}
 diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
-index a957af..1ffd230 100644
+index 4dca8d..613f65 100644
 --- a/src/tools/clippy/clippy_lints/src/lib.rs
 +++ b/src/tools/clippy/clippy_lints/src/lib.rs
-@@ -186,6 +186,7 @@
+@@ -187,6 +187,7 @@
  mod len_zero;
  mod let_if_seq;
  mod let_underscore;
@@ -119,14 +120,14 @@ index a957af..1ffd230 100644
  mod let_with_type_underscore;
  mod lifetimes;
  mod literal_representation;
-@@ -514,6 +515,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
-         Box::new(|| Box::new(byte_char_slices::ByteCharSlice)),
-         Box::new(|| Box::new(cfg_not_test::CfgNotTest)),
-         Box::new(|| Box::new(empty_line_after::EmptyLineAfter::new())),
+@@ -468,6 +469,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
+             Box::new(move || Box::new(AttrCollector::new(attrs.clone())))
+         },
+         Box::new(move || Box::new(attrs::PostExpansionEarlyAttributes::new(conf))),
 +        Box::new(|| Box::new(let_with_type_annotation::LetWithTypeAnnotation)),
-         // add early passes here, used by `cargo dev new_lint`
-     ];
-     store.early_passes.extend(early_lints);
+         Box::new(|| Box::new(unnecessary_self_imports::UnnecessarySelfImports)),
+         Box::new(move || Box::new(redundant_static_lifetimes::RedundantStaticLifetimes::new(conf))),
+         Box::new(move || Box::new(redundant_field_names::RedundantFieldNames::new(conf))),
 diff --git a/src/tools/clippy/tests/ui/let_with_type_annotation.rs b/src/tools/clippy/tests/ui/let_with_type_annotation.rs
 new file mode 100644
 index 000000..b68fd6
@@ -244,5 +245,5 @@ index 000000..301295
 +error: aborting due to 7 previous errors
 +
 -- 
-2.52.0
+2.53.0
 

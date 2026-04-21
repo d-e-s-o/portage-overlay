@@ -1,4 +1,4 @@
-From b00ec85683381d97619e372890c983ef6c0a7e14 Mon Sep 17 00:00:00 2001
+From abbeef49d6c46556b8817ff677c1a95146cfcaee Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Tue, 14 Apr 2026 10:59:48 -0700
 Subject: [PATCH] Add `unit_expression_statement` lint
@@ -18,21 +18,21 @@ control flow, and unit literals. The suggestion is machine-applicable.
  src/tools/clippy/CHANGELOG.md                 |  1 +
  .../clippy/clippy_lints/src/declared_lints.rs |  1 +
  src/tools/clippy/clippy_lints/src/lib.rs      |  2 +
- .../src/unit_expression_statement.rs          | 54 +++++++++++++
+ .../src/unit_expression_statement.rs          | 55 +++++++++++++
  .../tests/ui/unit_expression_statement.fixed  | 81 +++++++++++++++++++
  .../tests/ui/unit_expression_statement.rs     | 81 +++++++++++++++++++
  .../tests/ui/unit_expression_statement.stderr | 41 ++++++++++
- 7 files changed, 261 insertions(+)
+ 7 files changed, 262 insertions(+)
  create mode 100644 src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
  create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.fixed
  create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.rs
  create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.stderr
 
 diff --git a/src/tools/clippy/CHANGELOG.md b/src/tools/clippy/CHANGELOG.md
-index 91d793..62c21e 100644
+index 7c798a..933e99 100644
 --- a/src/tools/clippy/CHANGELOG.md
 +++ b/src/tools/clippy/CHANGELOG.md
-@@ -7042,6 +7042,7 @@ Released 2018-09-13
+@@ -7110,6 +7110,7 @@ Released 2018-09-13
  [`uninlined_format_args`]: https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
  [`unit_arg`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_arg
  [`unit_cmp`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_cmp
@@ -41,10 +41,10 @@ index 91d793..62c21e 100644
  [`unit_return_expecting_ord`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_return_expecting_ord
  [`unknown_clippy_lints`]: https://rust-lang.github.io/rust-clippy/master/index.html#unknown_clippy_lints
 diff --git a/src/tools/clippy/clippy_lints/src/declared_lints.rs b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-index 6b6894..d22173 100644
+index e16b19..c9e470 100644
 --- a/src/tools/clippy/clippy_lints/src/declared_lints.rs
 +++ b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-@@ -752,6 +752,7 @@
+@@ -757,6 +757,7 @@
      crate::unicode::UNICODE_NOT_NFC_INFO,
      crate::uninhabited_references::UNINHABITED_REFERENCES_INFO,
      crate::uninit_vec::UNINIT_VEC_INFO,
@@ -53,10 +53,10 @@ index 6b6894..d22173 100644
      crate::unit_types::LET_UNIT_VALUE_INFO,
      crate::unit_types::UNIT_ARG_INFO,
 diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
-index a957af..7e98b8 100644
+index 4dca8d..816e4b 100644
 --- a/src/tools/clippy/clippy_lints/src/lib.rs
 +++ b/src/tools/clippy/clippy_lints/src/lib.rs
-@@ -361,6 +361,7 @@
+@@ -364,6 +364,7 @@
  mod unicode;
  mod uninhabited_references;
  mod uninit_vec;
@@ -64,20 +64,20 @@ index a957af..7e98b8 100644
  mod unit_return_expecting_ord;
  mod unit_types;
  mod unnecessary_box_returns;
-@@ -857,6 +858,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
-         Box::new(|_| Box::<replace_box::ReplaceBox>::default()),
-         Box::new(move |_| Box::new(manual_ilog2::ManualIlog2::new(conf))),
-         Box::new(|_| Box::new(same_length_and_capacity::SameLengthAndCapacity)),
+@@ -526,6 +527,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
+         dyn for<'tcx> Fn(TyCtxt<'tcx>) -> Box<dyn LateLintPass<'tcx> + 'tcx> + sync::DynSend + sync::DynSync,
+     >; _] = [
+         Box::new(move |_| Box::new(operators::arithmetic_side_effects::ArithmeticSideEffects::new(conf))),
 +        Box::new(|_| Box::new(unit_expression_statement::UnitExpressionStatement)),
-         // add late passes here, used by `cargo dev new_lint`
-     ];
-     store.late_passes.extend(late_lints);
+         Box::new(|_| Box::new(utils::dump_hir::DumpHir)),
+         Box::new(|_| Box::new(utils::author::Author)),
+         Box::new(move |tcx| Box::new(await_holding_invalid::AwaitHolding::new(tcx, conf))),
 diff --git a/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs b/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
 new file mode 100644
-index 000000..5e04c6a
+index 000000..07ca9a
 --- /dev/null
 +++ b/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
-@@ -0,0 +1,54 @@
+@@ -0,0 +1,55 @@
 +use clippy_utils::diagnostics::span_lint_and_sugg;
 +use rustc_errors::Applicability;
 +use rustc_hir::{ExprKind, Stmt, StmtKind};
@@ -108,7 +108,8 @@ index 000000..5e04c6a
 +    #[clippy::version = "1.96.0"]
 +    pub UNIT_EXPRESSION_STATEMENT,
 +    restriction,
-+    "expression statement returning `()` without an explicit `let () = ...` binding"
++    "expression statement returning `()` without an explicit `let () = ...` binding",
++    @eval_always = true
 +}
 +
 +declare_lint_pass!(UnitExpressionStatement => [UNIT_EXPRESSION_STATEMENT]);
@@ -354,5 +355,5 @@ index 000000..b27548c
 +error: aborting due to 6 previous errors
 +
 -- 
-2.52.0
+2.53.0
 
