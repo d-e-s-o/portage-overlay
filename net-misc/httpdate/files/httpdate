@@ -1,0 +1,57 @@
+#!/sbin/openrc-run
+
+# Copyright (C) 2014-2026 Daniel Mueller <deso@posteo.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# $Header: Sync current time over HTTP (works even behind proxy)$
+
+depend() {
+  after dns dhcpcd net ntpdate
+}
+
+sync_time() {
+  httpdate="$(curl --silent --head --no-styled-output google.com | sed -n -e 's/Date: *//p' -eT -eq)"
+  if [ $? -a ! -z "$httpdate" ]
+  then
+    # The date is supposed to follow RFC 1123, which basically mandates
+    # a format like: Sun, 30 Jun 2019 18:08:25 GMT
+    # Busybox does not recognize this format and so we have to work
+    # around that deficiency.
+    if [ $(readlink -f $(which date)) = "/bin/busybox" ]; then
+      /bin/date --set="$httpdate" -D '%A, %d %b %Y %H:%M:%S %Z' &> /dev/null || (
+        httpdate=$(echo "$httpdate" | sed 's! GMT$!!')
+        /bin/date --set="$httpdate" -D '%A, %d %b %Y %H:%M:%S' > /dev/null
+      )
+    else
+      /bin/date --set="$httpdate" > /dev/null
+    fi
+  else
+    false
+  fi
+}
+
+start() {
+  if [ -x /etc/init.d/ntpdate ]
+  then
+    /etc/init.d/ntpdate status > /dev/null
+    # if ntpdate started successfull then just do nothing
+    # ntpdate status will exit with 0 if started, not 0 if not
+    if [ $? -eq 0 ]
+    then
+      einfo "ntpdate already running, avoiding more imprecise sync"
+      return 0
+    fi
+  fi
+
+  ebegin "Syncing time"
+  for i in $(seq 1 5); do
+    sync_time
+    if [ $? -eq 0 ]; then
+      eend 0
+      break
+    fi
+
+    einfo "Failed to retrieve current time. Retrying ($i/5) ..."
+    sleep 3
+  done
+}
