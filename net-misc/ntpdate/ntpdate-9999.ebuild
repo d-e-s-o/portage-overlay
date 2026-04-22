@@ -12,8 +12,8 @@ KEYWORDS="amd64 arm"
 IUSE=""
 
 RDEPEND="
-  net-misc/netdate
-  sys-apps/openrc
+	net-misc/chrony
+	sys-apps/openrc
 "
 DEPEND="${RDEPEND}"
 

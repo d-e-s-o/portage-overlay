@@ -11,9 +11,9 @@ depend() {
 }
 
 start() {
-  local server=${NTP_SERVER:-time.nist.gov}
+  local server=${NTP_SERVER:-pool.ntp.org}
 
   ebegin "Syncing time with ${server}"
-  netdate -l 0 "${server}" > /dev/null
+  chronyd -q "server ${server} iburst" > /dev/null
   eend ${?}
 }
