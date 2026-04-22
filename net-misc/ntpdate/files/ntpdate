@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+
+# Copyright (C) 2014-2026 Daniel Mueller <deso@posteo.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# $Header: Sync current time using NTP$
+
+depend() {
+  after dns dhcpcd net
+  need network-online
+}
+
+start() {
+  local server=${NTP_SERVER:-time.nist.gov}
+
+  ebegin "Syncing time with ${server}"
+  netdate -l 0 "${server}" > /dev/null
+  eend ${?}
+}
