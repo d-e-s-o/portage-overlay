@@ -1,4 +1,4 @@
-From fe35092f211328bcb5d4c92c872eb2128eb2024c Mon Sep 17 00:00:00 2001
+From 8646b21d5af5c0b9182b3d32a2d49253b098e9b6 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Mon, 6 Apr 2026 09:17:52 -0700
 Subject: [PATCH] Improve pane resizing performance
@@ -11,18 +11,18 @@ capture-pane. This makes pane resizing near-instant regardless of
 scrollback size.
 ---
  cmd-capture-pane.c |   2 +
- grid.c             | 127 ++++++++++++++++++++++++++++++++++++++++++++-
- tmux.h             |   3 ++
+ grid.c             | 139 ++++++++++++++++++++++++++++++++++++++++++++-
+ tmux.h             |   3 +
  window-copy.c      |   2 +
- 4 files changed, 132 insertions(+), 2 deletions(-)
+ 4 files changed, 144 insertions(+), 2 deletions(-)
 
 diff --git a/cmd-capture-pane.c b/cmd-capture-pane.c
-index d42adf..3af955 100644
+index 8f7250..3eb8d0 100644
 --- a/cmd-capture-pane.c
 +++ b/cmd-capture-pane.c
-@@ -118,6 +118,8 @@ cmd_capture_pane_history(struct args *args, struct cmdq_item *item,
- 	const char			*Sflag, *Eflag;
- 	size_t				 linelen;
+@@ -116,6 +116,8 @@ cmd_capture_pane_history(struct args *args, struct cmdq_item *item,
+ 	const char		*Sflag, *Eflag;
+ 	size_t			 linelen;
  
 +	grid_reflow_history(wp->base.grid);
 +
@@ -30,10 +30,10 @@ index d42adf..3af955 100644
  	if (args_has(args, 'a')) {
  		gd = wp->base.saved_grid;
 diff --git a/grid.c b/grid.c
-index 63eea6..27f0b9 100644
+index 786294..52dc7b 100644
 --- a/grid.c
 +++ b/grid.c
-@@ -315,6 +315,7 @@ grid_create(u_int sx, u_int sy, u_int hlimit)
+@@ -295,6 +295,7 @@ grid_create(u_int sx, u_int sy, u_int hlimit)
  		gd->linedata = xcalloc(gd->sy, sizeof *gd->linedata);
  	else
  		gd->linedata = NULL;
@@ -41,7 +41,7 @@ index 63eea6..27f0b9 100644
  
  	return (gd);
  }
-@@ -364,6 +365,11 @@ grid_trim_history(struct grid *gd, u_int ny)
+@@ -344,6 +345,11 @@ grid_trim_history(struct grid *gd, u_int ny)
  	grid_free_lines(gd, 0, ny);
  	memmove(&gd->linedata[0], &gd->linedata[ny],
  	    (gd->hsize + gd->sy - ny) * (sizeof *gd->linedata));
@@ -53,7 +53,7 @@ index 63eea6..27f0b9 100644
  }
  
  /*
-@@ -1410,17 +1416,53 @@ grid_reflow(struct grid *gd, u_int sx)
+@@ -1381,17 +1387,53 @@ grid_reflow(struct grid *gd, u_int sx)
  	struct grid_line	*gl;
  	struct grid_cell	 gc;
  	u_int			 yy, width, i, at;
@@ -109,7 +109,7 @@ index 63eea6..27f0b9 100644
  		gl = &gd->linedata[yy];
  		if (gl->flags & GRID_LINE_DEAD)
  			continue;
-@@ -1484,6 +1526,87 @@ grid_reflow(struct grid *gd, u_int sx)
+@@ -1455,6 +1497,99 @@ grid_reflow(struct grid *gd, u_int sx)
  		gd->hscrolled = gd->hsize;
  	free(gd->linedata);
  	gd->linedata = target->linedata;
@@ -179,15 +179,27 @@ index 63eea6..27f0b9 100644
 +	remaining = gd->hsize + gd->sy - n;
 +	new_total = m + remaining;
 +
++	/*
++	 * If the total after the splice would not be enough to hold the
++	 * visible region, pad with empty lines. Without this, gd->hsize
++	 * would underflow and subsequent linedata accesses would be OOB.
++	 */
++	if (new_total < gd->sy)
++		new_total = gd->sy;
++
 +	new_linedata = xreallocarray(NULL, new_total, sizeof *new_linedata);
 +	memcpy(new_linedata, target->linedata, m * sizeof *new_linedata);
 +	memcpy(new_linedata + m, gd->linedata + n,
 +	    remaining * sizeof *new_linedata);
++	if (new_total > m + remaining) {
++		memset(new_linedata + m + remaining, 0,
++		    (new_total - m - remaining) * sizeof *new_linedata);
++	}
 +
 +	free(gd->linedata);
 +	gd->linedata = new_linedata;
 +
-+	gd->hsize = gd->hsize + m - n;
++	gd->hsize = new_total - gd->sy;
 +	if (gd->hscrolled > gd->hsize)
 +		gd->hscrolled = gd->hsize;
 +
@@ -198,10 +210,10 @@ index 63eea6..27f0b9 100644
  }
  
 diff --git a/tmux.h b/tmux.h
-index dd6238..121466 100644
+index 071d9d..e2a65f 100644
 --- a/tmux.h
 +++ b/tmux.h
-@@ -843,6 +843,8 @@ struct grid {
+@@ -811,6 +811,8 @@ struct grid {
  	u_int			 hsize;
  	u_int			 hlimit;
  
@@ -210,7 +222,7 @@ index dd6238..121466 100644
  	struct grid_line	*linedata;
  };
  
-@@ -3054,6 +3056,7 @@ char	*grid_string_cells(struct grid *, u_int, u_int, u_int,
+@@ -2922,6 +2924,7 @@ char	*grid_string_cells(struct grid *, u_int, u_int, u_int,
  void	 grid_duplicate_lines(struct grid *, u_int, struct grid *, u_int,
  	     u_int);
  void	 grid_reflow(struct grid *, u_int);
@@ -219,10 +231,10 @@ index dd6238..121466 100644
  void	 grid_unwrap_position(struct grid *, u_int *, u_int *, u_int, u_int);
  u_int	 grid_line_length(struct grid *, u_int);
 diff --git a/window-copy.c b/window-copy.c
-index 2d5284..11186a 100644
+index d255f9..c449b2 100644
 --- a/window-copy.c
 +++ b/window-copy.c
-@@ -346,6 +346,8 @@ window_copy_clone_screen(struct screen *src, struct screen *hint, u_int *cx,
+@@ -337,6 +337,8 @@ window_copy_clone_screen(struct screen *src, struct screen *hint, u_int *cx,
  	u_int			 sy, wx, wy;
  	int			 reflow;
  
@@ -232,5 +244,5 @@ index 2d5284..11186a 100644
  
  	sy = screen_hsize(src) + screen_size_y(src);
 -- 
-2.52.0
+2.53.0
 
