@@ -1,7 +1,7 @@
-From 9ef60498bb73ad9a999d5fcb6fd7b415a7778b92 Mon Sep 17 00:00:00 2001
+From 08d83ba529f1092d8c09b3242d1a12c34ad1a2ba Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Mon, 1 Dec 2025 21:40:53 -0800
-Subject: [PATCH 14/14] Number workspaces using base 36
+Subject: [PATCH] Number workspaces using base 36
 
 Number workspaces using base 36 instead of 10. In so doing we have more
 single letter workspace names, navigation to which can intuitively be
@@ -9,9 +9,9 @@ bound to the corresponding keys.
 ---
  include/util.h  |  3 ++-
  src/randr.c     |  5 +++--
- src/util.c      | 50 ++++++++++++++++++++++++++++++++++++++++++++-----
- src/workspace.c | 30 ++++++++++++++---------------
- 4 files changed, 64 insertions(+), 24 deletions(-)
+ src/util.c      | 58 +++++++++++++++++++++++++++++++++++++++++--------
+ src/workspace.c | 30 ++++++++++++-------------
+ 4 files changed, 68 insertions(+), 28 deletions(-)
 
 diff --git a/include/util.h b/include/util.h
 index e554e2..0be537 100644
@@ -58,15 +58,15 @@ index e3ea77..9c01b9 100644
              DLOG("Done\n");
          }
 diff --git a/src/util.c b/src/util.c
-index 6d9085..c466a7 100644
+index 97d8f6..68e989 100644
 --- a/src/util.c
 +++ b/src/util.c
 @@ -83,7 +83,7 @@ __attribute__((__const__)) bool rect_equals(const Rect a, const Rect b) {
  __attribute__((pure)) bool name_is_digits(const char *name) {
      /* positive integers and zero are interpreted as numbers */
      for (size_t i = 0; i < strlen(name); i++) {
--        if (!isdigit(name[i])) {
-+        if (!isalnum(name[i])) {
+-        if (!isdigit((unsigned char)name[i])) {
++        if (!isalnum((unsigned char)name[i])) {
              return false;
          }
      }
@@ -133,6 +133,35 @@ index 6d9085..c466a7 100644
  /*
   * Updates *destination with new_value and returns true if it was changed or false
   * if it was the same
+@@ -174,7 +214,7 @@ void exec_i3_utility(char *name, char *argv[]) {
+ 
+     /* if the utility is not in path, maybe the user installed to a strange
+      * location and runs the i3 binary with an absolute path. We use
+-     * argv[0]’s dirname */
++     * argv[0]'s dirname */
+     char *pathbuf = sstrdup(start_argv[0]);
+     char *dir = dirname(pathbuf);
+     sasprintf(&binary, "%s/%s", dir, name);
+@@ -426,8 +466,8 @@ void kill_nagbar(pid_t nagbar_pid, bool wait_for_it) {
+         return;
+     }
+ 
+-    /* When restarting, we don’t enter the ev main loop anymore and after the
+-     * exec(), our old pid is no longer watched. So, ev won’t handle SIGCHLD
++    /* When restarting, we don't enter the ev main loop anymore and after the
++     * exec(), our old pid is no longer watched. So, ev won't handle SIGCHLD
+      * for us and we would end up with a <defunct> process. Therefore we
+      * waitpid() here. */
+     waitpid(nagbar_pid, NULL, 0);
+@@ -469,7 +509,7 @@ ssize_t slurp(const char *path, char **buf) {
+         return -1;
+     }
+     /* Allocate one extra NUL byte to make the buffer usable with C string
+-     * functions. yajl doesn’t need this, but this makes slurp safer. */
++     * functions. yajl doesn't need this, but this makes slurp safer. */
+     *buf = scalloc(stbuf.st_size + 1, 1);
+     size_t n = fread(*buf, 1, stbuf.st_size, f);
+     fclose(f);
 diff --git a/src/workspace.c b/src/workspace.c
 index 5c9477..8b8e6a 100644
 --- a/src/workspace.c
@@ -226,5 +255,5 @@ index 5c9477..8b8e6a 100644
              /* Ups, that will make boom somewhere. */
              return NULL;
 -- 
-2.52.0
+2.53.0
 
