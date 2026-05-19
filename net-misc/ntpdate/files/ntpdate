@@ -12,8 +12,9 @@ depend() {
 
 start() {
   local server=${NTP_SERVER:-pool.ntp.org}
+  local log=${NTP_LOG:-/tmp/${RC_SVCNAME}.log}
 
   ebegin "Syncing time with ${server}"
-  chronyd -q "server ${server} iburst" > /dev/null
+  chronyd -n -l "${log}" -q "server ${server} iburst" > /dev/null
   eend ${?}
 }
