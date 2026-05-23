@@ -1,0 +1,33 @@
+From 671cc6325b67bb20c77d930de0f259e7994493ef Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Tue, 2 Jun 2026 13:54:30 -0700
+Subject: [PATCH] Test
+
+---
+ lib/_emerge/main.py | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/lib/_emerge/main.py b/lib/_emerge/main.py
+index 44e05c..cb2af6 100644
+--- a/lib/_emerge/main.py
++++ b/lib/_emerge/main.py
+@@ -3,10 +3,16 @@
+ 
+ import argparse
+ import locale
++import multiprocessing
+ import platform
+ import shlex
+ import sys
+ 
++try:
++    multiprocessing.set_start_method("fork")
++except RuntimeError:
++    pass
++
+ import portage
+ 
+ portage.proxy.lazyimport.lazyimport(
+-- 
+2.53.0
+
