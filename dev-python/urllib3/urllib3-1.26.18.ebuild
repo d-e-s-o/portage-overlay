@@ -5,7 +5,7 @@
 EAPI=8
 
 DISTUTILS_USE_PEP517=setuptools
-PYTHON_TESTED=( python3_{10..13} pypy3 )
+PYTHON_TESTED=( python3_{10..14} pypy3 )
 PYTHON_COMPAT=( "${PYTHON_TESTED[@]}" )
 PYTHON_REQ_USE="ssl(+)"
 

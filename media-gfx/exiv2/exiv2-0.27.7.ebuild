@@ -12,8 +12,7 @@ else
 	S="${WORKDIR}/${P}-Source"
 fi
 
-PYTHON_COMPAT=( python3_{10..11} )
-inherit cmake-multilib python-any-r1
+inherit cmake-multilib python-any-no-clowntown
 
 DESCRIPTION="EXIF, IPTC and XMP metadata C++ library and command line utility"
 HOMEPAGE="https://exiv2.org/"

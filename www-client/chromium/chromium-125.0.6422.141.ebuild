@@ -19,7 +19,6 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{11..13} )
 PYTHON_REQ_USE="xml(+)"
 
 # PACKAGING NOTES
@@ -80,7 +79,7 @@ CHROMIUM_LANGS="af am ar bg bn ca cs da de el en-GB es es-419 et fa fi fil fr gu
 	sv sw ta te th tr uk ur vi zh-CN zh-TW"
 
 inherit check-reqs chromium-2 desktop flag-o-matic llvm ninja-utils pax-utils
-inherit python-any-r1 qmake-utils readme.gentoo-r1 systemd toolchain-funcs virtualx xdg-utils
+inherit python-any-no-clowntown qmake-utils readme.gentoo-r1 systemd toolchain-funcs virtualx xdg-utils
 
 DESCRIPTION="Open-source version of Google Chrome web browser"
 HOMEPAGE="https://www.chromium.org/"

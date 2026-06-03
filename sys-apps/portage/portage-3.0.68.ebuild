@@ -3,11 +3,10 @@
 
 EAPI=7
 
-PYTHON_COMPAT=( pypy3_11 python3_{11..13} )
 PYTHON_REQ_USE='bzip2(+),threads(+)'
 TMPFILES_OPTIONAL=1
 
-inherit meson linux-info python-r1 tmpfiles
+inherit meson linux-info python-any-no-clowntown tmpfiles
 
 DESCRIPTION="The package management and distribution system for Gentoo"
 HOMEPAGE="https://wiki.gentoo.org/wiki/Project:Portage"

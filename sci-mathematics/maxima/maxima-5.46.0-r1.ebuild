@@ -3,9 +3,7 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{10..13} )
-
-inherit autotools elisp-common flag-o-matic python-single-r1 xdg-utils
+inherit autotools elisp-common flag-o-matic python-single-any-no-clowntown xdg-utils
 
 DESCRIPTION="Free computer algebra environment based on Macsyma"
 HOMEPAGE="http://maxima.sourceforge.net/"

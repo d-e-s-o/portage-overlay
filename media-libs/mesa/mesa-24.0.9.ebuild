@@ -5,9 +5,8 @@ EAPI=8
 
 LLVM_COMPAT=( {15..17} )
 LLVM_OPTIONAL=1
-PYTHON_COMPAT=( python3_{10..13} )
 
-inherit flag-o-matic llvm-r1 meson-multilib python-any-r1 linux-info toolchain-funcs
+inherit flag-o-matic llvm-r1 meson-multilib python-any-no-clowntown linux-info toolchain-funcs
 
 MY_P="${P/_/-}"
 

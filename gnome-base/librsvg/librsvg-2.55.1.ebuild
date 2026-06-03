@@ -2,7 +2,6 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
-PYTHON_COMPAT=( python3_{8..13} )
 
 CRATES="
 	adler-1.0.2
@@ -273,7 +272,7 @@ CRATES="
 RUST_MIN_VER="1.77.2"
 RUST_MULTILIB=1
 
-inherit cargo gnome2 multilib-minimal python-any-r1 rust-toolchain vala
+inherit cargo gnome2 multilib-minimal python-any-no-clowntown rust-toolchain vala
 
 DESCRIPTION="Scalable Vector Graphics (SVG) rendering library"
 HOMEPAGE="https://wiki.gnome.org/Projects/LibRsvg https://gitlab.gnome.org/GNOME/librsvg"

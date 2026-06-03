@@ -2,12 +2,11 @@
 # Distributed under the terms of the GNU General Public License v2
 
 EAPI=8
-PYTHON_COMPAT=( python3_{10..13} )
 
 QA_PKGCONFIG_VERSION=$(ver_cut 1)
 
 inherit bash-completion-r1 flag-o-matic linux-info meson-multilib optfeature
-inherit python-single-r1 secureboot toolchain-funcs udev
+inherit python-single-any-no-clowntown secureboot toolchain-funcs udev
 
 DESCRIPTION="Utilities split out from systemd for OpenRC users"
 HOMEPAGE="https://systemd.io/"

@@ -3,8 +3,7 @@
 
 EAPI=8
 
-PYTHON_COMPAT=( python3_{11..13} )
-inherit autotools multilib-minimal flag-o-matic python-single-r1
+inherit autotools multilib-minimal flag-o-matic python-single-any-no-clowntown
 
 DESCRIPTION="Advanced Linux Sound Architecture Library"
 HOMEPAGE="https://alsa-project.org/wiki/Main_Page"
