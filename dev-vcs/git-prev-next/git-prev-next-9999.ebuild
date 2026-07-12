@@ -1,4 +1,4 @@
-# Copyright (C) 2019-2020 Daniel Mueller <deso@posteo.net>
+# Copyright (C) 2019-2026 Daniel Mueller <deso@posteo.net>
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 EAPI=8
@@ -23,8 +23,7 @@ RDEPEND="
 DEPEND="${RDEPEND}"
 
 EGIT_BRANCH="master"
-EGIT_REPO_URI="https://github.com/ridiculousfish/git-prev-next.git"
-EGIT_COMMIT="1d8daa240f4737cba6a8d8edc9c6200924e73e23"
+EGIT_REPO_URI="https://github.com/d-e-s-o/git-prev-next.git"
 
 inherit git-r3
 
