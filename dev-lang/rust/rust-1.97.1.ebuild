@@ -853,6 +853,17 @@ src_install() {
 	use rustfmt && symlinks+=( rustfmt cargo-fmt )
 	use rust-analyzer && symlinks+=( rust-analyzer )
 
+	# Create a `rustc` wrapper that invokes the original compiler, but
+	# with lower priority.
+	mv "${ED}/usr/lib/${PN}/${SLOT}/bin/rustc" \
+		"${ED}/usr/lib/${PN}/${SLOT}/bin/rustc-real" || die
+
+	cat > "${ED}/usr/lib/${PN}/${SLOT}/bin/rustc" <<-EOF
+		#!/bin/sh
+		exec nice -n 19 ionice --class=idle chrt --batch /usr/lib/${PN}/${SLOT}/bin/rustc-real "\$@"
+	EOF
+	chmod 755 "${ED}/usr/lib/${PN}/${SLOT}/bin/rustc" || die
+
 	einfo "installing eselect-rust symlinks and paths: ${symlinks[@]}"
 	local i
 	for i in "${symlinks[@]}"; do
