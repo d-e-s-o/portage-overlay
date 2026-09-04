@@ -1,4 +1,4 @@
-From a73bbd2d0a58f9ff45f6de6f6428e61a7b99a258 Mon Sep 17 00:00:00 2001
+From 90132cd9c90058f4745b89467a2f0dd09dfe2064 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Mon, 6 Apr 2026 09:52:45 -0700
 Subject: [PATCH] Add `let_with_type_annotation` lint
@@ -24,10 +24,10 @@ sometimes necessary for disambiguation or when there is no initializer.
  create mode 100644 src/tools/clippy/tests/ui/let_with_type_annotation.stderr
 
 diff --git a/src/tools/clippy/CHANGELOG.md b/src/tools/clippy/CHANGELOG.md
-index 7c798a..86b601 100644
+index 689d56..fe7146 100644
 --- a/src/tools/clippy/CHANGELOG.md
 +++ b/src/tools/clippy/CHANGELOG.md
-@@ -6657,6 +6657,7 @@ Released 2018-09-13
+@@ -6964,6 +6964,7 @@ Released 2018-09-13
  [`let_underscore_must_use`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_underscore_must_use
  [`let_underscore_untyped`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_underscore_untyped
  [`let_unit_value`]: https://rust-lang.github.io/rust-clippy/master/index.html#let_unit_value
@@ -36,10 +36,10 @@ index 7c798a..86b601 100644
  [`lines_filter_map_ok`]: https://rust-lang.github.io/rust-clippy/master/index.html#lines_filter_map_ok
  [`linkedlist`]: https://rust-lang.github.io/rust-clippy/master/index.html#linkedlist
 diff --git a/src/tools/clippy/clippy_lints/src/declared_lints.rs b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-index e16b19..c68ab0 100644
+index 51a848..7c0636 100644
 --- a/src/tools/clippy/clippy_lints/src/declared_lints.rs
 +++ b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-@@ -257,6 +257,7 @@
+@@ -259,6 +259,7 @@
      crate::let_underscore::LET_UNDERSCORE_LOCK_INFO,
      crate::let_underscore::LET_UNDERSCORE_MUST_USE_INFO,
      crate::let_underscore::LET_UNDERSCORE_UNTYPED_INFO,
@@ -109,10 +109,10 @@ index 000000..5d6988
 +    }
 +}
 diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
-index 4dca8d..613f65 100644
+index a65b27..c732c2 100644
 --- a/src/tools/clippy/clippy_lints/src/lib.rs
 +++ b/src/tools/clippy/clippy_lints/src/lib.rs
-@@ -187,6 +187,7 @@
+@@ -190,6 +190,7 @@
  mod len_zero;
  mod let_if_seq;
  mod let_underscore;
@@ -120,14 +120,14 @@ index 4dca8d..613f65 100644
  mod let_with_type_underscore;
  mod lifetimes;
  mod literal_representation;
-@@ -468,6 +469,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
-             Box::new(move || Box::new(AttrCollector::new(attrs.clone())))
-         },
-         Box::new(move || Box::new(attrs::PostExpansionEarlyAttributes::new(conf))),
-+        Box::new(|| Box::new(let_with_type_annotation::LetWithTypeAnnotation)),
-         Box::new(|| Box::new(unnecessary_self_imports::UnnecessarySelfImports)),
-         Box::new(move || Box::new(redundant_static_lifetimes::RedundantStaticLifetimes::new(conf))),
-         Box::new(move || Box::new(redundant_field_names::RedundantFieldNames::new(conf))),
+@@ -491,6 +492,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
+         FormatArgsCollector: utils::format_args_collector::FormatArgsCollector = utils::format_args_collector::FormatArgsCollector::new(format_args.clone()),
+         AttrCollector: utils::attr_collector::AttrCollector = utils::attr_collector::AttrCollector::new(attrs.clone()),
+         PostExpansionEarlyAttributes: attrs::PostExpansionEarlyAttributes = attrs::PostExpansionEarlyAttributes::new(conf),
++        LetWithTypeAnnotation: let_with_type_annotation::LetWithTypeAnnotation = let_with_type_annotation::LetWithTypeAnnotation,
+         UnnecessarySelfImports: unnecessary_self_imports::UnnecessarySelfImports = unnecessary_self_imports::UnnecessarySelfImports,
+         RedundantStaticLifetimes: redundant_static_lifetimes::RedundantStaticLifetimes = redundant_static_lifetimes::RedundantStaticLifetimes::new(conf),
+         RedundantFieldNames: redundant_field_names::RedundantFieldNames = redundant_field_names::RedundantFieldNames::new(conf),
 diff --git a/src/tools/clippy/tests/ui/let_with_type_annotation.rs b/src/tools/clippy/tests/ui/let_with_type_annotation.rs
 new file mode 100644
 index 000000..b68fd6
@@ -245,5 +245,5 @@ index 000000..301295
 +error: aborting due to 7 previous errors
 +
 -- 
-2.53.0
+2.55.0
 

@@ -1,4 +1,4 @@
-From abbeef49d6c46556b8817ff677c1a95146cfcaee Mon Sep 17 00:00:00 2001
+From dc6fe90eb32b2c3ed803a1ab672592705a5a25c3 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Tue, 14 Apr 2026 10:59:48 -0700
 Subject: [PATCH] Add `unit_expression_statement` lint
@@ -17,22 +17,22 @@ control flow, and unit literals. The suggestion is machine-applicable.
 ---
  src/tools/clippy/CHANGELOG.md                 |  1 +
  .../clippy/clippy_lints/src/declared_lints.rs |  1 +
- src/tools/clippy/clippy_lints/src/lib.rs      |  2 +
+ src/tools/clippy/clippy_lints/src/lib.rs      |  3 +
  .../src/unit_expression_statement.rs          | 55 +++++++++++++
  .../tests/ui/unit_expression_statement.fixed  | 81 +++++++++++++++++++
  .../tests/ui/unit_expression_statement.rs     | 81 +++++++++++++++++++
  .../tests/ui/unit_expression_statement.stderr | 41 ++++++++++
- 7 files changed, 262 insertions(+)
+ 7 files changed, 263 insertions(+)
  create mode 100644 src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
  create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.fixed
  create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.rs
  create mode 100644 src/tools/clippy/tests/ui/unit_expression_statement.stderr
 
 diff --git a/src/tools/clippy/CHANGELOG.md b/src/tools/clippy/CHANGELOG.md
-index 7c798a..933e99 100644
+index 689d56..a69ce9 100644
 --- a/src/tools/clippy/CHANGELOG.md
 +++ b/src/tools/clippy/CHANGELOG.md
-@@ -7110,6 +7110,7 @@ Released 2018-09-13
+@@ -7425,6 +7425,7 @@ Released 2018-09-13
  [`uninlined_format_args`]: https://rust-lang.github.io/rust-clippy/master/index.html#uninlined_format_args
  [`unit_arg`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_arg
  [`unit_cmp`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_cmp
@@ -41,10 +41,10 @@ index 7c798a..933e99 100644
  [`unit_return_expecting_ord`]: https://rust-lang.github.io/rust-clippy/master/index.html#unit_return_expecting_ord
  [`unknown_clippy_lints`]: https://rust-lang.github.io/rust-clippy/master/index.html#unknown_clippy_lints
 diff --git a/src/tools/clippy/clippy_lints/src/declared_lints.rs b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-index e16b19..c9e470 100644
+index 51a848..eddc33 100644
 --- a/src/tools/clippy/clippy_lints/src/declared_lints.rs
 +++ b/src/tools/clippy/clippy_lints/src/declared_lints.rs
-@@ -757,6 +757,7 @@
+@@ -771,6 +771,7 @@
      crate::unicode::UNICODE_NOT_NFC_INFO,
      crate::uninhabited_references::UNINHABITED_REFERENCES_INFO,
      crate::uninit_vec::UNINIT_VEC_INFO,
@@ -53,10 +53,10 @@ index e16b19..c9e470 100644
      crate::unit_types::LET_UNIT_VALUE_INFO,
      crate::unit_types::UNIT_ARG_INFO,
 diff --git a/src/tools/clippy/clippy_lints/src/lib.rs b/src/tools/clippy/clippy_lints/src/lib.rs
-index 4dca8d..816e4b 100644
+index a65b27..6ade79 100644
 --- a/src/tools/clippy/clippy_lints/src/lib.rs
 +++ b/src/tools/clippy/clippy_lints/src/lib.rs
-@@ -364,6 +364,7 @@
+@@ -370,6 +370,7 @@
  mod unicode;
  mod uninhabited_references;
  mod uninit_vec;
@@ -64,14 +64,15 @@ index 4dca8d..816e4b 100644
  mod unit_return_expecting_ord;
  mod unit_types;
  mod unnecessary_box_returns;
-@@ -526,6 +527,7 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
-         dyn for<'tcx> Fn(TyCtxt<'tcx>) -> Box<dyn LateLintPass<'tcx> + 'tcx> + sync::DynSend + sync::DynSync,
-     >; _] = [
-         Box::new(move |_| Box::new(operators::arithmetic_side_effects::ArithmeticSideEffects::new(conf))),
-+        Box::new(|_| Box::new(unit_expression_statement::UnitExpressionStatement)),
-         Box::new(|_| Box::new(utils::dump_hir::DumpHir)),
-         Box::new(|_| Box::new(utils::author::Author)),
-         Box::new(move |tcx| Box::new(await_holding_invalid::AwaitHolding::new(tcx, conf))),
+@@ -550,6 +551,8 @@ pub fn register_lint_passes(store: &mut rustc_lint::LintStore, conf: &'static Co
+     crate::combined_late_lint_pass,
+     [CombinedLateLintPass, (tcx: TyCtxt<'tcx>, conf: &'static Conf, format_args: FormatArgsStorage, attrs: AttrStorage), [
+         ArithmeticSideEffects: operators::arithmetic_side_effects::ArithmeticSideEffects = operators::arithmetic_side_effects::ArithmeticSideEffects::new(conf),
++
++        UnitExpressionStatement: unit_expression_statement::UnitExpressionStatement = unit_expression_statement::UnitExpressionStatement,
+         DumpHir: utils::dump_hir::DumpHir = utils::dump_hir::DumpHir,
+         Author: utils::author::Author = utils::author::Author,
+         AwaitHolding: await_holding_invalid::AwaitHolding = await_holding_invalid::AwaitHolding::new(tcx, conf),
 diff --git a/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs b/src/tools/clippy/clippy_lints/src/unit_expression_statement.rs
 new file mode 100644
 index 000000..07ca9a
@@ -355,5 +356,5 @@ index 000000..b27548c
 +error: aborting due to 6 previous errors
 +
 -- 
-2.53.0
+2.55.0
 
