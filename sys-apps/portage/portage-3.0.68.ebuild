@@ -167,6 +167,17 @@ my_src_install() {
 	meson_src_install
 	python_fix_shebang "${pydirs[@]}"
 	python_optimize "${pydirs[@]}"
+
+	# Create an `emerge` wrapper that invokes the original, but with
+	# lower priority.
+	mv "${ED}/usr/bin/emerge" \
+		"${ED}/usr/bin/emerge-real" || die
+
+	cat > "${ED}/usr/bin/emerge" <<-EOF
+		#!/bin/sh
+		exec nice -n 19 ionice --class=idle chrt --batch /usr/bin/emerge-real "\$@"
+	EOF
+	chmod 755 "${ED}/usr/bin/emerge" || die
 }
 
 pkg_preinst() {
