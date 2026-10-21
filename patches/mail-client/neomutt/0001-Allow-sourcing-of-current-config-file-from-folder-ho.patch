@@ -1,4 +1,4 @@
-From b9590476ef95c014648b889cec0a663c14296bf9 Mon Sep 17 00:00:00 2001
+From 450af3c0d9a0613c62ff5ba225e95ccf5f27d816 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Sun, 16 Apr 2023 08:23:00 -0700
 Subject: [PATCH] Allow sourcing of current config file from folder-hook
@@ -10,14 +10,14 @@ configuration. Folder hooks are deferred, so there is nothing wrong with
 that.
 Remove cycle detection logic altogether.
 ---
- commands.c | 6 ------
- 1 file changed, 6 deletions(-)
+ commands/source.c | 5 -----
+ 1 file changed, 5 deletions(-)
 
-diff --git a/commands.c b/commands.c
-index 432115..06cd4e 100644
---- a/commands.c
-+++ b/commands.c
-@@ -223,12 +223,6 @@ int source_rc(const char *rcfile_path, struct Buffer *err)
+diff --git a/commands/source.c b/commands/source.c
+index 6d75b3..288357 100644
+--- a/commands/source.c
++++ b/commands/source.c
+@@ -104,11 +104,6 @@ int source_rc(const char *rcfile_path, struct ParseContext *pc, struct ParseErro
          break;
        }
      }
@@ -26,10 +26,9 @@ index 432115..06cd4e 100644
 -      mutt_error(_("Error: Cyclic sourcing of configuration file '%s'"), rcfile);
 -      return -1;
 -    }
--
-     mutt_list_insert_head(&MuttrcStack, mutt_str_dup(rcfile));
-   }
  
+     mutt_list_insert_head(&mod_data->muttrc_stack, mutt_str_dup(rcfile));
+   }
 -- 
-2.39.2
+2.55.0
 
