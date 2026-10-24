@@ -1,0 +1,13 @@
+--- a/build/config/compiler/BUILD.gn
++++ b/build/config/compiler/BUILD.gn
+@@ -294,6 +294,10 @@ config("compiler") {
+   configs = []
+   rustflags = []
+
++  cflags_cc += [
++    "-Wno-error=missing-template-arg-list-after-template-kw",
++  ]
++
+   # System-specific flags. If your compiler flags apply to one of the
+   # categories here, add it to the associated file to keep this shared config
+   # smaller.

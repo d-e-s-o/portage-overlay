@@ -1,0 +1,11 @@
+--- a/sandbox/policy/linux/sandbox_linux.cc
++++ b/sandbox/policy/linux/sandbox_linux.cc
+@@ -713,7 +713,7 @@ void SandboxLinux::ReportLandlockStatus() {
+     landlock_state = LandlockState::kEnabled;
+   }
+
+-  UMA_HISTOGRAM_ENUMERATION("Sandbox.LandlockState", landlock_state);
++  UMA_HISTOGRAM_ENUMERATION("Sandbox.LandlockState", landlock_state, 5);
+ }
+
+ }  // namespace policy
