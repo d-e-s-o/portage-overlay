@@ -1,7 +1,7 @@
-From e313c4c21fd0975998cc02faf72f1f64ee88b35b Mon Sep 17 00:00:00 2001
+From c10c033083d88d7e50a2c183599329a724ffa57a Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
 Date: Tue, 17 Dec 2024 08:02:44 -0800
-Subject: [PATCH] Fix repeated-search direction
+Subject: [PATCH 2/3] Fix repeated-search direction
 
 It is utterly confusing and counter to how many other programs behave
 to make repeated searches in the command output stateful in such a way
@@ -17,10 +17,10 @@ command.
  1 file changed, 2 insertions(+), 8 deletions(-)
 
 diff --git a/window-copy.c b/window-copy.c
-index 2d5284..bd726c 100644
+index 25b3a7..8cf2d8 100644
 --- a/window-copy.c
 +++ b/window-copy.c
-@@ -2144,10 +2144,7 @@ window_copy_cmd_search_again(struct window_copy_cmd_state *cs)
+@@ -2518,10 +2518,7 @@ window_copy_cmd_search_again(struct window_copy_cmd_state *cs)
  	struct window_copy_mode_data	*data = wme->data;
  	u_int				 np = wme->prefix;
  
@@ -32,7 +32,7 @@ index 2d5284..bd726c 100644
  		for (; np != 0; np--)
  			window_copy_search_down(wme, data->searchregex);
  	}
-@@ -2161,10 +2158,7 @@ window_copy_cmd_search_reverse(struct window_copy_cmd_state *cs)
+@@ -2535,10 +2532,7 @@ window_copy_cmd_search_reverse(struct window_copy_cmd_state *cs)
  	struct window_copy_mode_data	*data = wme->data;
  	u_int				 np = wme->prefix;
  
@@ -45,5 +45,5 @@ index 2d5284..bd726c 100644
  			window_copy_search_up(wme, data->searchregex);
  	}
 -- 
-2.52.0
+2.55.0
 
