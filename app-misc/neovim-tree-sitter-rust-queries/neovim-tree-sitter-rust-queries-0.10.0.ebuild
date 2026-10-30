@@ -17,7 +17,7 @@ SRC_URI="
   https://github.com/nvim-treesitter/nvim-treesitter/archive/refs/tags/v0.10.0.tar.gz
 "
 
-RDEPEND=""
+RDEPEND="dev-libs/tree-sitter-rust"
 DEPEND="${RDEPEND}"
 
 src_unpack() {
