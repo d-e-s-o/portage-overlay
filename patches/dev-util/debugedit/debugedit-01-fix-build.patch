@@ -1,0 +1,13 @@
+--- a/tools/sepdebugcrcfix.c
++++ b/tools/sepdebugcrcfix.c
+@@ -49,9 +49,6 @@
+
+ static_assert (sizeof (unsigned long) >= sizeof (uint32_t));
+
+-typedef int bool;
+-static const bool false = 0, true = 1;
+-
+ /* This is bfd_calc_gnu_debuglink_crc32 from bfd/opncls.c.  */
+ static unsigned long
+     calc_gnu_debuglink_crc32 (unsigned long crc,
+
