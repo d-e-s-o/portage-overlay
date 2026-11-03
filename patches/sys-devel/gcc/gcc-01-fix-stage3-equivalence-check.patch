@@ -1,0 +1,19 @@
+diff --git a/Makefile.in b/Makefile.in
+index ebae13db1..5fcfeab53 100644
+--- a/Makefile.in
++++ b/Makefile.in
+@@ -670,12 +670,12 @@ STAGE2_CONFIGURE_FLAGS += --with-libphobos-druntime-only
+ # stage2 and stage3 we are merely avoid doing redundant work, plus we apply
+ # checking when building all target libraries for release builds.
+ STAGE1_TFLAGS += -fno-checking
+-STAGE2_CFLAGS += -fno-checking
+-STAGE2_TFLAGS += -fno-checking
++STAGE2_CFLAGS += -fchecking=1
++STAGE2_TFLAGS += -fchecking=1
+ STAGE3_CFLAGS += -fchecking=1
+ STAGE3_TFLAGS += -fchecking=1
+ @if target-libphobos-bootstrap
+-STAGE2_GDCFLAGS += -fno-checking
++STAGE2_GDCFLAGS += -fchecking=1
+ STAGE3_GDCFLAGS += -fchecking=1
+ @endif target-libphobos-bootstrap
