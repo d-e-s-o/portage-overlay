@@ -440,6 +440,7 @@ src_prepare() {
 		"${FILESDIR}/chromium-fix-skia-build.patch"
 		"${FILESDIR}/chromium-fix-blink-build.patch"
 		"${FILESDIR}/chromium-fix-sandbox-build.patch"
+		"${FILESDIR}/chromium-sandbox-Fix-SYS_SECCOMP-conflict-with-newer-glibc.patch"
 	)
 
 	PATCHES_DEB="${WORKDIR}/chromium-debian-${PATCHSET_DEBIAN}/debian/patches"
