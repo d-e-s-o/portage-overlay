@@ -1,0 +1,122 @@
+From 89bd8a1bd84caf480e7233dde163d92994a25183 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Mon, 19 Oct 2026 19:50:44 -0700
+Subject: [PATCH] Remove xinerama requirement
+
+Remove the requirement of having xinerama available. We never use the
+"force_xinerama" option, so it was effectively just dead weight.
+---
+ config.mk        |  1 -
+ meson.build      |  5 ++---
+ src/x11/screen.c | 35 ++---------------------------------
+ 3 files changed, 4 insertions(+), 37 deletions(-)
+
+diff --git a/config.mk b/config.mk
+index ba4615..04c75a 100644
+--- a/config.mk
++++ b/config.mk
+@@ -84,7 +84,6 @@ endif
+ 
+ ifneq (0,${X11})
+ pkg_config_packs += x11
+-pkg_config_packs += xinerama
+ pkg_config_packs += xext
+ pkg_config_packs += "xrandr >= 1.5"
+ pkg_config_packs += xscrnsaver
+diff --git a/meson.build b/meson.build
+index c68f2c..d4091c 100644
+--- a/meson.build
++++ b/meson.build
+@@ -24,12 +24,11 @@ math = cc.find_library('m')
+ 
+ # Optional dependencies (X11)
+ x11 = dependency('x11', required: get_option('x11'))
+-xinerama = dependency('xinerama', required: get_option('x11'))
+ xext = dependency('xext', required: get_option('x11'))
+ xrandr = dependency('xrandr', required: get_option('x11'), version: '>=1.5')
+ xscrnsaver = dependency('xscrnsaver', required: get_option('x11'))
+ 
+-x11_support = x11.found() and xinerama.found() and xext.found() and xrandr.found() and xscrnsaver.found()
++x11_support = x11.found() and xext.found() and xrandr.found() and xscrnsaver.found()
+ 
+ # Optional dependencies (Wayland)
+ wayland_client = dependency('wayland-client', required: get_option('wayland'))
+@@ -61,7 +60,7 @@ if not x11_support and not wayland_support
+ endif
+ 
+ if x11_support
+-    dunst_depends += [x11, xinerama, xext, xrandr, xscrnsaver]
++    dunst_depends += [x11, xext, xrandr, xscrnsaver]
+     add_project_arguments('-DENABLE_X11', language: 'c')
+ endif
+ 
+diff --git a/src/x11/screen.c b/src/x11/screen.c
+index a0660a..29fa19 100644
+--- a/src/x11/screen.c
++++ b/src/x11/screen.c
+@@ -14,7 +14,6 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <X11/extensions/randr.h>
+-#include <X11/extensions/Xinerama.h>
+ #include <X11/extensions/Xrandr.h>
+ #include <X11/Xatom.h>
+ #include <X11/X.h>
+@@ -37,7 +36,6 @@ static int randr_minor_version = 0;
+ 
+ void randr_init(void);
+ void randr_update(void);
+-void xinerama_update(void);
+ void screen_update_fallback(void);
+ static void x_follow_setup_error_handler(void);
+ static int x_follow_tear_down_error_handler(void);
+@@ -102,12 +100,8 @@ double screen_dpi_get(const struct screen_info *scr)
+ 
+ void init_screens(void)
+ {
+-        if (settings.force_xinerama) {
+-                xinerama_update();
+-        } else {
+-                randr_init();
+-                randr_update();
+-        }
++        randr_init();
++        randr_update();
+ }
+ 
+ void free_screen_ar(struct screen_info *scr, int len)
+@@ -193,31 +187,6 @@ bool screen_check_event(XEvent *ev)
+         return false;
+ }
+ 
+-void xinerama_update(void)
+-{
+-        int n;
+-        XineramaScreenInfo *info = XineramaQueryScreens(xctx.dpy, &n);
+-
+-        if (!info) {
+-                LOG_W("Could not get xinerama screen info. "
+-                      "Falling back to single monitor mode.");
+-                screen_update_fallback();
+-                return;
+-        }
+-
+-        alloc_screen_ar(n);
+-
+-        for (int i = 0; i < n; i++) {
+-                screens[i].id = i;
+-                screens[i].x = info[i].x_org;
+-                screens[i].y = info[i].y_org;
+-                screens[i].h = info[i].height;
+-                screens[i].w = info[i].width;
+-                LOG_I("Detected screen %d", screens[i].id);
+-        }
+-        XFree(info);
+-}
+-
+ void screen_update_fallback(void)
+ {
+         alloc_screen_ar(1);
+-- 
+2.56.0
+
