@@ -12,7 +12,7 @@ CHROMIUM_LANGS="af am ar bg bn ca cs da de el en-GB es es-419 et fa fi fil fr gu
 	sv sw ta te th tr uk ur vi zh-CN zh-TW"
 
 inherit check-reqs chromium-2 desktop flag-o-matic llvm ninja-utils pax-utils
-inherit python-any-no-clowntown qmake-utils readme.gentoo-r1 toolchain-funcs xdg-utils
+inherit python-no-clowntown qmake-utils readme.gentoo-r1 toolchain-funcs xdg-utils
 
 # Use following environment variables to customise the build
 # EXTRA_GN — pass extra options to gn

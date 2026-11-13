@@ -10,7 +10,7 @@ LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64"
 
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 
 EGIT_BRANCH="main"
 EGIT_REPO_URI="https://github.com/d-e-s-o/urlencode.git"

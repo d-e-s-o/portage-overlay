@@ -6,7 +6,7 @@ EAPI=7
 PYTHON_REQ_USE='bzip2(+),threads(+)'
 TMPFILES_OPTIONAL=1
 
-inherit meson linux-info python-any-no-clowntown tmpfiles
+inherit meson linux-info python-no-clowntown tmpfiles
 
 DESCRIPTION="The package management and distribution system for Gentoo"
 HOMEPAGE="https://wiki.gentoo.org/wiki/Project:Portage"

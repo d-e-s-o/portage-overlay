@@ -4,7 +4,7 @@
 EAPI=8
 
 LUA_COMPAT=( lua5-1 luajit )
-inherit flag-o-matic lua-single meson optfeature pax-utils python-single-any-no-clowntown xdg
+inherit flag-o-matic lua-single meson optfeature pax-utils python-single-no-clowntown xdg
 
 if [[ ${PV} == 9999 ]]; then
 	inherit git-r3

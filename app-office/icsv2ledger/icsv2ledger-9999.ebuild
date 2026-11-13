@@ -23,7 +23,7 @@ HOMEPAGE="https://github.com/quentinsf/icsv2ledger"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 
 RDEPEND="${PYTHON_DEPS}"
 DEPEND="${RDEPEND}"

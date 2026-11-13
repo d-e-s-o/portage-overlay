@@ -3,7 +3,7 @@
 
 EAPI=8
 
-inherit autotools multilib-minimal flag-o-matic python-single-any-no-clowntown
+inherit autotools multilib-minimal flag-o-matic python-single-no-clowntown
 
 DESCRIPTION="Advanced Linux Sound Architecture Library"
 HOMEPAGE="https://alsa-project.org/wiki/Main_Page"

@@ -6,7 +6,7 @@ EAPI=8
 DISTUTILS_USE_PEP517=setuptools
 PYTHON_REQ_USE="sqlite"
 
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 inherit distutils-r1 systemd
 
 DESCRIPTION="Synchronize calendars and contacts"

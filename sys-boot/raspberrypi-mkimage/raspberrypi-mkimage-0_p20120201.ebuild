@@ -5,7 +5,7 @@ EAPI=8
 
 DISTUTILS_IN_SOURCE_BUILD=1
 
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 inherit distutils-r1
 
 DESCRIPTION="Raspberry Pi kernel mangling tool mkimage/imagetool-uncompressed.py"

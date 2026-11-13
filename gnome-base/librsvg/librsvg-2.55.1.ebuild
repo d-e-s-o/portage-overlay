@@ -272,7 +272,7 @@ CRATES="
 RUST_MIN_VER="1.77.2"
 RUST_MULTILIB=1
 
-inherit cargo gnome2 multilib-minimal python-any-no-clowntown rust-toolchain vala
+inherit cargo gnome2 multilib-minimal python-no-clowntown rust-toolchain vala
 
 DESCRIPTION="Scalable Vector Graphics (SVG) rendering library"
 HOMEPAGE="https://wiki.gnome.org/Projects/LibRsvg https://gitlab.gnome.org/GNOME/librsvg"

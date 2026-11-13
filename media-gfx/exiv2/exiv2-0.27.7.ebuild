@@ -12,7 +12,7 @@ else
 	S="${WORKDIR}/${P}-Source"
 fi
 
-inherit cmake-multilib python-any-no-clowntown
+inherit cmake-multilib python-no-clowntown
 
 DESCRIPTION="EXIF, IPTC and XMP metadata C++ library and command line utility"
 HOMEPAGE="https://exiv2.org/"

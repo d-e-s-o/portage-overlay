@@ -3,7 +3,7 @@
 
 EAPI=8
 
-inherit bash-completion-r1 estack flag-o-matic linux-info llvm toolchain-funcs python-any-no-clowntown
+inherit bash-completion-r1 estack flag-o-matic linux-info llvm toolchain-funcs python-no-clowntown
 
 DESCRIPTION="Userland tools for Linux Performance Counters"
 HOMEPAGE="https://perf.wiki.kernel.org/"

@@ -3,7 +3,7 @@
 
 EAPI=8
 
-inherit autotools elisp-common flag-o-matic python-single-any-no-clowntown xdg-utils
+inherit autotools elisp-common flag-o-matic python-single-no-clowntown xdg-utils
 
 DESCRIPTION="Free computer algebra environment based on Macsyma"
 HOMEPAGE="http://maxima.sourceforge.net/"

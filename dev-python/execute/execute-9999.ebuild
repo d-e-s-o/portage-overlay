@@ -24,7 +24,7 @@ LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 
 RDEPEND="dev-python/cleanup[${PYTHON_USEDEP}]"
 DEPEND="

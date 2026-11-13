@@ -25,7 +25,7 @@ SLOT="0"
 KEYWORDS="arm amd64 amd64-linux x86 x86-linux"
 IUSE="tests"
 
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 
 RDEPEND="${PYTHON_DEPS}"
 DEPEND="

@@ -4,7 +4,7 @@
 EAPI=8
 
 DISTUTILS_USE_PEP517=hatchling
-inherit python-any-no-clowntown
+inherit python-no-clowntown
 
 inherit distutils-r1 pypi
 

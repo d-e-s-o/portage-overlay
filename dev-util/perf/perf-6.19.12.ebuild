@@ -5,7 +5,7 @@ EAPI=8
 
 LLVM_COMPAT=( {18..21} )
 LLVM_OPTIONAL=1
-inherit bash-completion-r1 estack flag-o-matic linux-info llvm-r2 toolchain-funcs python-single-any-no-clowntown
+inherit bash-completion-r1 estack flag-o-matic linux-info llvm-r2 toolchain-funcs python-single-no-clowntown
 
 DESCRIPTION="Userland tools for Linux Performance Counters"
 HOMEPAGE="https://perfwiki.github.io/main/"

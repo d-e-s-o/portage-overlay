@@ -24,7 +24,7 @@ LICENSE="GPL-3+"
 SLOT="0"
 KEYWORDS="amd64 amd64-linux"
 
-inherit python-single-any-no-clowntown
+inherit python-single-no-clowntown
 
 RDEPEND="${PYTHON_DEPS}"
 DEPEND="${RDEPEND}"

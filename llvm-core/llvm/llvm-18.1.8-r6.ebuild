@@ -3,7 +3,7 @@
 
 EAPI=8
 
-inherit cmake flag-o-matic llvm.org multilib-minimal pax-utils python-any-no-clowntown
+inherit cmake flag-o-matic llvm.org multilib-minimal pax-utils python-no-clowntown
 inherit toolchain-funcs
 
 DESCRIPTION="Low Level Virtual Machine"
