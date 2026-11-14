@@ -1,0 +1,5 @@
+# Copyright (C) 2026 Daniel Mueller <deso@posteo.net>
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+PYTHON_COMPAT=( python3_{8..14} )
+inherit python-any-r1
