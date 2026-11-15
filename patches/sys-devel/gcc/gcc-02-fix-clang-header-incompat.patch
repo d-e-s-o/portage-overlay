@@ -1,0 +1,13 @@
+diff --git a/libstdc++-v3/include/bits/stl_iterator.h b/libstdc++-v3/include/bits/stl_iterator.h
+index f16f59..9a6285 100644
+--- a/libstdc++-v3/include/bits/stl_iterator.h
++++ b/libstdc++-v3/include/bits/stl_iterator.h
+@@ -1334,7 +1334,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
+ 	constexpr auto
+ 	operator-(const __normal_iterator& __lhs,
+ 		  const __normal_iterator<_Iter, _Container>& __rhs) noexcept
+-	-> decltype(__lhs.base() - __rhs.base())
++	-> decltype(std::declval<_Iterator>() - std::declval<_Iter>())
+ #else
+ 	friend
+ 	difference_type
