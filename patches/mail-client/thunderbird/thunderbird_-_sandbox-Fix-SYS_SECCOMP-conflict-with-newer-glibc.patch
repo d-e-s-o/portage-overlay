@@ -1,0 +1,13 @@
+diff --git a/security/sandbox/chromium/sandbox/linux/system_headers/linux_seccomp.h b/security/sandbox/chromium/sandbox/linux/system_headers/linux_seccomp.h
+index a60fe2..6160f9 100644
+--- a/security/sandbox/chromium/sandbox/linux/system_headers/linux_seccomp.h
++++ b/security/sandbox/chromium/sandbox/linux/system_headers/linux_seccomp.h
+@@ -103,8 +103,4 @@
+ #define SECCOMP_RET_INVALID 0x00010000U  // Illegal return value
+ #endif
+ 
+-#ifndef SYS_SECCOMP
+-#define SYS_SECCOMP                   1
+-#endif
+-
+ #endif  // SANDBOX_LINUX_SYSTEM_HEADERS_LINUX_SECCOMP_H_

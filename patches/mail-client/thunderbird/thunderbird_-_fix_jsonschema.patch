@@ -1,0 +1,32 @@
+diff --git a/python/mozbuild/mozbuild/vendor/vendor_python.py b/python/mozbuild/mozbuild/vendor/vendor_python.py
+index db554e..a4d003 100644
+--- a/python/mozbuild/mozbuild/vendor/vendor_python.py
++++ b/python/mozbuild/mozbuild/vendor/vendor_python.py
+@@ -34,6 +34,10 @@
+     # modified 'dummy' version of it so that the dependency checks still succeed, but
+     # if it ever is attempted to be used, it will fail gracefully.
+     "ansicon",
++    # jsonschema 4.17.3 is incompatible with Python 3.14+,
++    # but later versions use a dependency with Rust components, which we thus can't vendor.
++    # For now we apply the minimal patch to jsonschema to make it work again.
++    "jsonschema",
+ }
+ 
+ 
+diff --git a/third_party/python/jsonschema/jsonschema/validators.py b/third_party/python/jsonschema/jsonschema/validators.py
+index 66e803..88316a 100644
+--- a/third_party/python/jsonschema/jsonschema/validators.py
++++ b/third_party/python/jsonschema/jsonschema/validators.py
+@@ -875,8 +875,11 @@ def _find_in_subschemas(self, url):
+             return None
+         uri, fragment = urldefrag(url)
+         for subschema in subschemas:
++            id = subschema["$id"]
++            if not isinstance(id, str):
++                continue
+             target_uri = self._urljoin_cache(
+-                self.resolution_scope, subschema["$id"],
++                self.resolution_scope, id,
+             )
+             if target_uri.rstrip("/") == uri.rstrip("/"):
+                 if fragment:

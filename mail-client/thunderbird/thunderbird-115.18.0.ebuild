@@ -7,7 +7,6 @@ FIREFOX_PATCHSET="firefox-115esr-patches-13.tar.xz"
 
 LLVM_MAX_SLOT=18
 
-PYTHON_COMPAT=( python3_{10..13} )
 PYTHON_REQ_USE="ncurses,sqlite,ssl"
 
 WANT_AUTOCONF="2.1"
@@ -38,7 +37,7 @@ MOZ_PV_DISTFILES="${MOZ_PV}${MOZ_PV_SUFFIX}"
 MOZ_P_DISTFILES="${MOZ_PN}-${MOZ_PV_DISTFILES}"
 
 inherit autotools check-reqs desktop flag-o-matic gnome2-utils linux-info \
-	llvm multiprocessing optfeature pax-utils python-any-r1 toolchain-funcs \
+	llvm multiprocessing optfeature pax-utils python-any-no-clowntown toolchain-funcs \
 	virtualx xdg
 
 MOZ_SRC_BASE_URI="https://archive.mozilla.org/pub/${MOZ_PN}/releases/${MOZ_PV}"
@@ -185,7 +184,7 @@ COMMON_DEPEND="${TB_ONLY_DEPEND}
 	system-icu? ( >=dev-libs/icu-74.1:= )
 	system-jpeg? ( >=media-libs/libjpeg-turbo-1.2.1 )
 	system-libevent? ( >=dev-libs/libevent-2.1.12:0=[threads(+)] )
-	system-libvpx? ( >=media-libs/libvpx-1.8.2:0/11=[postproc] )
+	system-libvpx? ( >=media-libs/libvpx-1.8.2:=[postproc] )
 	system-png? ( >=media-libs/libpng-1.6.35:0=[apng] )
 	system-webp? ( >=media-libs/libwebp-1.1.0:0= )
 	wayland? (
