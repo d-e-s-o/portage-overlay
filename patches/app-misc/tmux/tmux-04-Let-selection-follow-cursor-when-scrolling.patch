@@ -1,0 +1,111 @@
+From 746e3ecb3091d7e65f2067eb70cd0584a84f955b Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Thu, 8 Oct 2026 23:34:21 -0700
+Subject: [PATCH] Let selection follow cursor when scrolling
+
+Somewhere between 3.5a and 3.8, upstream changed the scrolling behavior
+in that selecting a line with V and scrolling with C-y or C-e no longer
+extends the selection, and neither does moving the cursor afterwards.
+As a result, extending a selection beyond the visible part of the pane
+with the keyboard has become needlessly cumbersome.
+This patch restores the previous scrolling behavior, which was more
+intuitive.
+---
+ window-copy.c | 39 ++++-----------------------------------
+ 1 file changed, 4 insertions(+), 35 deletions(-)
+
+diff --git a/window-copy.c b/window-copy.c
+index 4947d7..79b61c 100644
+--- a/window-copy.c
++++ b/window-copy.c
+@@ -2430,7 +2430,6 @@ window_copy_cmd_scroll_down(struct window_copy_cmd_state *cs)
+ 	struct window_mode_entry	*wme = cs->wme;
+ 	struct window_copy_mode_data	*data = wme->data;
+ 	u_int				 np = wme->prefix;
+-	int				 dragging;
+ 
+ 	/*
+ 	 * If at the bottom and scroll_exit is active with no selection,
+@@ -2443,16 +2442,6 @@ window_copy_cmd_scroll_down(struct window_copy_cmd_state *cs)
+ 		return (WINDOW_COPY_CMD_NOTHING);
+ 	}
+ 
+-	/* With a selection but no active drag, only scroll the view. */
+-	dragging = (cs->c != NULL && cs->c->tty.mouse_drag_flag != 0);
+-	if (data->screen.sel != NULL && !dragging) {
+-		data->cursordrag = CURSORDRAG_NONE;
+-		data->lineflag = LINE_SEL_NONE;
+-		/* Move down in the history. */
+-		window_copy_scroll_up(wme, np);
+-		return (WINDOW_COPY_CMD_NOTHING);
+-	}
+-
+ 	for (; np != 0; np--)
+ 		window_copy_cursor_down(wme, 1);
+ 	if (data->scroll_exit && data->oy == 0 && data->screen.sel == NULL)
+@@ -2466,17 +2455,6 @@ window_copy_cmd_scroll_down_and_cancel(struct window_copy_cmd_state *cs)
+ 	struct window_mode_entry	*wme = cs->wme;
+ 	struct window_copy_mode_data	*data = wme->data;
+ 	u_int				 np = wme->prefix;
+-	int				 dragging;
+-
+-	/* With a selection but no active drag, only scroll the view. */
+-	dragging = (cs->c != NULL && cs->c->tty.mouse_drag_flag != 0);
+-	if (data->screen.sel != NULL && !dragging) {
+-		data->cursordrag = CURSORDRAG_NONE;
+-		data->lineflag = LINE_SEL_NONE;
+-		/* Move down in the history. */
+-		window_copy_scroll_up(wme, np);
+-		return (WINDOW_COPY_CMD_NOTHING);
+-	}
+ 
+ 	for (; np != 0; np--)
+ 		window_copy_cursor_down(wme, 1);
+@@ -2491,7 +2469,6 @@ window_copy_cmd_scroll_up(struct window_copy_cmd_state *cs)
+ 	struct window_mode_entry	*wme = cs->wme;
+ 	struct window_copy_mode_data	*data = wme->data;
+ 	u_int				 np = wme->prefix;
+-	int				 dragging;
+ 
+ 	/*
+ 	 * If at the top, nothing can change, so return WINDOW_COPY_CMD_NOTHING
+@@ -2500,16 +2477,6 @@ window_copy_cmd_scroll_up(struct window_copy_cmd_state *cs)
+ 	if (data->oy == screen_hsize(data->backing))
+ 		return (WINDOW_COPY_CMD_NOTHING);
+ 
+-	/* With a selection but no active drag, only scroll the view. */
+-	dragging = (cs->c != NULL && cs->c->tty.mouse_drag_flag != 0);
+-	if (data->screen.sel != NULL && !dragging) {
+-		data->cursordrag = CURSORDRAG_NONE;
+-		data->lineflag = LINE_SEL_NONE;
+-		/* Move up in the history. */
+-		window_copy_scroll_down(wme, np);
+-		return (WINDOW_COPY_CMD_NOTHING);
+-	}
+-
+ 	for (; np != 0; np--)
+ 		window_copy_cursor_up(wme, 1);
+ 	return (WINDOW_COPY_CMD_MOVE);
+@@ -6503,7 +6470,8 @@ window_copy_cursor_up(struct window_mode_entry *wme, int scroll_only)
+ 	if (data->lineflag == LINE_SEL_LEFT_RIGHT && oy == data->sely)
+ 		window_copy_other_end(wme);
+ 
+-	if (scroll_only && options_get_number(oo, "mode-keys") == MODEKEY_VI) {
++	if (scroll_only && data->screen.sel == NULL &&
++	    options_get_number(oo, "mode-keys") == MODEKEY_VI) {
+ 		if (data->cy < screen_size_y(s) - 1)
+ 			window_copy_update_cursor(wme, data->cx, data->cy + 1);
+ 	}
+@@ -6583,7 +6551,8 @@ window_copy_cursor_down(struct window_mode_entry *wme, int scroll_only)
+ 	if (data->lineflag == LINE_SEL_RIGHT_LEFT && oy == data->endsely)
+ 		window_copy_other_end(wme);
+ 
+-	if (scroll_only && options_get_number(oo, "mode-keys") == MODEKEY_VI) {
++	if (scroll_only && data->screen.sel == NULL &&
++	    options_get_number(oo, "mode-keys") == MODEKEY_VI) {
+ 		if (data->cy > 0)
+ 			window_copy_update_cursor(wme, data->cx, data->cy - 1);
+ 	}
+-- 
+2.56.0
+
