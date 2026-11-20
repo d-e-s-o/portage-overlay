@@ -1,0 +1,13 @@
+diff --git a/content/browser/webid/federated_auth_request_impl.cc b/content/browser/webid/federated_auth_request_impl.cc
+index 8f833e..db5b19 100644
+--- a/content/browser/webid/federated_auth_request_impl.cc
++++ b/content/browser/webid/federated_auth_request_impl.cc
+@@ -2380,7 +2380,7 @@ void FederatedAuthRequestImpl::ShowModalDialog(DialogType dialog_type,
+   // dialog?
+   dialog_type_ = dialog_type;
+   config_url_ = idp_config_url;
+-  UMA_HISTOGRAM_ENUMERATION("Blink.FedCm.Popup.DialogType", dialog_type_);
++  UMA_HISTOGRAM_ENUMERATION("Blink.FedCm.Popup.DialogType", dialog_type_, 9);
+ 
+   WebContents* web_contents = request_dialog_controller_->ShowModalDialog(
+       url_to_show, rp_mode_,

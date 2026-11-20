@@ -1,9 +1,9 @@
 --- chromium-118.0.5993.54/media/filters/ffmpeg_demuxer.cc.orig	2023-10-04 23:53:53.691762700 +0200
 +++ chromium-118.0.5993.54/media/filters/ffmpeg_demuxer.cc	2023-10-08 16:56:57.616681160 +0200
-@@ -401,7 +401,11 @@ void FFmpegDemuxerStream::EnqueuePacket(ScopedAVPacket packet) {
-
-   scoped_refptr<DecoderBuffer> buffer;
-
+@@ -398,7 +398,11 @@
+     // TODO(crbug.com/1471504): This is now broken without side data; remove.
+     buffer = DecoderBuffer::CopyFrom(packet->data, packet->size);
+   } else {
 +#if defined FF_API_BUFFER_SIZE_T && ! FF_API_BUFFER_SIZE_T
      size_t side_data_size = 0;
 +#else
@@ -11,7 +11,7 @@
 +#endif
      uint8_t* side_data = av_packet_get_side_data(
          packet.get(), AV_PKT_DATA_MATROSKA_BLOCKADDITIONAL, &side_data_size);
-
+ 
 @@ -461,7 +465,11 @@
                                         packet->size - data_offset);
      }
