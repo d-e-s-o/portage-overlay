@@ -34,3 +34,16 @@ index 30e73a..af3fb2 100644
  	IFUP_UP,
  	IFUP_LINK,
  	IFUP_ADDR
+diff --git a/src/specials.c b/src/specials.c
+index 17d413..44640f 100644
+--- a/src/specials.c
++++ b/src/specials.c
+@@ -416,7 +416,7 @@ void new_graph(struct text_object *obj, char *buf, int buf_max_size, double val)
+ 						sizeof(double));
+ 			}
+ 		}
+-		s->graph = graph;
++		s->graph = (void *)graph;
+ 		s->graph_allocated = s->graph_width;
+ 	}
+ 	s->height = g->height;
