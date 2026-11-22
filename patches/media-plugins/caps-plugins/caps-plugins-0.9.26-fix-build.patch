@@ -1,0 +1,12 @@
+diff --git a/basics.h b/basics.h
+index ccf37b..ffe918 100644
+--- a/basics.h
++++ b/basics.h
+@@ -40,6 +40,7 @@
+ 
+ #include <stdlib.h>
+ #include <string.h>
++#include <stdint.h>
+ 
+ #include <math.h>
+ #include <float.h>
