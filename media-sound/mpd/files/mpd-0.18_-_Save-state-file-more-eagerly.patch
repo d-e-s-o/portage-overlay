@@ -1,0 +1,99 @@
+From f5161c28c1c5d95c872659046f7124ddefb5209a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20M=C3=BCller?= <deso@posteo.net>
+Date: Wed, 14 May 2025 19:44:56 -0700
+Subject: [PATCH] Save state file more eagerly
+
+We built some infrastructure that informs the user about the currently
+playing song based on the state file that MPD writes out. Unfortunately,
+this state file is updated only periodically, but not immediately in
+response to song changes, causing an undesirable delay.
+To fix this issue, this change makes sure to write out said state file
+eagerly when the currently playing song changed.
+---
+ src/Main.cxx          | 2 +-
+ src/Main.hxx          | 3 +++
+ src/PlayerControl.cxx | 4 ++++
+ src/Playlist.cxx      | 4 ++++
+ 4 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/src/Main.cxx b/src/Main.cxx
+index b45e2c..41446b 100644
+--- a/src/Main.cxx
++++ b/src/Main.cxx
+@@ -104,7 +104,7 @@ EventLoop *main_loop;
+ 
+ Instance *instance;
+ 
+-static StateFile *state_file;
++StateFile *state_file;
+ 
+ static bool
+ glue_daemonize_init(const struct options *options, Error &error)
+diff --git a/src/Main.hxx b/src/Main.hxx
+index a8ec18..838de3 100644
+--- a/src/Main.hxx
++++ b/src/Main.hxx
+@@ -23,6 +23,7 @@
+ class ThreadId;
+ class EventLoop;
+ struct Instance;
++struct StateFile;
+ 
+ extern ThreadId main_thread;
+ 
+@@ -30,6 +31,8 @@ extern EventLoop *main_loop;
+ 
+ extern Instance *instance;
+ 
++extern StateFile *state_file;
++
+ /**
+  * A entry point for application.
+  * On non-Windows platforms this is called directly from main()
+diff --git a/src/PlayerControl.cxx b/src/PlayerControl.cxx
+index f18087..5e7f62 100644
+--- a/src/PlayerControl.cxx
++++ b/src/PlayerControl.cxx
+@@ -22,6 +22,8 @@
+ #include "Idle.hxx"
+ #include "Song.hxx"
+ #include "DecoderControl.hxx"
++#include "Main.hxx"
++#include "StateFile.hxx"
+ 
+ #include <cmath>
+ 
+@@ -140,6 +142,8 @@ PlayerControl::SetPause(bool pause_flag)
+ 	}
+ 
+ 	Unlock();
++
++  state_file->Write();
+ }
+ 
+ void
+diff --git a/src/Playlist.cxx b/src/Playlist.cxx
+index 526f35..326c30 100644
+--- a/src/Playlist.cxx
++++ b/src/Playlist.cxx
+@@ -25,6 +25,8 @@
+ #include "tag/Tag.hxx"
+ #include "Idle.hxx"
+ #include "Log.hxx"
++#include "Main.hxx"
++#include "StateFile.hxx"
+ 
+ #include <assert.h>
+ 
+@@ -147,6 +149,8 @@ playlist::UpdateQueuedSong(PlayerControl &pc, const Song *prev)
+ 		else
+ 			queued = next_order;
+ 	}
++
++  state_file->Write();
+ }
+ 
+ void
+-- 
+2.56.0
+

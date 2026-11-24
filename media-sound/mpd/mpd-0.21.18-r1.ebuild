@@ -116,6 +116,8 @@ BDEPEND=">=dev-build/meson-0.49.2
 
 PATCHES=(
 	"${FILESDIR}"/${PN}-0.18.conf.patch
+	"${FILESDIR}"/${PN}-0.21_-_fix_build_errors.patch
+	"${FILESDIR}"/${PN}-0.21_-_Save-state-file-more-eagerly.patch
 )
 
 pkg_setup() {

@@ -1,0 +1,12 @@
+diff --git a/src/UpdateDatabase.cxx b/src/UpdateDatabase.cxx
+index 5dd2bb..6c8da9 100644
+--- a/src/UpdateDatabase.cxx
++++ b/src/UpdateDatabase.cxx
+@@ -27,6 +27,7 @@
+ 
+ #include <assert.h>
+ #include <stddef.h>
++#include <stdint.h>
+ 
+ void
+ delete_song(Directory &dir, Song *del)
