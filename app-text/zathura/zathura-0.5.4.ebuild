@@ -15,7 +15,6 @@ if [[ ${PV} == *9999 ]]; then
 else
 	SRC_URI="
 		https://github.com/pwmt/zathura/archive/${PV}.tar.gz -> ${P}.tar.gz
-		https://cdn.turret.cyou/~turret/distfiles/${PN}/${P}-manpages.tar.xz
 	"
 	KEYWORDS="amd64 arm ~arm64 ~riscv x86 ~amd64-linux ~x86-linux"
 fi
@@ -70,5 +69,4 @@ src_test() {
 
 src_install() {
 	meson_src_install
-	[[ ${PV} != *9999 ]] && doman "${WORKDIR}"/man/zathura*
 }
