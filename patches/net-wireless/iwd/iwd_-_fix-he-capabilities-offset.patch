@@ -1,0 +1,13 @@
+diff --git a/src/ie.c b/src/ie.c
+index c8bb70..526faf 100644
+--- a/src/ie.c
++++ b/src/ie.c
+@@ -2711,7 +2711,7 @@ bool ie_validate_he_capabilities(const void *data, size_t len)
+ 	if (len < 22)
+ 		return false;
+ 
+-	width_set = bit_field((ptr + 7)[0], 1, 7);
++	width_set = bit_field((ptr + 6)[0], 1, 7);
+ 
+ 	/* B0 indicates support for 40MHz, but only in 2.4GHz band */
+ 	freq_2_4 = test_bit(&width_set, 0);
