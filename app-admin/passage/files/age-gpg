@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+real_args=("$@")
 # Array to hold arguments for the real `age`.
 args=()
 identity_file=""
@@ -21,13 +22,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -n "$identity_file" ]]; then
-    # If an identity argument was found, assume the corresponding file
-    # is GPG encrypted, decrypt it transparently, and pass it to `age`
-    # via stdin (this assumes no other `age` argument requires reading
-    # from stdin, which empirically seems to be the case).
-    gpg --decrypt "${identity_file}.gpg" 2> /dev/null | age "${args[@]}" -i -
-else
-    # No identity file specified, just call `age` normally.
-    exec age "${args[@]}"
+if [ -n "$identity_file" ]; then
+    if [ -f "${identity_file}.gpg" ]; then
+        # If an identity argument was found, assume the corresponding file
+        # is GPG encrypted, decrypt it transparently, and pass it to `age`
+        # via stdin (this assumes no other `age` argument requires reading
+        # from stdin, which empirically seems to be the case).
+        ident=$(gpg --decrypt "${identity_file}.gpg" 2> /dev/null)
+        if [ $? -eq 0 ]; then
+          echo "$ident" | age "${args[@]}" -i -
+          exit $?
+        fi
+    fi
 fi
+
+exec age "${real_args[@]}"
